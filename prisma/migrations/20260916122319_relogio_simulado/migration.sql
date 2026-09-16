@@ -1,0 +1,6 @@
+-- CreateTable
+CREATE TABLE "RelogioSimulado" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT DEFAULT 1,
+    "offsetMin" INTEGER NOT NULL DEFAULT 0,
+    "atualizadoEm" DATETIME NOT NULL
+);

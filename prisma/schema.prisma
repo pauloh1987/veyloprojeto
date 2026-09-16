@@ -1,0 +1,224 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Plano {
+  SOLO
+  EQUIPE
+}
+
+enum PapelUsuario {
+  DONO
+  PROFISSIONAL
+}
+
+enum StatusAgendamento {
+  PENDENTE
+  CONFIRMADO
+  ATENDIDO
+  FALTOU
+  CANCELADO
+}
+
+enum OrigemAgendamento {
+  LINK
+  MANUAL
+}
+
+enum TipoMensagem {
+  CONFIRMACAO
+  LEMBRETE
+  CONVITE_RETORNO
+}
+
+enum CanalMensagem {
+  SMS
+  EMAIL
+}
+
+enum StatusMensagem {
+  PENDENTE
+  ENVIADA
+  ERRO
+  CANCELADA
+}
+
+model Estabelecimento {
+  id                 String   @id @default(cuid())
+  nome               String
+  slug               String   @unique
+  telefone           String
+  endereco           String
+  fuso               String   @default("America/Recife")
+  corDestaque        String   @default("#0EA5A0")
+  foto               String?
+  plano              Plano    @default(SOLO)
+  antecedenciaMinMin Int      @default(120)
+  criadoEm           DateTime @default(now())
+
+  usuarios      Usuario[]
+  profissionais Profissional[]
+  servicos      Servico[]
+  clientes      Cliente[]
+  agendamentos  Agendamento[]
+}
+
+model Usuario {
+  id                String        @id @default(cuid())
+  nome              String
+  email             String        @unique
+  senhaHash         String
+  papel             PapelUsuario
+  estabelecimentoId String
+  estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  profissionalId    String?       @unique
+  profissional      Profissional? @relation(fields: [profissionalId], references: [id], onDelete: SetNull)
+  criadoEm          DateTime      @default(now())
+  sessoes           Sessao[]
+
+  @@index([estabelecimentoId])
+}
+
+model Sessao {
+  id        String   @id @default(cuid())
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  criadaEm  DateTime @default(now())
+  expiraEm  DateTime
+
+  @@index([usuarioId])
+}
+
+model Profissional {
+  id                String   @id @default(cuid())
+  nome              String
+  foto              String?
+  ativo             Boolean  @default(true)
+  estabelecimentoId String
+  estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+
+  usuario      Usuario?
+  servicos     ServicoProfissional[]
+  horarios     HorarioFuncionamento[]
+  bloqueios    Bloqueio[]
+  agendamentos Agendamento[]
+
+  @@index([estabelecimentoId])
+}
+
+model Servico {
+  id                String   @id @default(cuid())
+  nome              String
+  descricao         String
+  duracaoMin        Int
+  precoCentavos     Int
+  cor               String
+  ativo             Boolean  @default(true)
+  estabelecimentoId String
+  estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+
+  profissionais ServicoProfissional[]
+  agendamentos  Agendamento[]
+
+  @@index([estabelecimentoId])
+}
+
+model ServicoProfissional {
+  servicoId      String
+  profissionalId String
+  servico        Servico      @relation(fields: [servicoId], references: [id], onDelete: Cascade)
+  profissional   Profissional @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
+
+  @@id([servicoId, profissionalId])
+}
+
+model HorarioFuncionamento {
+  id             String  @id @default(cuid())
+  profissionalId String
+  profissional   Profissional @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
+  diaSemana      Int
+  abre           String
+  fecha          String
+  almocoInicio   String?
+  almocoFim      String?
+  fechado        Boolean @default(false)
+
+  @@unique([profissionalId, diaSemana])
+}
+
+model Bloqueio {
+  id             String   @id @default(cuid())
+  profissionalId String
+  profissional   Profissional @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
+  inicio         DateTime
+  fim            DateTime
+  motivo         String
+
+  @@index([profissionalId, inicio, fim])
+}
+
+model Cliente {
+  id                String   @id @default(cuid())
+  nome              String
+  telefone          String
+  email             String?
+  observacoes       String?
+  estabelecimentoId String
+  estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  agendamentos      Agendamento[]
+  criadoEm          DateTime @default(now())
+
+  @@index([estabelecimentoId])
+}
+
+model Agendamento {
+  id                String            @id @default(cuid())
+  estabelecimentoId String
+  estabelecimento   Estabelecimento   @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  clienteId         String
+  cliente           Cliente           @relation(fields: [clienteId], references: [id])
+  profissionalId    String
+  profissional      Profissional      @relation(fields: [profissionalId], references: [id])
+  servicoId         String
+  servico           Servico           @relation(fields: [servicoId], references: [id])
+  inicio            DateTime
+  fim               DateTime
+  status            StatusAgendamento @default(PENDENTE)
+  origem            OrigemAgendamento
+  observacao        String?
+  tokenPublico      String            @unique @default(cuid())
+  criadoEm          DateTime          @default(now())
+  atualizadoEm      DateTime          @updatedAt
+
+  mensagens Mensagem[]
+
+  @@index([profissionalId, inicio])
+  @@index([estabelecimentoId, inicio])
+}
+
+/** Linha única (id fixo) usada pelo botão "Simular passagem do tempo" da tela de Mensagens:
+ * acumula um deslocamento aplicado ao instante atual só para fins de processamento da fila
+ * de mensagens, sem afetar o motor de disponibilidade nem o restante do sistema. */
+model RelogioSimulado {
+  id           Int      @id @default(1)
+  offsetMin    Int      @default(0)
+  atualizadoEm DateTime @updatedAt
+}
+
+model Mensagem {
+  id            String         @id @default(cuid())
+  agendamentoId String
+  agendamento   Agendamento    @relation(fields: [agendamentoId], references: [id], onDelete: Cascade)
+  tipo          TipoMensagem
+  canal         CanalMensagem
+  status        StatusMensagem @default(PENDENTE)
+  texto         String
+  agendadaPara  DateTime
+  enviadaEm     DateTime?
+
+  @@index([status, agendadaPara])
+}
