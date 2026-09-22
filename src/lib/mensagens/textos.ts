@@ -19,6 +19,11 @@ export function textoConfirmacao(dados: DadosMensagem): string {
   return `${dados.nomeEstabelecimento}: seu horário de ${dados.nomeServico} foi agendado para ${quando}. Responda esta mensagem para confirmar ou cancelar.`;
 }
 
+export function textoPedidoRecebido(dados: DadosMensagem): string {
+  const quando = dataHoraFormatada(dados.inicio, dados.fuso);
+  return `${dados.nomeEstabelecimento}: recebemos seu pedido de horário para ${dados.nomeServico} em ${quando}. Vamos confirmar em breve — responda esta mensagem se precisar cancelar.`;
+}
+
 export function textoLembrete(dados: DadosMensagem): string {
   const quando = dataHoraFormatada(dados.inicio, dados.fuso);
   return `${dados.nomeEstabelecimento}: lembrando do seu horário de ${dados.nomeServico} em ${quando}. Responda esta mensagem para confirmar ou cancelar.`;

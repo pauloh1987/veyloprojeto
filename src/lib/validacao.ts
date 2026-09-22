@@ -72,6 +72,7 @@ export const configuracoesSchema = z.object({
   endereco: z.string().trim().min(4, "Informe o endereço."),
   corDestaque: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Cor inválida."),
   antecedenciaMinMin: z.coerce.number().int().min(0).max(1440),
+  plano: z.enum(["SOLO", "EQUIPE"]),
 });
 export type ConfiguracoesInput = z.infer<typeof configuracoesSchema>;
 
@@ -107,3 +108,35 @@ export const alternarArquivadoServicoSchema = z.object({
 });
 
 export const idSchema = z.string().min(1, "Identificador inválido.");
+
+const REGEX_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const PALAVRAS_RESERVADAS = new Set([
+  "login", "cadastro", "painel", "api", "_next", "favicon.ico", "icon.png", "admin",
+]);
+
+export const cadastroSchema = z.object({
+  nomeEstabelecimento: z.string().trim().min(2, "Informe o nome do seu negócio.").max(80),
+  slug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(3, "Pelo menos 3 caracteres.")
+    .max(50)
+    .regex(REGEX_SLUG, "Use só letras minúsculas, números e hífen (ex: studio-da-ana).")
+    .refine((v) => !PALAVRAS_RESERVADAS.has(v), "Esse endereço é reservado. Escolha outro."),
+  plano: z.enum(["SOLO", "EQUIPE"]),
+  nomeDono: z.string().trim().min(2, "Informe seu nome.").max(80),
+  email: z.string().trim().toLowerCase().min(1, "Informe o e-mail.").email("E-mail inválido."),
+  senha: z.string().min(6, "A senha precisa ter pelo menos 6 caracteres."),
+  telefone: telefoneSchema,
+  endereco: z.string().trim().min(4, "Informe o endereço.").max(200),
+});
+export type CadastroInput = z.infer<typeof cadastroSchema>;
+
+export const novoProfissionalSchema = z.object({
+  nome: z.string().trim().min(2, "Informe o nome.").max(80),
+  criarLogin: z.coerce.boolean().default(false),
+  email: z.string().trim().toLowerCase().email("E-mail inválido.").optional().or(z.literal("")),
+  senha: z.string().min(6, "A senha precisa ter pelo menos 6 caracteres.").optional().or(z.literal("")),
+});
+export type NovoProfissionalInput = z.infer<typeof novoProfissionalSchema>;

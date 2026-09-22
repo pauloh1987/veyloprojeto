@@ -1,8 +1,8 @@
-import type { OrigemAgendamento } from "@prisma/client";
+import type { OrigemAgendamento, StatusAgendamento } from "@prisma/client";
 import { db } from "@/lib/db";
 import { paraDataYMD } from "@/lib/tz";
 import { criarMensagensParaAgendamento } from "@/lib/mensagens/fila";
-import { ConflitoDeHorarioError, NaoEncontradoError } from "@/lib/erros";
+import { ConflitoDeHorarioError, NaoEncontradoError, ValidacaoError } from "@/lib/erros";
 import { calcularHorariosDisponiveisNoBanco } from "./consultarDisponibilidade";
 
 export interface CriarAgendamentoInput {
@@ -14,6 +14,12 @@ export interface CriarAgendamentoInput {
   origem: OrigemAgendamento;
   observacao?: string | null;
 }
+
+// Proteções contra abuso do link público (agendar só de brincadeira e não aparecer).
+// Não se aplicam a agendamento manual (origem MANUAL): aí é a própria equipe decidindo.
+const LIMITE_FALTAS_PARA_EXIGIR_CONFIRMACAO = 2;
+const LIMITE_AGENDAMENTOS_FUTUROS_POR_CLIENTE = 3;
+const COOLDOWN_ENTRE_AGENDAMENTOS_MIN = 1;
 
 /**
  * Cria um agendamento revalidando a disponibilidade dentro de uma transação, contra o
@@ -44,6 +50,11 @@ export async function criarAgendamento(input: CriarAgendamentoInput) {
   // pensada para o link público — um encaixe de última hora é uma decisão da profissional.
   const antecedenciaMinMin = input.origem === "MANUAL" ? 0 : estabelecimento.antecedenciaMinMin;
 
+  const statusInicial: StatusAgendamento =
+    input.origem === "LINK"
+      ? await avaliarAbusoEDefinirStatus(input.clienteId, estabelecimento.id)
+      : "CONFIRMADO";
+
   const agendamento = await db.$transaction(async (tx) => {
     const slotsDisponiveis = await calcularHorariosDisponiveisNoBanco(tx, {
       profissionalId: input.profissionalId,
@@ -64,7 +75,7 @@ export async function criarAgendamento(input: CriarAgendamentoInput) {
         clienteId: input.clienteId,
         inicio: input.inicio,
         fim,
-        status: "CONFIRMADO",
+        status: statusInicial,
         origem: input.origem,
         observacao: input.observacao ?? null,
       },
@@ -73,4 +84,48 @@ export async function criarAgendamento(input: CriarAgendamentoInput) {
 
   await criarMensagensParaAgendamento(agendamento.id);
   return agendamento;
+}
+
+/**
+ * Contra "agendar só de sacanagem e não aparecer": limita quantos agendamentos futuros um
+ * mesmo cliente pode ter em aberto, exige um intervalo mínimo entre uma tentativa e outra, e
+ * manda para revisão (PENDENTE em vez de CONFIRMADO) quem já faltou demais antes. Nada disso
+ * bloqueia definitivamente — a profissional sempre pode confirmar manualmente.
+ */
+async function avaliarAbusoEDefinirStatus(clienteId: string, estabelecimentoId: string): Promise<StatusAgendamento> {
+  const agora = new Date();
+
+  const [totalFuturos, ultimoAgendamento, totalFaltas] = await Promise.all([
+    db.agendamento.count({
+      where: {
+        clienteId,
+        estabelecimentoId,
+        status: { in: ["PENDENTE", "CONFIRMADO"] },
+        inicio: { gte: agora },
+      },
+    }),
+    db.agendamento.findFirst({
+      where: { clienteId, estabelecimentoId },
+      orderBy: { criadoEm: "desc" },
+      select: { criadoEm: true },
+    }),
+    db.agendamento.count({
+      where: { clienteId, estabelecimentoId, status: "FALTOU" },
+    }),
+  ]);
+
+  if (totalFuturos >= LIMITE_AGENDAMENTOS_FUTUROS_POR_CLIENTE) {
+    throw new ValidacaoError(
+      `Você já tem ${totalFuturos} agendamentos marcados. Cancele algum antes de marcar outro.`,
+    );
+  }
+
+  if (ultimoAgendamento) {
+    const minutosDesdeUltimo = (agora.getTime() - ultimoAgendamento.criadoEm.getTime()) / 60_000;
+    if (minutosDesdeUltimo < COOLDOWN_ENTRE_AGENDAMENTOS_MIN) {
+      throw new ValidacaoError("Aguarde um instante antes de marcar outro horário.");
+    }
+  }
+
+  return totalFaltas >= LIMITE_FALTAS_PARA_EXIGIR_CONFIRMACAO ? "PENDENTE" : "CONFIRMADO";
 }

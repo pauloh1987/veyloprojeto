@@ -1,9 +1,11 @@
 # Veylo Agenda
 
-Protótipo funcional de um SaaS de agendamento para manicures, barbeiros e profissionais de
-beleza no Brasil. Área pública para a cliente marcar um horário sozinha (o link que a
-profissional divulga no Instagram) e um painel para a profissional tocar o dia a dia:
-agenda, clientes, serviços, horários, bloqueios, mensagens e relatório.
+SaaS de agendamento para manicures, barbeiros e profissionais de beleza no Brasil, com
+cadastro próprio — qualquer negócio pode criar a conta sozinho em `/cadastro`, sem precisar
+de ninguém mexendo direto no banco. Três frentes: uma área pública para a cliente marcar um
+horário sozinha (o link que a profissional divulga no Instagram), um painel para o dia a dia
+do negócio (agenda, clientes, serviços, horários, bloqueios, mensagens, relatório), e o
+próprio cadastro self-service que cria o estabelecimento na hora.
 
 Feito para rodar 100% local e offline — sem Docker, sem chave de API, sem serviço externo.
 
@@ -52,6 +54,26 @@ Links públicos de agendamento (não precisam de login):
 - `http://localhost:3000/barbearia-norte`
 
 A tela inicial (`/`) lista esses dois links para facilitar uma demonstração.
+
+## Cadastro de um negócio novo
+
+`/cadastro` — qualquer pessoa cria a própria conta: nome do negócio, endereço do link
+público, plano (Solo ou Equipe), e os dados de quem é a dona. Ao enviar, o sistema:
+
+1. cria o `Estabelecimento` com o slug escolhido (rejeita se já existir);
+2. cria a primeira `Profissional` (a própria dona) com uma semana padrão de horário de
+   funcionamento já configurada (segunda a sábado, 09h–18h, almoço 12h–13h — dá pra editar
+   depois em Horários);
+3. cria o `Usuario` (papel Dono) com a senha já com hash;
+4. já loga automaticamente e manda pro painel.
+
+De lá, o próximo passo natural é cadastrar os serviços (`/painel/servicos`) — sem nenhum
+serviço, o link público mostra corretamente "nenhum serviço disponível", sem quebrar.
+
+**Profissionais** (`/painel/profissionais`, só a dona vê) — cadastra mais gente (plano
+Equipe) ou reativa/desativa quem já existe. O plano Solo trava em 1 profissional ativa por
+vez — pra passar disso, muda o plano em Configurações. Ao criar, dá pra já deixar um login
+pronto (e-mail + senha provisória) pra essa profissional entrar sozinha depois.
 
 ## Como está organizado
 
@@ -147,6 +169,15 @@ adapter, como o plano Equipe decide entre visão de semana e visão por profissi
 
 ## O que ficou de fora
 
+- **Sem cobrança**: o cadastro é livre e o plano (Solo/Equipe) troca na hora em
+  Configurações, sem nenhuma integração de pagamento/assinatura — é o próximo passo óbvio
+  antes de cobrar de verdade de alguém.
+- **Sem convite por e-mail**: ao cadastrar uma profissional com login, a senha provisória
+  precisa ser combinada manualmente (a tela mostra um aviso) — não existe envio de e-mail de
+  convite de verdade, pelo mesmo motivo de rodar 100% offline sem provedor externo.
+- **Sem painel de administração da plataforma**: não há uma tela pra ver todos os
+  estabelecimentos cadastrados de uma vez (útil pra quem opera o SaaS, não pra quem usa) —
+  hoje isso só dá pra ver direto no banco.
 - **Canal de mensagem único**: todo lembrete/confirmação sai como "SMS" — o campo `canal`
   existe no banco e a interface `Notificador` já suporta e-mail, mas não há um segundo canal
   de verdade implementado (não fazia diferença nenhuma tela, já que nada é enviado de fato).

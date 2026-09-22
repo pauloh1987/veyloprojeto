@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { notificadorPadrao } from "./notificador";
-import { textoConfirmacao, textoLembrete } from "./textos";
+import { textoConfirmacao, textoLembrete, textoPedidoRecebido } from "./textos";
 
 const MINUTOS_LEMBRETE_ANTES = 24 * 60;
 const AVANCO_SIMULACAO_MIN = 25 * 60;
@@ -21,7 +21,7 @@ export async function criarMensagensParaAgendamento(agendamentoId: string): Prom
     fuso: agendamento.estabelecimento.fuso,
   };
 
-  const textoConf = textoConfirmacao(dadosTexto);
+  const textoConf = agendamento.status === "PENDENTE" ? textoPedidoRecebido(dadosTexto) : textoConfirmacao(dadosTexto);
   const resultadoConf = await notificadorPadrao.enviar({
     canal: "SMS",
     destinatario: agendamento.cliente.telefone,

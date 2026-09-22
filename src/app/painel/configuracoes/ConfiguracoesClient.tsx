@@ -6,6 +6,7 @@ import { salvarConfiguracoes } from "@/lib/acoes/configuracoes";
 import type { EstadoAcao } from "@/lib/acoes/agendamentos";
 import { Button } from "@/components/ui/Button";
 import { Campo, Input, Rotulo } from "@/components/ui/Campo";
+import { cn } from "@/lib/cn";
 
 const ESTADO_INICIAL: EstadoAcao = {};
 
@@ -25,6 +26,7 @@ export function ConfiguracoesClient({
 }) {
   const [estado, acao] = useActionState(salvarConfiguracoes, ESTADO_INICIAL);
   const [copiado, setCopiado] = useState(false);
+  const [plano, setPlano] = useState<"SOLO" | "EQUIPE">(estabelecimento.plano === "EQUIPE" ? "EQUIPE" : "SOLO");
 
   async function copiarLink() {
     try {
@@ -71,6 +73,33 @@ export function ConfiguracoesClient({
         <Campo rotulo="Endereço" htmlFor="endereco">
           <Input id="endereco" name="endereco" required defaultValue={estabelecimento.endereco} />
         </Campo>
+
+        <div>
+          <span className="mb-1.5 block text-sm font-medium text-text">Plano</span>
+          <div className="grid grid-cols-2 gap-2.5">
+            {(
+              [
+                { valor: "SOLO" as const, titulo: "Solo", desc: "Você atende sozinha." },
+                { valor: "EQUIPE" as const, titulo: "Equipe", desc: "Você e outras profissionais." },
+              ]
+            ).map((op) => (
+              <button
+                key={op.valor}
+                type="button"
+                onClick={() => setPlano(op.valor)}
+                className={cn(
+                  "rounded-xl border p-3.5 text-left transition-colors",
+                  plano === op.valor ? "border-accent bg-surface-2" : "border-border-strong bg-surface",
+                )}
+              >
+                <p className="font-semibold text-text">{op.titulo}</p>
+                <p className="text-xs text-text-muted">{op.desc}</p>
+              </button>
+            ))}
+          </div>
+          <input type="hidden" name="plano" value={plano} />
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Rotulo htmlFor="corDestaque">Cor de destaque</Rotulo>

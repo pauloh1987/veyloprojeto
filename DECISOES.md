@@ -3,6 +3,34 @@
 Registro das decisões tomadas de forma autônoma durante a construção, sempre que a
 especificação não determinava um caminho exato. Organizado por área.
 
+## Cadastro self-service (virar SaaS de vários clientes)
+
+- **Primeira profissional criada automaticamente no cadastro**: quem se cadastra vira ao
+  mesmo tempo `Usuario` (papel Dono) e `Profissional` (o próprio nome), já com uma semana
+  padrão de horário configurada. Sem isso, um negócio recém-criado cairia num beco sem saída
+  — sem profissional, não dá pra cadastrar serviço nem aparecer nada no link público.
+- **Limite do plano Solo é 1 profissional ativa, reforçado no servidor** (não só escondendo
+  botão): tanto criar quanto reativar uma profissional checam a contagem atual contra o
+  plano. É a única regra de "plano" que existe hoje — não tem cobrança nem trava por
+  quantidade de agendamentos/mensagens, só essa, porque é a única que o modelo de dados já
+  diferenciava (Solo = agenda de coluna única, Equipe = grade por profissional).
+- **Trocar de plano é self-service e imediato** (um clique em Configurações), sem
+  aprovação nem cobrança — faz sentido para o estágio atual (sem billing implementado);
+  vai precisar de uma tela de confirmação/pagamento quando existir cobrança de verdade.
+- **Proteção contra abuso no link público** (a pedido do usuário — evitar que alguém marque
+  "de sacanagem" e não apareça): três regras, só pra `origem: LINK` (agendamento manual da
+  equipe nunca é bloqueado por elas):
+  - máximo de 3 agendamentos futuros em aberto por telefone, por estabelecimento;
+  - intervalo mínimo de 1 minuto entre uma tentativa e a próxima do mesmo telefone;
+  - telefone com 2 ou mais faltas (`FALTOU`) nesse estabelecimento cai como `PENDENTE` em vez
+    de `CONFIRMADO` automaticamente — a mensagem muda de tom também ("recebemos seu pedido"
+    em vez de "foi agendado"), pra não prometer uma confirmação que ainda depende da dona
+    aprovar. Os números (3, 1 minuto, 2 faltas) são um ponto de partida razoável, não uma
+    medição — dá pra ajustar depois vendo o uso real.
+- **Slug validado contra uma lista de palavras reservadas** (`login`, `cadastro`, `painel`,
+  `api`, etc.) além do `@unique` do banco — sem isso, um negócio poderia escolher um slug que
+  colide com uma rota do próprio sistema.
+
 ## Ambiente
 
 - **Git**: o repositório git já presente no ambiente (`git rev-parse --show-toplevel`) aponta

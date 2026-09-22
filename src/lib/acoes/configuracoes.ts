@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { exigirDono } from "@/lib/auth";
 import { configuracoesSchema } from "@/lib/validacao";
-import { mensagemSeguraDeErro } from "@/lib/erros";
+import { mensagemSeguraDeErro, ValidacaoError } from "@/lib/erros";
 import type { EstadoAcao } from "./agendamentos";
 
 export async function salvarConfiguracoes(_estadoAnterior: EstadoAcao, formData: FormData): Promise<EstadoAcao> {
@@ -17,11 +17,23 @@ export async function salvarConfiguracoes(_estadoAnterior: EstadoAcao, formData:
       endereco: formData.get("endereco"),
       corDestaque: formData.get("corDestaque"),
       antecedenciaMinMin: formData.get("antecedenciaMinMin"),
+      plano: formData.get("plano"),
     });
     if (!resultado.success) {
       return { erro: resultado.error.issues[0]?.message ?? "Dados inválidos." };
     }
     const dados = resultado.data;
+
+    if (dados.plano === "SOLO") {
+      const totalAtivos = await db.profissional.count({
+        where: { estabelecimentoId: usuario.estabelecimentoId, ativo: true },
+      });
+      if (totalAtivos > 1) {
+        throw new ValidacaoError(
+          "Você tem mais de uma profissional ativa — desative as demais em Profissionais antes de mudar para o plano Solo.",
+        );
+      }
+    }
 
     await db.estabelecimento.update({
       where: { id: usuario.estabelecimentoId },
@@ -31,6 +43,7 @@ export async function salvarConfiguracoes(_estadoAnterior: EstadoAcao, formData:
         endereco: dados.endereco,
         corDestaque: dados.corDestaque,
         antecedenciaMinMin: dados.antecedenciaMinMin,
+        plano: dados.plano,
       },
     });
 

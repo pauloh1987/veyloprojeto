@@ -63,3 +63,19 @@ Protótipo completo de SaaS de agendamento para profissionais de beleza (Brasil)
 - [x] README.md final
 - [x] DECISOES.md revisado
 - [x] Banco reseedado no final para remover dados de teste da própria verificação
+
+## Fase 10 — Virar SaaS self-service (a pedido do usuário, pós-entrega inicial)
+- [x] `/cadastro` — qualquer negócio cria a própria conta (estabelecimento + dono + 1ª
+      profissional + horário padrão), já loga e manda pro painel
+- [x] `/painel/profissionais` — cadastrar, ativar/desativar profissionais; opção de já criar
+      login (e-mail + senha) pra elas entrarem sozinhas
+- [x] Limite do plano Solo (1 profissional ativa) reforçado no servidor, com upgrade pra
+      Equipe direto em Configurações
+- [x] Landing page e login com CTA de cadastro
+- [x] Testado no navegador de ponta a ponta: cadastro → painel → limite de plano → upgrade →
+      2ª profissional → link público reagindo a zero serviços sem quebrar
+- [x] `npm run build` + testes passando
+- [ ] Deploy no Netlify (site `veylo-agenda-286`, conta separada): funciona pra navegação e
+      leitura pública; login/painel não são confiáveis lá porque o banco é um arquivo SQLite
+      por instância serverless — precisa de banco hospedado (Turso) pra ficar de verdade
+      utilizável em produção. Ver `DECISOES.md` e o guia do produto publicado.

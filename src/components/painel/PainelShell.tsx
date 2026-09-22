@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import {
   CalendarDays, ListChecks, Users, MessageSquare, BarChart3, Scissors, Clock, Ban,
-  Settings, LogOut, Menu, X,
+  Settings, LogOut, Menu, X, UserRound,
 } from "lucide-react";
 import type { SessaoUsuario } from "@/lib/auth";
 import { sair } from "@/lib/acoes/auth";
@@ -28,6 +28,7 @@ const NAV_PRINCIPAL: ItemNav[] = [
 
 const NAV_DONO_EXTRA: ItemNav[] = [
   { href: "/painel/relatorio", rotulo: "Relatório", Icone: BarChart3 },
+  { href: "/painel/profissionais", rotulo: "Profissionais", Icone: UserRound },
   { href: "/painel/servicos", rotulo: "Serviços", Icone: Scissors },
   { href: "/painel/horarios", rotulo: "Horários", Icone: Clock },
   { href: "/painel/bloqueios", rotulo: "Bloqueios", Icone: Ban },

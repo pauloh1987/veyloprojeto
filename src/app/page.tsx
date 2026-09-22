@@ -23,9 +23,15 @@ export default async function PaginaInicial() {
       </p>
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-        <LinkButton href="/login" size="lg">
-          Entrar no painel
+        <LinkButton href="/cadastro" size="lg">
+          Criar minha conta grátis
         </LinkButton>
+        <Link
+          href="/login"
+          className="flex h-14 min-w-14 items-center justify-center rounded-xl border border-white/25 px-6 text-base font-semibold text-white hover:bg-white/10"
+        >
+          Entrar no painel
+        </Link>
       </div>
 
       {estabelecimentos.length > 0 && (
