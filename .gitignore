@@ -38,6 +38,9 @@ yarn-error.log*
 /prisma/dev.db
 /prisma/dev.db-journal
 
+# client Prisma gerado para o Postgres de produção (gerado no build, não versionado)
+/src/generated/prisma-pg
+
 # vercel
 .vercel
 

@@ -1,14 +1,11 @@
 import "dotenv/config";
-import { PrismaClient, type StatusAgendamento, type OrigemAgendamento } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import type { StatusAgendamento, OrigemAgendamento } from "@prisma/client";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
+import { db as prisma } from "../src/lib/db";
 import { hashSenha } from "../src/lib/senha";
 import { calcularHorariosDisponiveis, type ConfigDiaTrabalho, type FaixaHoraria } from "../src/lib/agenda/disponibilidade";
 import { paraDataYMD, somarDias, diaDaSemana } from "../src/lib/tz";
 import { textoConfirmacao, textoLembrete } from "../src/lib/mensagens/textos";
-
-const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? "file:./prisma/dev.db" });
-const prisma = new PrismaClient({ adapter });
 
 const FUSO = "America/Recife";
 
