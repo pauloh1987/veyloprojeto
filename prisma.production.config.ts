@@ -7,10 +7,11 @@ import { defineConfig } from "prisma/config";
 // para o runtime da aplicação, então quem aplica o schema é o mecanismo próprio dela
 // (netlify/database/migrations), automaticamente antes do build rodar. `prisma generate`
 // não precisa de conexão viva, por isso usar process.env direto (sem o helper `env()`, que
-// falharia ao carregar o config sem NETLIFY_DATABASE_URL, inexistente localmente) é seguro.
+// falharia ao carregar o config sem a variável) é seguro. O nome certo é NETLIFY_DB_URL —
+// não NETLIFY_DATABASE_URL — conferido no código-fonte de @netlify/database.
 export default defineConfig({
   schema: "prisma/schema.production.prisma",
   datasource: {
-    url: process.env.NETLIFY_DATABASE_URL ?? "",
+    url: process.env.NETLIFY_DB_URL ?? "",
   },
 });

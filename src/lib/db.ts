@@ -9,7 +9,9 @@ declare global {
 
 /**
  * Em produção (Netlify) o banco é o Postgres gerenciado (Netlify Database, injetado em
- * NETLIFY_DATABASE_URL) — schema dedicado em schema.production.prisma, client gerado à
+ * NETLIFY_DB_URL — não NETLIFY_DATABASE_URL, apesar do nome do pacote e de exemplos
+ * gerados por ele; conferido no código-fonte de @netlify/database) — schema dedicado em
+ * schema.production.prisma, client gerado à
  * parte em src/generated/prisma-pg (import tardio: esse módulo só existe depois do build
  * de produção rodar `prisma generate` contra aquele schema). Local e em testes, nada disso
  * entra em ação — continua o arquivo SQLite de sempre, sem exigir rede.
@@ -19,7 +21,7 @@ function resolverUrlBancoSqlite(): string {
 }
 
 function criarPrismaClient(): PrismaClient {
-  const urlPostgres = process.env.NETLIFY_DATABASE_URL;
+  const urlPostgres = process.env.NETLIFY_DB_URL;
   if (urlPostgres) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { PrismaClient: PrismaClientPg } = require("../generated/prisma-pg");
