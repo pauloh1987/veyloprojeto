@@ -18,6 +18,7 @@ export async function salvarConfiguracoes(_estadoAnterior: EstadoAcao, formData:
       corDestaque: formData.get("corDestaque"),
       antecedenciaMinMin: formData.get("antecedenciaMinMin"),
       plano: formData.get("plano"),
+      foto: formData.get("foto") ?? "",
     });
     if (!resultado.success) {
       return { erro: resultado.error.issues[0]?.message ?? "Dados inválidos." };
@@ -44,6 +45,7 @@ export async function salvarConfiguracoes(_estadoAnterior: EstadoAcao, formData:
         corDestaque: dados.corDestaque,
         antecedenciaMinMin: dados.antecedenciaMinMin,
         plano: dados.plano,
+        foto: dados.foto,
       },
     });
 

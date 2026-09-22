@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { exigirDono } from "@/lib/auth";
 import { hashSenha } from "@/lib/senha";
-import { novoProfissionalSchema, idSchema } from "@/lib/validacao";
+import { novoProfissionalSchema, atualizarComissaoSchema, idSchema } from "@/lib/validacao";
 import { criarHorariosPadrao } from "@/lib/agenda/horariosPadrao";
 import { mensagemSeguraDeErro, NaoAutorizadoError, ValidacaoError } from "@/lib/erros";
 import type { EstadoAcao } from "./agendamentos";
@@ -18,6 +18,7 @@ export async function criarProfissional(_estadoAnterior: EstadoAcao, formData: F
       criarLogin: formData.get("criarLogin") === "on",
       email: formData.get("email") || undefined,
       senha: formData.get("senha") || undefined,
+      comissaoPercentual: formData.get("comissaoPercentual") || undefined,
     });
     if (!resultado.success) {
       return { erro: resultado.error.issues[0]?.message ?? "Dados inválidos." };
@@ -48,7 +49,12 @@ export async function criarProfissional(_estadoAnterior: EstadoAcao, formData: F
 
     await db.$transaction(async (tx) => {
       const profissional = await tx.profissional.create({
-        data: { nome: dados.nome, ativo: true, estabelecimentoId: usuario.estabelecimentoId },
+        data: {
+          nome: dados.nome,
+          ativo: true,
+          estabelecimentoId: usuario.estabelecimentoId,
+          comissaoPercentual: dados.comissaoPercentual,
+        },
       });
       await criarHorariosPadrao(tx, profissional.id);
 
@@ -91,4 +97,34 @@ export async function alternarAtivoProfissional(profissionalIdBruto: string, ati
 
   await db.profissional.update({ where: { id: profissionalId }, data: { ativo } });
   revalidatePath("/painel/profissionais");
+}
+
+export async function atualizarComissaoProfissional(_estadoAnterior: EstadoAcao, formData: FormData): Promise<EstadoAcao> {
+  try {
+    const usuario = await exigirDono();
+
+    const resultado = atualizarComissaoSchema.safeParse({
+      profissionalId: formData.get("profissionalId"),
+      comissaoPercentual: formData.get("comissaoPercentual") || undefined,
+    });
+    if (!resultado.success) {
+      return { erro: resultado.error.issues[0]?.message ?? "Dados inválidos." };
+    }
+    const dados = resultado.data;
+
+    const profissional = await db.profissional.findFirst({
+      where: { id: dados.profissionalId, estabelecimentoId: usuario.estabelecimentoId },
+    });
+    if (!profissional) throw new NaoAutorizadoError();
+
+    await db.profissional.update({
+      where: { id: dados.profissionalId },
+      data: { comissaoPercentual: dados.comissaoPercentual },
+    });
+
+    revalidatePath("/painel/profissionais");
+    return { sucesso: true };
+  } catch (erro) {
+    return { erro: mensagemSeguraDeErro(erro) };
+  }
 }

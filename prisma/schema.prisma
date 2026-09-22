@@ -94,12 +94,13 @@ model Sessao {
 }
 
 model Profissional {
-  id                String   @id @default(cuid())
-  nome              String
-  foto              String?
-  ativo             Boolean  @default(true)
-  estabelecimentoId String
-  estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  id                 String   @id @default(cuid())
+  nome               String
+  foto               String?
+  ativo              Boolean  @default(true)
+  comissaoPercentual Int?
+  estabelecimentoId  String
+  estabelecimento    Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
 
   usuario      Usuario?
   servicos     ServicoProfissional[]

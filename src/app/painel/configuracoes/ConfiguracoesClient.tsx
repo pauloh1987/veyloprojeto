@@ -1,14 +1,45 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { useActionState, useRef, useState } from "react";
+import { Check, Copy, ImageOff } from "lucide-react";
 import { salvarConfiguracoes } from "@/lib/acoes/configuracoes";
 import type { EstadoAcao } from "@/lib/acoes/agendamentos";
 import { Button } from "@/components/ui/Button";
 import { Campo, Input, Rotulo } from "@/components/ui/Campo";
+import { iniciais } from "@/lib/formatadores";
 import { cn } from "@/lib/cn";
 
 const ESTADO_INICIAL: EstadoAcao = {};
+const LOGO_TAMANHO_MAX_PX = 320;
+const LOGO_QUALIDADE = 0.85;
+
+/** Redimensiona a imagem escolhida para no máximo 320px no maior lado e reexporta como PNG
+ * — tudo no navegador, sem subir o arquivo original a lugar nenhum. O resultado (um data URL
+ * pequeno) é o que de fato é salvo no banco, direto na coluna `foto`. */
+function redimensionarLogo(arquivo: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const leitor = new FileReader();
+    leitor.onerror = () => reject(new Error("Não foi possível ler o arquivo."));
+    leitor.onload = () => {
+      const img = new window.Image();
+      img.onerror = () => reject(new Error("Esse arquivo não é uma imagem válida."));
+      img.onload = () => {
+        const escala = Math.min(1, LOGO_TAMANHO_MAX_PX / Math.max(img.width, img.height));
+        const largura = Math.max(1, Math.round(img.width * escala));
+        const altura = Math.max(1, Math.round(img.height * escala));
+        const canvas = document.createElement("canvas");
+        canvas.width = largura;
+        canvas.height = altura;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("Não foi possível processar a imagem."));
+        ctx.drawImage(img, 0, 0, largura, altura);
+        resolve(canvas.toDataURL("image/png", LOGO_QUALIDADE));
+      };
+      img.src = leitor.result as string;
+    };
+    leitor.readAsDataURL(arquivo);
+  });
+}
 
 export function ConfiguracoesClient({
   estabelecimento,
@@ -21,12 +52,30 @@ export function ConfiguracoesClient({
     corDestaque: string;
     antecedenciaMinMin: number;
     plano: string;
+    foto: string | null;
   };
   linkPublico: string;
 }) {
   const [estado, acao] = useActionState(salvarConfiguracoes, ESTADO_INICIAL);
   const [copiado, setCopiado] = useState(false);
   const [plano, setPlano] = useState<"SOLO" | "EQUIPE">(estabelecimento.plano === "EQUIPE" ? "EQUIPE" : "SOLO");
+  const [foto, setFoto] = useState<string | null>(estabelecimento.foto);
+  const [erroLogo, setErroLogo] = useState<string | null>(null);
+  const inputArquivoRef = useRef<HTMLInputElement>(null);
+
+  async function aoEscolherArquivo(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0];
+    if (!arquivo) return;
+    setErroLogo(null);
+    try {
+      const dataUrl = await redimensionarLogo(arquivo);
+      setFoto(dataUrl);
+    } catch (erro) {
+      setErroLogo(erro instanceof Error ? erro.message : "Não foi possível usar essa imagem.");
+    } finally {
+      e.target.value = "";
+    }
+  }
 
   async function copiarLink() {
     try {
@@ -64,6 +113,50 @@ export function ConfiguracoesClient({
       </div>
 
       <form action={acao} className="space-y-4 rounded-2xl border border-border bg-surface p-4">
+        <div>
+          <span className="mb-1.5 block text-sm font-medium text-text">Logo</span>
+          <div className="flex items-center gap-3">
+            {foto ? (
+              <img
+                src={foto}
+                alt="Logo do estabelecimento"
+                className="h-16 w-16 rounded-full border border-border-strong object-cover"
+              />
+            ) : (
+              <span
+                className="flex h-16 w-16 items-center justify-center rounded-full font-heading text-lg font-extrabold text-white"
+                style={{ backgroundColor: estabelecimento.corDestaque }}
+                aria-hidden
+              >
+                {iniciais(estabelecimento.nome)}
+              </span>
+            )}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex gap-2">
+                <Button type="button" variant="secondary" onClick={() => inputArquivoRef.current?.click()}>
+                  {foto ? "Trocar" : "Enviar logo"}
+                </Button>
+                {foto && (
+                  <Button type="button" variant="secondary" onClick={() => setFoto(null)}>
+                    <ImageOff size={16} />
+                    Remover
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-text-faint">PNG ou JPG. Aparece na sua página pública de agendamento.</p>
+              {erroLogo && <p className="text-xs text-danger">{erroLogo}</p>}
+            </div>
+          </div>
+          <input
+            ref={inputArquivoRef}
+            type="file"
+            accept="image/*"
+            onChange={aoEscolherArquivo}
+            className="hidden"
+          />
+          <input type="hidden" name="foto" value={foto ?? ""} />
+        </div>
+
         <Campo rotulo="Nome do estabelecimento" htmlFor="nome">
           <Input id="nome" name="nome" required defaultValue={estabelecimento.nome} />
         </Campo>

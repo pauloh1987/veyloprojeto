@@ -1,8 +1,8 @@
 "use client";
 
 import { useActionState, useEffect, useState, useTransition } from "react";
-import { Plus, UserRound, Ban, CheckCircle2, KeyRound } from "lucide-react";
-import { criarProfissional, alternarAtivoProfissional } from "@/lib/acoes/profissionais";
+import { Plus, UserRound, Ban, CheckCircle2, KeyRound, Percent } from "lucide-react";
+import { criarProfissional, alternarAtivoProfissional, atualizarComissaoProfissional } from "@/lib/acoes/profissionais";
 import type { EstadoAcao } from "@/lib/acoes/agendamentos";
 import { Button } from "@/components/ui/Button";
 import { Campo, Input } from "@/components/ui/Campo";
@@ -16,6 +16,7 @@ interface ProfissionalLinha {
   nome: string;
   ativo: boolean;
   temLogin: boolean;
+  comissaoPercentual: number | null;
 }
 
 const ESTADO_INICIAL: EstadoAcao = {};
@@ -65,20 +66,23 @@ export function ProfissionaisClient({
       ) : (
         <ul className="space-y-3">
           {profissionais.map((p) => (
-            <li key={p.id} className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4">
-              <Avatar nome={p.nome} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold text-text">{p.nome}</p>
-                <div className="mt-1 flex flex-wrap gap-1.5">
-                  <Badge tom={p.ativo ? "success" : "neutral"}>{p.ativo ? "Ativa" : "Inativa"}</Badge>
-                  {p.temLogin && (
-                    <Badge tom="info">
-                      <KeyRound size={11} /> tem login
-                    </Badge>
-                  )}
+            <li key={p.id} className="rounded-2xl border border-border bg-surface p-4">
+              <div className="flex items-center gap-3">
+                <Avatar nome={p.nome} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold text-text">{p.nome}</p>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    <Badge tom={p.ativo ? "success" : "neutral"}>{p.ativo ? "Ativa" : "Inativa"}</Badge>
+                    {p.temLogin && (
+                      <Badge tom="info">
+                        <KeyRound size={11} /> tem login
+                      </Badge>
+                    )}
+                  </div>
                 </div>
+                <BotaoAlternarAtivo id={p.id} ativo={p.ativo} bloqueado={!p.ativo && limiteSoloAtingido} />
               </div>
-              <BotaoAlternarAtivo id={p.id} ativo={p.ativo} bloqueado={!p.ativo && limiteSoloAtingido} />
+              <EditorComissao id={p.id} comissaoPercentual={p.comissaoPercentual} />
             </li>
           ))}
         </ul>
@@ -89,6 +93,20 @@ export function ProfissionaisClient({
           <Campo rotulo="Nome" htmlFor="nome">
             <Input id="nome" name="nome" required placeholder="Nome completo" />
           </Campo>
+
+          <Campo rotulo="Comissão (%)" htmlFor="comissaoPercentual">
+            <Input
+              id="comissaoPercentual"
+              name="comissaoPercentual"
+              type="number"
+              min={0}
+              max={100}
+              placeholder="Ex: 50"
+            />
+          </Campo>
+          <p className="-mt-3 text-xs text-text-faint">
+            Deixe em branco se ela não recebe por comissão. Dá pra ajustar depois.
+          </p>
 
           <label className="flex items-center gap-2 text-sm text-text">
             <input
@@ -121,6 +139,42 @@ export function ProfissionaisClient({
         </form>
       </Modal>
     </div>
+  );
+}
+
+const ESTADO_COMISSAO_INICIAL: EstadoAcao = {};
+
+function EditorComissao({ id, comissaoPercentual }: { id: string; comissaoPercentual: number | null }) {
+  const [estado, acao] = useActionState(atualizarComissaoProfissional, ESTADO_COMISSAO_INICIAL);
+  const [valor, setValor] = useState(comissaoPercentual === null ? "" : String(comissaoPercentual));
+  const alterado = valor !== (comissaoPercentual === null ? "" : String(comissaoPercentual));
+
+  return (
+    <form action={acao} className="mt-3 flex items-center gap-2 border-t border-border pt-3">
+      <input type="hidden" name="profissionalId" value={id} />
+      <Percent size={14} className="shrink-0 text-text-faint" />
+      <label htmlFor={`comissao-${id}`} className="text-xs text-text-muted">
+        Comissão
+      </label>
+      <input
+        id={`comissao-${id}`}
+        name="comissaoPercentual"
+        type="number"
+        min={0}
+        max={100}
+        value={valor}
+        onChange={(e) => setValor(e.target.value)}
+        placeholder="—"
+        className="h-8 w-16 rounded-lg border border-border-strong bg-surface-2 px-2 text-sm text-text"
+      />
+      <span className="text-xs text-text-faint">%</span>
+      {alterado && (
+        <Button type="submit" size="sm" className="ml-auto">
+          Salvar
+        </Button>
+      )}
+      {estado?.erro && <p className="text-xs text-danger">{estado.erro}</p>}
+    </form>
   );
 }
 

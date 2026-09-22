@@ -40,9 +40,17 @@ export default async function PaginaPublicaEstabelecimento({ params }: PageProps
         className="px-4 pb-8 pt-10 text-center text-white"
         style={{ background: `linear-gradient(160deg, ${estabelecimento.corDestaque}, color-mix(in oklab, ${estabelecimento.corDestaque} 60%, black))` }}
       >
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/15 font-heading text-xl font-extrabold backdrop-blur">
-          {iniciais(estabelecimento.nome)}
-        </div>
+        {estabelecimento.foto ? (
+          <img
+            src={estabelecimento.foto}
+            alt={estabelecimento.nome}
+            className="mx-auto h-16 w-16 rounded-full object-cover ring-2 ring-white/30"
+          />
+        ) : (
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/15 font-heading text-xl font-extrabold backdrop-blur">
+            {iniciais(estabelecimento.nome)}
+          </div>
+        )}
         <h1 className="mt-3 font-heading text-2xl font-extrabold">{estabelecimento.nome}</h1>
         <p className="mt-1 flex items-center justify-center gap-1.5 text-sm text-white/80">
           <MapPin size={14} /> {estabelecimento.endereco}

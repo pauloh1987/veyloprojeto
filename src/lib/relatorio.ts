@@ -14,6 +14,12 @@ export interface RelatorioMensal {
   taxaFalta: number | null;
   horariosMaisProcurados: { hora: number; qtd: number }[];
   faturamentoPorDiaCentavos: number[];
+  comissoesPorProfissional: {
+    profissionalId: string;
+    nome: string;
+    faturamentoCentavos: number;
+    comissao: { percentual: number; centavos: number } | null;
+  }[];
   mesReferencia: string;
 }
 
@@ -35,7 +41,7 @@ export async function calcularRelatorio(estabelecimentoId: string, fuso: string)
   const [agendamentosMesAtual, agendamentosMesAnterior] = await Promise.all([
     db.agendamento.findMany({
       where: { estabelecimentoId, inicio: { gte: inicioMesAtual, lt: fimMesAtualExclusivo } },
-      include: { servico: true },
+      include: { servico: true, profissional: { select: { id: true, nome: true, comissaoPercentual: true } } },
     }),
     db.agendamento.findMany({
       where: {
@@ -78,6 +84,31 @@ export async function calcularRelatorio(estabelecimentoId: string, fuso: string)
     .slice(0, 5)
     .map(([hora, qtd]) => ({ hora, qtd }));
 
+  const porProfissional = new Map<
+    string,
+    { nome: string; comissaoPercentual: number | null; faturamentoCentavos: number }
+  >();
+  for (const a of atendidosMesAtual) {
+    const atual = porProfissional.get(a.profissionalId) ?? {
+      nome: a.profissional.nome,
+      comissaoPercentual: a.profissional.comissaoPercentual,
+      faturamentoCentavos: 0,
+    };
+    atual.faturamentoCentavos += a.servico.precoCentavos;
+    porProfissional.set(a.profissionalId, atual);
+  }
+  const comissoesPorProfissional = [...porProfissional.entries()]
+    .map(([profissionalId, dados]) => ({
+      profissionalId,
+      nome: dados.nome,
+      faturamentoCentavos: dados.faturamentoCentavos,
+      comissao:
+        dados.comissaoPercentual === null
+          ? null
+          : { percentual: dados.comissaoPercentual, centavos: Math.round((dados.faturamentoCentavos * dados.comissaoPercentual) / 100) },
+    }))
+    .sort((a, b) => b.faturamentoCentavos - a.faturamentoCentavos);
+
   const diasNoMes = new Date(ano, mes, 0).getDate();
   const faturamentoPorDiaCentavos = Array.from({ length: diasNoMes }, () => 0);
   for (const a of atendidosMesAtual) {
@@ -93,6 +124,7 @@ export async function calcularRelatorio(estabelecimentoId: string, fuso: string)
     taxaFalta,
     horariosMaisProcurados,
     faturamentoPorDiaCentavos,
+    comissoesPorProfissional,
     mesReferencia: hojeYMD,
   };
 }

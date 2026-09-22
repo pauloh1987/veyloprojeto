@@ -1,0 +1,4 @@
+# Este arquivo existe só para o comando `prisma migrate diff --from-migrations` conseguir
+# calcular o diff incremental contra o histórico já aplicado — a própria Netlify não lê nem
+# exige esse arquivo, ela só aplica os .sql que encontra nas pastas numeradas.
+provider = "postgresql"

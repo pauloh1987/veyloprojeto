@@ -23,6 +23,7 @@ export default async function PaginaProfissionais() {
         nome: p.nome,
         ativo: p.ativo,
         temLogin: !!p.usuario,
+        comissaoPercentual: p.comissaoPercentual,
       }))}
     />
   );

@@ -66,6 +66,12 @@ export const bloqueioSchema = z
   });
 export type BloqueioInput = z.infer<typeof bloqueioSchema>;
 
+// O logo é enviado já redimensionado/recodificado em PNG pelo navegador (ver
+// ConfiguracoesClient) e guardado como data URL direto na coluna `foto` — evita depender de
+// um serviço de armazenamento de arquivos externo só para um logo pequeno. O limite de
+// tamanho aqui é a rede de segurança do lado do servidor (o cliente já limita bem antes disso).
+const REGEX_LOGO_DATA_URL = /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/;
+
 export const configuracoesSchema = z.object({
   nome: z.string().trim().min(2, "Informe o nome do estabelecimento."),
   telefone: telefoneSchema,
@@ -73,6 +79,11 @@ export const configuracoesSchema = z.object({
   corDestaque: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Cor inválida."),
   antecedenciaMinMin: z.coerce.number().int().min(0).max(1440),
   plano: z.enum(["SOLO", "EQUIPE"]),
+  foto: z
+    .string()
+    .max(500_000, "Imagem muito grande. Escolha uma menor ou mais simples.")
+    .refine((v) => v === "" || REGEX_LOGO_DATA_URL.test(v), "Formato de imagem inválido.")
+    .transform((v) => (v === "" ? null : v)),
 });
 export type ConfiguracoesInput = z.infer<typeof configuracoesSchema>;
 
@@ -133,10 +144,22 @@ export const cadastroSchema = z.object({
 });
 export type CadastroInput = z.infer<typeof cadastroSchema>;
 
+const comissaoPercentualSchema = z
+  .union([z.coerce.number().int().min(0, "Entre 0 e 100.").max(100, "Entre 0 e 100."), z.literal("")])
+  .optional()
+  .transform((v) => (v === "" || v === undefined ? null : v));
+
 export const novoProfissionalSchema = z.object({
   nome: z.string().trim().min(2, "Informe o nome.").max(80),
   criarLogin: z.coerce.boolean().default(false),
   email: z.string().trim().toLowerCase().email("E-mail inválido.").optional().or(z.literal("")),
   senha: z.string().min(6, "A senha precisa ter pelo menos 6 caracteres.").optional().or(z.literal("")),
+  comissaoPercentual: comissaoPercentualSchema,
 });
 export type NovoProfissionalInput = z.infer<typeof novoProfissionalSchema>;
+
+export const atualizarComissaoSchema = z.object({
+  profissionalId: idSchema,
+  comissaoPercentual: comissaoPercentualSchema,
+});
+export type AtualizarComissaoInput = z.infer<typeof atualizarComissaoSchema>;

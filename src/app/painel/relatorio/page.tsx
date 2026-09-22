@@ -4,6 +4,7 @@ import { exigirDono } from "@/lib/auth";
 import { calcularRelatorio } from "@/lib/relatorio";
 import { formatarCentavos } from "@/lib/formatadores";
 import { Card, CardBody } from "@/components/ui/Card";
+import { Avatar } from "@/components/ui/Avatar";
 import { GraficoFaturamento } from "@/components/painel/GraficoFaturamento";
 
 export const dynamic = "force-dynamic";
@@ -80,6 +81,35 @@ export default async function PaginaRelatorio() {
           </CardBody>
         </Card>
       </div>
+
+      {relatorio.comissoesPorProfissional.length > 0 && (
+        <Card className="mb-4">
+          <CardBody>
+            <p className="mb-3 text-xs text-text-faint">Comissões do mês (por atendimentos concluídos)</p>
+            <ul className="space-y-3">
+              {relatorio.comissoesPorProfissional.map((c) => (
+                <li key={c.profissionalId} className="flex items-center gap-3">
+                  <Avatar nome={c.nome} tamanho="sm" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-text">{c.nome}</p>
+                    <p className="text-xs text-text-faint">{formatarCentavos(c.faturamentoCentavos)} em serviços</p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    {c.comissao === null ? (
+                      <p className="text-xs text-text-faint">Sem comissão definida</p>
+                    ) : (
+                      <>
+                        <p className="font-heading text-sm font-bold text-text">{formatarCentavos(c.comissao.centavos)}</p>
+                        <p className="text-xs text-text-faint">{c.comissao.percentual}%</p>
+                      </>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </CardBody>
+        </Card>
+      )}
     </div>
   );
 }
