@@ -5,7 +5,7 @@ const CORES_FUNDO = [
   "#2F6FED", "#22B8A0", "#D94E7F", "#E0A83E", "#8E5CD9", "#3EA05C", "#D9764E", "#4E9AD9",
 ];
 
-function corParaNome(nome: string): string {
+export function corParaNome(nome: string): string {
   let hash = 0;
   for (let i = 0; i < nome.length; i++) hash = (hash * 31 + nome.charCodeAt(i)) >>> 0;
   return CORES_FUNDO[hash % CORES_FUNDO.length];

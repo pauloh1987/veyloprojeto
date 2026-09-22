@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { exigirDono } from "@/lib/auth";
 import { hashSenha } from "@/lib/senha";
-import { novoProfissionalSchema, atualizarComissaoSchema, idSchema } from "@/lib/validacao";
+import { novoProfissionalSchema, atualizarComissaoSchema, atualizarFotoProfissionalSchema, idSchema } from "@/lib/validacao";
 import { criarHorariosPadrao } from "@/lib/agenda/horariosPadrao";
 import { mensagemSeguraDeErro, NaoAutorizadoError, ValidacaoError } from "@/lib/erros";
 import type { EstadoAcao } from "./agendamentos";
@@ -96,6 +96,23 @@ export async function alternarAtivoProfissional(profissionalIdBruto: string, ati
   }
 
   await db.profissional.update({ where: { id: profissionalId }, data: { ativo } });
+  revalidatePath("/painel/profissionais");
+}
+
+export async function atualizarFotoProfissional(profissionalIdBruto: string, fotoBruta: string): Promise<void> {
+  const usuario = await exigirDono();
+  const resultado = atualizarFotoProfissionalSchema.safeParse({ profissionalId: profissionalIdBruto, foto: fotoBruta });
+  if (!resultado.success) {
+    throw new ValidacaoError(resultado.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+  const dados = resultado.data;
+
+  const profissional = await db.profissional.findFirst({
+    where: { id: dados.profissionalId, estabelecimentoId: usuario.estabelecimentoId },
+  });
+  if (!profissional) throw new NaoAutorizadoError();
+
+  await db.profissional.update({ where: { id: dados.profissionalId }, data: { foto: dados.foto } });
   revalidatePath("/painel/profissionais");
 }
 

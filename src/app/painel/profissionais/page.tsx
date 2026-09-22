@@ -24,6 +24,7 @@ export default async function PaginaProfissionais() {
         ativo: p.ativo,
         temLogin: !!p.usuario,
         comissaoPercentual: p.comissaoPercentual,
+        foto: p.foto,
       }))}
     />
   );

@@ -41,11 +41,13 @@ export default async function PaginaPublicaEstabelecimento({ params }: PageProps
         style={{ background: `linear-gradient(160deg, ${estabelecimento.corDestaque}, color-mix(in oklab, ${estabelecimento.corDestaque} 60%, black))` }}
       >
         {estabelecimento.foto ? (
-          <img
-            src={estabelecimento.foto}
-            alt={estabelecimento.nome}
-            className="mx-auto h-16 w-16 rounded-full object-cover ring-2 ring-white/30"
-          />
+          <div className="mx-auto flex w-fit rounded-2xl bg-white p-2.5 shadow-lg">
+            <img
+              src={estabelecimento.foto}
+              alt={estabelecimento.nome}
+              className="max-h-14 max-w-[200px] object-contain"
+            />
+          </div>
         ) : (
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/15 font-heading text-xl font-extrabold backdrop-blur">
             {iniciais(estabelecimento.nome)}
@@ -69,7 +71,7 @@ export default async function PaginaPublicaEstabelecimento({ params }: PageProps
             cor: s.cor,
             profissionaisIds: s.profissionais.map((sp) => sp.profissionalId),
           }))}
-          profissionais={profissionais.map((p) => ({ id: p.id, nome: p.nome }))}
+          profissionais={profissionais.map((p) => ({ id: p.id, nome: p.nome, foto: p.foto }))}
         />
       </div>
     </main>

@@ -66,11 +66,19 @@ export const bloqueioSchema = z
   });
 export type BloqueioInput = z.infer<typeof bloqueioSchema>;
 
-// O logo é enviado já redimensionado/recodificado em PNG pelo navegador (ver
-// ConfiguracoesClient) e guardado como data URL direto na coluna `foto` — evita depender de
-// um serviço de armazenamento de arquivos externo só para um logo pequeno. O limite de
-// tamanho aqui é a rede de segurança do lado do servidor (o cliente já limita bem antes disso).
-const REGEX_LOGO_DATA_URL = /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/;
+// Fotos (logo do estabelecimento em PNG, foto de profissional em JPEG) são enviadas já
+// recortadas/redimensionadas/recodificadas pelo navegador e guardadas como data URL direto
+// na coluna `foto` — evita depender de um serviço de armazenamento de arquivos externo só
+// para imagens pequenas. O limite de tamanho aqui é a rede de segurança do lado do servidor
+// (o cliente já limita bem antes disso).
+function fotoDataUrlSchema(mime: "png" | "jpeg") {
+  const regex = new RegExp(`^data:image/${mime};base64,[A-Za-z0-9+/]+=*$`);
+  return z
+    .string()
+    .max(500_000, "Imagem muito grande. Escolha uma menor ou mais simples.")
+    .refine((v) => v === "" || regex.test(v), "Formato de imagem inválido.")
+    .transform((v) => (v === "" ? null : v));
+}
 
 export const configuracoesSchema = z.object({
   nome: z.string().trim().min(2, "Informe o nome do estabelecimento."),
@@ -79,11 +87,7 @@ export const configuracoesSchema = z.object({
   corDestaque: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Cor inválida."),
   antecedenciaMinMin: z.coerce.number().int().min(0).max(1440),
   plano: z.enum(["SOLO", "EQUIPE"]),
-  foto: z
-    .string()
-    .max(500_000, "Imagem muito grande. Escolha uma menor ou mais simples.")
-    .refine((v) => v === "" || REGEX_LOGO_DATA_URL.test(v), "Formato de imagem inválido.")
-    .transform((v) => (v === "" ? null : v)),
+  foto: fotoDataUrlSchema("png"),
 });
 export type ConfiguracoesInput = z.infer<typeof configuracoesSchema>;
 
@@ -157,6 +161,12 @@ export const novoProfissionalSchema = z.object({
   comissaoPercentual: comissaoPercentualSchema,
 });
 export type NovoProfissionalInput = z.infer<typeof novoProfissionalSchema>;
+
+export const atualizarFotoProfissionalSchema = z.object({
+  profissionalId: idSchema,
+  foto: fotoDataUrlSchema("jpeg"),
+});
+export type AtualizarFotoProfissionalInput = z.infer<typeof atualizarFotoProfissionalSchema>;
 
 export const atualizarComissaoSchema = z.object({
   profissionalId: idSchema,

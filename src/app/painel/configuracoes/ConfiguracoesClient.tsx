@@ -13,9 +13,37 @@ const ESTADO_INICIAL: EstadoAcao = {};
 const LOGO_TAMANHO_MAX_PX = 320;
 const LOGO_QUALIDADE = 0.85;
 
-/** Redimensiona a imagem escolhida para no máximo 320px no maior lado e reexporta como PNG
- * — tudo no navegador, sem subir o arquivo original a lugar nenhum. O resultado (um data URL
- * pequeno) é o que de fato é salvo no banco, direto na coluna `foto`. */
+/** Acha o retângulo que realmente tem desenho (não branco, não transparente) — muita
+ * ferramenta de logo (Canva etc.) exporta um canvas quadrado enorme com a arte só ocupando
+ * uma fatia pequena no meio; sem cortar essa margem, o logo fica minúsculo dentro do card. */
+function encontrarCaixaConteudo(ctx: CanvasRenderingContext2D, largura: number, altura: number) {
+  const { data } = ctx.getImageData(0, 0, largura, altura);
+  let minX = largura;
+  let minY = altura;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < altura; y++) {
+    for (let x = 0; x < largura; x++) {
+      const i = (y * largura + x) * 4;
+      const alfa = data[i + 3];
+      const quaseBranco = data[i] > 248 && data[i + 1] > 248 && data[i + 2] > 248;
+      if (alfa > 10 && !quaseBranco) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  return maxX < 0 ? null : { minX, minY, maxX, maxY };
+}
+
+/** Corta a margem em branco/transparente ao redor do desenho, redimensiona o que sobrou para
+ * no máximo 320px no maior lado e reexporta como PNG — tudo no navegador, sem subir o arquivo
+ * original a lugar nenhum. O resultado (um data URL pequeno) é o que de fato é salvo no banco,
+ * direto na coluna `foto`. */
 function redimensionarLogo(arquivo: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const leitor = new FileReader();
@@ -24,15 +52,29 @@ function redimensionarLogo(arquivo: File): Promise<string> {
       const img = new window.Image();
       img.onerror = () => reject(new Error("Esse arquivo não é uma imagem válida."));
       img.onload = () => {
-        const escala = Math.min(1, LOGO_TAMANHO_MAX_PX / Math.max(img.width, img.height));
-        const largura = Math.max(1, Math.round(img.width * escala));
-        const altura = Math.max(1, Math.round(img.height * escala));
+        const canvasOriginal = document.createElement("canvas");
+        canvasOriginal.width = img.width;
+        canvasOriginal.height = img.height;
+        const ctxOriginal = canvasOriginal.getContext("2d", { willReadFrequently: true });
+        if (!ctxOriginal) return reject(new Error("Não foi possível processar a imagem."));
+        ctxOriginal.drawImage(img, 0, 0);
+
+        const caixa = encontrarCaixaConteudo(ctxOriginal, img.width, img.height);
+        const margem = caixa ? Math.round(Math.max(caixa.maxX - caixa.minX, caixa.maxY - caixa.minY) * 0.08) : 0;
+        const origemX = caixa ? Math.max(0, caixa.minX - margem) : 0;
+        const origemY = caixa ? Math.max(0, caixa.minY - margem) : 0;
+        const larguraConteudo = caixa ? Math.min(img.width, caixa.maxX + margem) - origemX : img.width;
+        const alturaConteudo = caixa ? Math.min(img.height, caixa.maxY + margem) - origemY : img.height;
+
+        const escala = Math.min(1, LOGO_TAMANHO_MAX_PX / Math.max(larguraConteudo, alturaConteudo));
+        const largura = Math.max(1, Math.round(larguraConteudo * escala));
+        const altura = Math.max(1, Math.round(alturaConteudo * escala));
         const canvas = document.createElement("canvas");
         canvas.width = largura;
         canvas.height = altura;
         const ctx = canvas.getContext("2d");
         if (!ctx) return reject(new Error("Não foi possível processar a imagem."));
-        ctx.drawImage(img, 0, 0, largura, altura);
+        ctx.drawImage(img, origemX, origemY, larguraConteudo, alturaConteudo, 0, 0, largura, altura);
         resolve(canvas.toDataURL("image/png", LOGO_QUALIDADE));
       };
       img.src = leitor.result as string;
@@ -117,11 +159,9 @@ export function ConfiguracoesClient({
           <span className="mb-1.5 block text-sm font-medium text-text">Logo</span>
           <div className="flex items-center gap-3">
             {foto ? (
-              <img
-                src={foto}
-                alt="Logo do estabelecimento"
-                className="h-16 w-16 rounded-full border border-border-strong object-cover"
-              />
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-border-strong bg-white p-1.5">
+                <img src={foto} alt="Logo do estabelecimento" className="max-h-full max-w-full object-contain" />
+              </div>
             ) : (
               <span
                 className="flex h-16 w-16 items-center justify-center rounded-full font-heading text-lg font-extrabold text-white"

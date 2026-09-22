@@ -5,8 +5,8 @@ import { formatInTimeZone } from "date-fns-tz";
 import { ptBR } from "date-fns/locale";
 import { ArrowLeft, CalendarPlus, CheckCircle2, ChevronRight, Loader2 } from "lucide-react";
 import { Button, LinkButton } from "@/components/ui/Button";
-import { Avatar } from "@/components/ui/Avatar";
-import { aplicarMascaraTelefone, formatarCentavos, formatarDuracao } from "@/lib/formatadores";
+import { corParaNome } from "@/components/ui/Avatar";
+import { aplicarMascaraTelefone, formatarCentavos, formatarDuracao, iniciais } from "@/lib/formatadores";
 import { paraDataYMD, somarDias } from "@/lib/tz";
 import { gerarIcs, baixarArquivo } from "@/lib/ics";
 import { cn } from "@/lib/cn";
@@ -24,6 +24,7 @@ export interface ServicoPublico {
 export interface ProfissionalPublico {
   id: string;
   nome: string;
+  foto: string | null;
 }
 export interface EstabelecimentoPublico {
   id: string;
@@ -211,19 +212,25 @@ export function AgendamentoPublicoFlow({
       {etapa === "profissional" && (
         <div>
           <h2 className="mb-3 font-heading text-lg font-bold text-text">Escolha a profissional</h2>
-          <div className="space-y-2.5">
+          <div className="grid grid-cols-3 gap-3">
             {profissionaisDoServico.map((p) => (
               <button
                 key={p.id}
                 onClick={() => escolherProfissional(p)}
-                className="group flex w-full items-center gap-3.5 rounded-2xl border border-border bg-surface p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent hover:shadow-md active:translate-y-0 active:scale-[0.99]"
+                className="group flex flex-col items-center gap-2 rounded-2xl border border-border bg-surface p-2.5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent hover:shadow-md active:translate-y-0 active:scale-[0.97]"
               >
-                <Avatar nome={p.nome} tamanho="lg" />
-                <span className="min-w-0 flex-1 font-semibold text-text">{p.nome}</span>
-                <ChevronRight
-                  size={18}
-                  className="shrink-0 text-text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-accent"
-                />
+                {p.foto ? (
+                  <img src={p.foto} alt={p.nome} className="aspect-square w-full rounded-xl object-cover" />
+                ) : (
+                  <span
+                    className="flex aspect-square w-full items-center justify-center rounded-xl font-heading text-xl font-bold text-white"
+                    style={{ backgroundColor: corParaNome(p.nome) }}
+                    aria-hidden
+                  >
+                    {iniciais(p.nome)}
+                  </span>
+                )}
+                <span className="line-clamp-2 text-center text-xs font-semibold text-text">{p.nome}</span>
               </button>
             ))}
           </div>
