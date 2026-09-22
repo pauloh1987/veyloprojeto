@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatInTimeZone } from "date-fns-tz";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, CalendarPlus, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowLeft, CalendarPlus, CheckCircle2, ChevronRight, Loader2 } from "lucide-react";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { aplicarMascaraTelefone, formatarCentavos, formatarDuracao } from "@/lib/formatadores";
 import { paraDataYMD, somarDias } from "@/lib/tz";
 import { gerarIcs, baixarArquivo } from "@/lib/ics";
+import { cn } from "@/lib/cn";
 import { CalendarioMensal } from "./CalendarioMensal";
 
 export interface ServicoPublico {
@@ -68,6 +69,7 @@ export function AgendamentoPublicoFlow({
     () => (servico ? profissionais.filter((p) => servico.profissionaisIds.includes(p.id)) : []),
     [servico, profissionais],
   );
+  const mostrarEtapaProfissional = servico ? profissionaisDoServico.length > 1 : profissionais.length > 1;
 
   function escolherServico(s: ServicoPublico) {
     setServicoId(s.id);
@@ -164,10 +166,11 @@ export function AgendamentoPublicoFlow({
   return (
     <div className="pb-10">
       {etapa !== "servico" && (
-        <button onClick={voltar} className="mb-4 flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text">
+        <button onClick={voltar} className="mb-3 flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text">
           <ArrowLeft size={16} /> Voltar
         </button>
       )}
+      <IndicadorEtapas atual={etapa} mostrarProfissional={mostrarEtapaProfissional} />
 
       {etapa === "servico" && (
         <div>
@@ -180,14 +183,24 @@ export function AgendamentoPublicoFlow({
                 <button
                   key={s.id}
                   onClick={() => escolherServico(s)}
-                  className="flex w-full items-center gap-3 rounded-2xl border border-border bg-surface p-4 text-left hover:border-accent"
+                  className="group flex w-full items-center gap-3.5 rounded-2xl border border-border bg-surface p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent hover:shadow-md active:translate-y-0 active:scale-[0.99]"
                 >
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.cor }} aria-hidden />
+                  <span
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-heading text-base font-bold text-white"
+                    style={{ backgroundColor: s.cor }}
+                    aria-hidden
+                  >
+                    {s.nome.charAt(0).toUpperCase()}
+                  </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block font-semibold text-text">{s.nome}</span>
+                    <span className="block truncate font-semibold text-text">{s.nome}</span>
                     <span className="block text-sm text-text-muted">{formatarDuracao(s.duracaoMin)}</span>
                   </span>
-                  <span className="shrink-0 font-semibold text-text">{formatarCentavos(s.precoCentavos)}</span>
+                  <span className="shrink-0 font-heading font-bold text-text">{formatarCentavos(s.precoCentavos)}</span>
+                  <ChevronRight
+                    size={18}
+                    className="shrink-0 text-text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-accent"
+                  />
                 </button>
               ))}
             </div>
@@ -203,10 +216,14 @@ export function AgendamentoPublicoFlow({
               <button
                 key={p.id}
                 onClick={() => escolherProfissional(p)}
-                className="flex w-full items-center gap-3 rounded-2xl border border-border bg-surface p-4 text-left hover:border-accent"
+                className="group flex w-full items-center gap-3.5 rounded-2xl border border-border bg-surface p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent hover:shadow-md active:translate-y-0 active:scale-[0.99]"
               >
-                <Avatar nome={p.nome} />
-                <span className="font-semibold text-text">{p.nome}</span>
+                <Avatar nome={p.nome} tamanho="lg" />
+                <span className="min-w-0 flex-1 font-semibold text-text">{p.nome}</span>
+                <ChevronRight
+                  size={18}
+                  className="shrink-0 text-text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-accent"
+                />
               </button>
             ))}
           </div>
@@ -217,16 +234,18 @@ export function AgendamentoPublicoFlow({
         <div>
           <h2 className="mb-3 font-heading text-lg font-bold text-text">Escolha o dia</h2>
           {erro && <p className="mb-3 text-sm text-danger">{erro}</p>}
-          <CalendarioMensal
-            mesReferenciaYMD={mesAtualYMD}
-            hojeYMD={hojeYMD}
-            limiteYMD={limiteYMD}
-            disponibilidade={disponibilidade}
-            carregandoDisponibilidade={carregandoDisponibilidade}
-            selecionado={dataYMD}
-            aoSelecionar={selecionarDia}
-            aoMudarMes={setMesAtualYMD}
-          />
+          <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+            <CalendarioMensal
+              mesReferenciaYMD={mesAtualYMD}
+              hojeYMD={hojeYMD}
+              limiteYMD={limiteYMD}
+              disponibilidade={disponibilidade}
+              carregandoDisponibilidade={carregandoDisponibilidade}
+              selecionado={dataYMD}
+              aoSelecionar={selecionarDia}
+              aoMudarMes={setMesAtualYMD}
+            />
+          </div>
           {carregandoDisponibilidade && (
             <p className="mt-3 flex items-center gap-2 text-sm text-text-muted">
               <Loader2 size={14} className="animate-spin" /> Carregando dias disponíveis...
@@ -249,7 +268,7 @@ export function AgendamentoPublicoFlow({
           ) : horariosDoDia && horariosDoDia.length === 0 ? (
             <p className="text-sm text-text-muted">Nenhum horário livre neste dia. Escolha outro dia.</p>
           ) : (
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4">
               {horariosDoDia?.map((iso) => (
                 <button
                   key={iso}
@@ -257,7 +276,7 @@ export function AgendamentoPublicoFlow({
                     setHorarioIso(iso);
                     setEtapa("dados");
                   }}
-                  className="min-h-11 rounded-xl border border-border-strong bg-surface text-sm font-medium text-text hover:border-accent hover:bg-surface-2"
+                  className="min-h-12 rounded-xl border border-border-strong bg-surface text-sm font-semibold text-text shadow-sm transition-all hover:border-accent hover:bg-surface-2 hover:shadow-md active:scale-95"
                 >
                   {formatInTimeZone(new Date(iso), estabelecimento.fuso, "HH:mm")}
                 </button>
@@ -318,6 +337,24 @@ export function AgendamentoPublicoFlow({
           </form>
         </div>
       )}
+    </div>
+  );
+}
+
+const ORDEM_ETAPAS: Etapa[] = ["servico", "profissional", "data", "horario", "dados"];
+
+function IndicadorEtapas({ atual, mostrarProfissional }: { atual: Etapa; mostrarProfissional: boolean }) {
+  const etapas = mostrarProfissional ? ORDEM_ETAPAS : ORDEM_ETAPAS.filter((e) => e !== "profissional");
+  const indiceAtual = etapas.indexOf(atual);
+
+  return (
+    <div className="mb-5 flex gap-1.5" role="progressbar" aria-valuenow={indiceAtual + 1} aria-valuemax={etapas.length}>
+      {etapas.map((et, i) => (
+        <span
+          key={et}
+          className={cn("h-1.5 flex-1 rounded-full transition-colors duration-300", i <= indiceAtual ? "bg-accent" : "bg-border")}
+        />
+      ))}
     </div>
   );
 }

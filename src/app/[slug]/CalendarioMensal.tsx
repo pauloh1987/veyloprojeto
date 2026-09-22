@@ -72,7 +72,7 @@ export function CalendarioMensal({
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-xs text-text-faint">
+      <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-text-faint">
         {NOMES_DIA.map((d, i) => (
           <div key={i} className="py-1">
             {d}
@@ -85,7 +85,10 @@ export function CalendarioMensal({
           const foraDoAlcance = dataYMD < hojeYMD || dataYMD > limiteYMD;
           const temVaga = disponibilidade?.get(dataYMD);
           const desabilitado = foraDoAlcance || temVaga === false;
+          const disponivel = !foraDoAlcance && (temVaga === true || (temVaga === undefined && !carregandoDisponibilidade));
+          const selecionadoAtual = selecionado === dataYMD;
           const dia = Number(dataYMD.split("-")[2]);
+          const ehHoje = dataYMD === hojeYMD;
 
           return (
             <button
@@ -93,21 +96,33 @@ export function CalendarioMensal({
               type="button"
               disabled={desabilitado || carregandoDisponibilidade}
               onClick={() => aoSelecionar(dataYMD)}
-              aria-label={`Dia ${dia}${desabilitado ? ", sem vaga" : ""}`}
-              aria-current={selecionado === dataYMD ? "date" : undefined}
+              aria-label={`Dia ${dia}${desabilitado ? ", sem vaga" : disponivel ? ", com vaga" : ""}`}
+              aria-current={selecionadoAtual ? "date" : undefined}
               className={cn(
-                "flex aspect-square items-center justify-center rounded-full text-sm transition-colors",
+                "relative flex aspect-square flex-col items-center justify-center gap-0.5 rounded-full text-sm font-medium transition-all",
                 foraDoAlcance && "text-text-faint/40",
-                !foraDoAlcance && temVaga === false && "text-text-faint/60 line-through",
-                !foraDoAlcance && (temVaga === true || (temVaga === undefined && !carregandoDisponibilidade)) && "text-text hover:bg-surface-2",
-                selecionado === dataYMD && "bg-accent text-accent-foreground hover:bg-accent",
+                !foraDoAlcance && temVaga === false && "text-text-faint/50 line-through",
+                disponivel && !selecionadoAtual && "text-text hover:scale-105 hover:bg-surface-2",
+                ehHoje && !selecionadoAtual && "ring-1 ring-inset ring-border-strong",
+                selecionadoAtual && "bg-accent text-accent-foreground shadow-sm hover:bg-accent",
               )}
             >
               {dia}
+              {disponivel && (
+                <span
+                  className={cn("h-1 w-1 rounded-full", selecionadoAtual ? "bg-accent-foreground" : "bg-accent")}
+                  aria-hidden
+                />
+              )}
             </button>
           );
         })}
       </div>
+      {!carregandoDisponibilidade && (
+        <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-text-faint">
+          <span className="h-1 w-1 rounded-full bg-accent" aria-hidden /> Dias com horário disponível
+        </div>
+      )}
     </div>
   );
 }
