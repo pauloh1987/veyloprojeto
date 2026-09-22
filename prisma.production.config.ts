@@ -1,17 +1,15 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
-// Config separado do prisma.config.ts (SQLite/local): usado só pelos comandos de CLI que
-// operam sobre o Postgres de produção (schema.production.prisma), incluindo onde procurar
-// as migrações — sem isso, `migrate deploy` cairia de volta em prisma/migrations, que é
-// SQL de SQLite. Usa process.env direto (em vez do helper `env()` do Prisma) porque esse
-// helper falha ao só *carregar* o config se a variável não existir — e localmente
-// NETLIFY_DATABASE_URL nunca existe (só é injetada pela Netlify em produção).
+// Config separado do prisma.config.ts (SQLite/local): usado só para gerar o Prisma Client
+// de produção (schema.production.prisma → Postgres). A migração do banco em si NÃO passa
+// por aqui — a Netlify não expõe a URL de conexão para o build.command customizado, só
+// para o runtime da aplicação, então quem aplica o schema é o mecanismo próprio dela
+// (netlify/database/migrations), automaticamente antes do build rodar. `prisma generate`
+// não precisa de conexão viva, por isso usar process.env direto (sem o helper `env()`, que
+// falharia ao carregar o config sem NETLIFY_DATABASE_URL, inexistente localmente) é seguro.
 export default defineConfig({
   schema: "prisma/schema.production.prisma",
-  migrations: {
-    path: "prisma/migrations-production",
-  },
   datasource: {
     url: process.env.NETLIFY_DATABASE_URL ?? "",
   },

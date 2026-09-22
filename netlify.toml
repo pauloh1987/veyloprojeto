@@ -1,5 +1,5 @@
 [build]
-  command = "npx prisma generate && npx prisma generate --config=prisma.production.config.ts && npx prisma migrate deploy --config=prisma.production.config.ts && npx tsx prisma/seed.ts && npm run build"
+  command = "npx prisma generate && npx prisma generate --config=prisma.production.config.ts && npm run build"
   publish = ".next"
 
 [[plugins]]
