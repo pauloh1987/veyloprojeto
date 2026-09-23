@@ -46,11 +46,16 @@ export default async function PaginaPublicaEstabelecimento({ params }: PageProps
         }
       >
         {estabelecimento.foto ? (
-          <img
-            src={estabelecimento.foto}
-            alt={estabelecimento.nome}
-            className="mx-auto max-h-32 max-w-[320px] object-contain"
-          />
+          // Cartão branco + borda + sombra sempre, mesmo com fundo já claro: a maioria das
+          // logos é desenhada para fundo branco "puro" e, sem essa moldura, uma logo branca
+          // se perde dentro do próprio fundo do cabeçalho por falta de contorno definido.
+          <div className="mx-auto flex w-fit rounded-2xl border border-border bg-white p-3 shadow-sm">
+            <img
+              src={estabelecimento.foto}
+              alt={estabelecimento.nome}
+              className="max-h-28 max-w-[300px] object-contain"
+            />
+          </div>
         ) : (
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/15 font-heading text-xl font-extrabold backdrop-blur">
             {iniciais(estabelecimento.nome)}
