@@ -89,8 +89,16 @@ especificação não determinava um caminho exato. Organizado por área.
   com `antecedenciaMinMin: 0`.
 - **Canal de mensagem fixo em "SMS"**: o modelo de dados suporta `SMS` e `EMAIL`, mas todo
   texto gerado usa `SMS` — reflete o uso real (WhatsApp/SMS é como esses negócios avisam
-  clientes; e-mail é raro nesse contexto) e simplifica a demonstração, já que nenhum envio é
-  de fato disparado.
+  clientes; e-mail é raro nesse contexto).
+- **Envio real via Twilio, SMS antes de WhatsApp**: o `Notificador` (`src/lib/mensagens/notificador.ts`)
+  ganhou uma implementação de verdade (`NotificadorTwilio`) que só entra em ação quando
+  `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`/`TWILIO_FROM_NUMBER` existem no ambiente — sem
+  elas, cai automaticamente no `NotificadorConsole` de sempre (só ecoa no console), então
+  nenhum ambiente existente quebra com essa mudança. Escolhido SMS em vez de WhatsApp porque
+  WhatsApp de produção (não o modo sandbox de teste, que exige a destinatária mandar um
+  código antes de poder receber qualquer coisa) depende de verificação de empresa pela Meta
+  — um processo de dias, fora do controle do código. `Cliente.telefone` é só dígitos (DDD +
+  número); o envio assume Brasil e monta o E.164 (`+55...`) na hora de chamar a Twilio.
 - **Bloqueio.motivo é texto livre**, não um enum — a especificação cita "folga, almoço,
   compromisso" como exemplos, não como lista fechada; o formulário sugere esses valores via
   `<datalist>`, mas aceita qualquer texto.
