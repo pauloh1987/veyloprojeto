@@ -78,7 +78,15 @@ function redimensionarLogo(arquivo: File): Promise<string> {
         const ctx = canvas.getContext("2d");
         if (!ctx) return reject(new Error("Não foi possível processar a imagem."));
         ctx.imageSmoothingQuality = "high";
-        ctx.drawImage(img, origemX, origemY, larguraConteudo, alturaConteudo, 0, 0, largura, altura);
+        // Desenha a mesma imagem várias vezes com um deslocamento de ~1px em volta do centro
+        // ("negrito artificial") — traços finos (script, contorno fino) somem em qualquer
+        // tamanho de tela só de tão finos; isso engorda o traço em ~2px sem distorcer o
+        // desenho. Efeito é leve o bastante pra não prejudicar um logo que já é grosso.
+        for (const deslocX of [-1, 0, 1]) {
+          for (const deslocY of [-1, 0, 1]) {
+            ctx.drawImage(img, origemX, origemY, larguraConteudo, alturaConteudo, deslocX, deslocY, largura, altura);
+          }
+        }
         resolve(canvas.toDataURL("image/png", LOGO_QUALIDADE));
       };
       img.src = leitor.result as string;
