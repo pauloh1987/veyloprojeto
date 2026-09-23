@@ -4,6 +4,7 @@ import { MapPin } from "lucide-react";
 import { obterEstabelecimentoPorSlug } from "@/lib/estabelecimentoPublico";
 import { db } from "@/lib/db";
 import { iniciais } from "@/lib/formatadores";
+import { cn } from "@/lib/cn";
 import { AgendamentoPublicoFlow } from "./AgendamentoPublicoFlow";
 
 export const dynamic = "force-dynamic";
@@ -37,24 +38,28 @@ export default async function PaginaPublicaEstabelecimento({ params }: PageProps
       style={{ ["--accent" as string]: estabelecimento.corDestaque }}
     >
       <div
-        className="px-4 pb-8 pt-10 text-center text-white"
-        style={{ background: `linear-gradient(160deg, ${estabelecimento.corDestaque}, color-mix(in oklab, ${estabelecimento.corDestaque} 60%, black))` }}
+        className={cn("px-4 pb-8 pt-10 text-center", estabelecimento.foto ? "bg-surface" : "text-white")}
+        style={
+          estabelecimento.foto
+            ? undefined
+            : { background: `linear-gradient(160deg, ${estabelecimento.corDestaque}, color-mix(in oklab, ${estabelecimento.corDestaque} 60%, black))` }
+        }
       >
         {estabelecimento.foto ? (
-          <div className="mx-auto flex w-fit rounded-2xl bg-white p-2.5 shadow-lg">
-            <img
-              src={estabelecimento.foto}
-              alt={estabelecimento.nome}
-              className="max-h-14 max-w-[200px] object-contain"
-            />
-          </div>
+          <img
+            src={estabelecimento.foto}
+            alt={estabelecimento.nome}
+            className="mx-auto max-h-32 max-w-[320px] object-contain"
+          />
         ) : (
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/15 font-heading text-xl font-extrabold backdrop-blur">
             {iniciais(estabelecimento.nome)}
           </div>
         )}
-        <h1 className="mt-3 font-heading text-2xl font-extrabold">{estabelecimento.nome}</h1>
-        <p className="mt-1 flex items-center justify-center gap-1.5 text-sm text-white/80">
+        <h1 className={cn("mt-3 font-heading text-2xl font-extrabold", estabelecimento.foto && "text-text")}>
+          {estabelecimento.nome}
+        </h1>
+        <p className={cn("mt-1 flex items-center justify-center gap-1.5 text-sm", estabelecimento.foto ? "text-text-muted" : "text-white/80")}>
           <MapPin size={14} /> {estabelecimento.endereco}
         </p>
       </div>

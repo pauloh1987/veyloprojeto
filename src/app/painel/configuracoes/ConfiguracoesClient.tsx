@@ -10,7 +10,10 @@ import { iniciais } from "@/lib/formatadores";
 import { cn } from "@/lib/cn";
 
 const ESTADO_INICIAL: EstadoAcao = {};
-const LOGO_TAMANHO_MAX_PX = 320;
+// 480px (não 320) porque logo com traço fino (script, contorno) perde legibilidade se exportado
+// pequeno demais — isso só importa em tela de alta densidade (retina), mas não custa nada nas
+// outras.
+const LOGO_TAMANHO_MAX_PX = 480;
 const LOGO_QUALIDADE = 0.85;
 
 /** Acha o retângulo que realmente tem desenho (não branco, não transparente) — muita
@@ -74,6 +77,7 @@ function redimensionarLogo(arquivo: File): Promise<string> {
         canvas.height = altura;
         const ctx = canvas.getContext("2d");
         if (!ctx) return reject(new Error("Não foi possível processar a imagem."));
+        ctx.imageSmoothingQuality = "high";
         ctx.drawImage(img, origemX, origemY, larguraConteudo, alturaConteudo, 0, 0, largura, altura);
         resolve(canvas.toDataURL("image/png", LOGO_QUALIDADE));
       };

@@ -70,19 +70,11 @@ export function AgendamentoPublicoFlow({
     () => (servico ? profissionais.filter((p) => servico.profissionaisIds.includes(p.id)) : []),
     [servico, profissionais],
   );
-  const mostrarEtapaProfissional = servico ? profissionaisDoServico.length > 1 : profissionais.length > 1;
-
   function escolherServico(s: ServicoPublico) {
     setServicoId(s.id);
+    setProfissionalId(null);
     setErro(null);
-    const elegiveis = profissionais.filter((p) => s.profissionaisIds.includes(p.id));
-    if (elegiveis.length === 1) {
-      setProfissionalId(elegiveis[0].id);
-      setEtapa("data");
-    } else {
-      setProfissionalId(null);
-      setEtapa("profissional");
-    }
+    setEtapa("profissional");
   }
 
   function escolherProfissional(p: ProfissionalPublico) {
@@ -147,7 +139,7 @@ export function AgendamentoPublicoFlow({
   function voltar() {
     setErro(null);
     if (etapa === "profissional") setEtapa("servico");
-    else if (etapa === "data") setEtapa(profissionaisDoServico.length > 1 ? "profissional" : "servico");
+    else if (etapa === "data") setEtapa("profissional");
     else if (etapa === "horario") setEtapa("data");
     else if (etapa === "dados") setEtapa("horario");
   }
@@ -171,7 +163,7 @@ export function AgendamentoPublicoFlow({
           <ArrowLeft size={16} /> Voltar
         </button>
       )}
-      <IndicadorEtapas atual={etapa} mostrarProfissional={mostrarEtapaProfissional} />
+      <IndicadorEtapas atual={etapa} />
 
       {etapa === "servico" && (
         <div>
@@ -350,13 +342,12 @@ export function AgendamentoPublicoFlow({
 
 const ORDEM_ETAPAS: Etapa[] = ["servico", "profissional", "data", "horario", "dados"];
 
-function IndicadorEtapas({ atual, mostrarProfissional }: { atual: Etapa; mostrarProfissional: boolean }) {
-  const etapas = mostrarProfissional ? ORDEM_ETAPAS : ORDEM_ETAPAS.filter((e) => e !== "profissional");
-  const indiceAtual = etapas.indexOf(atual);
+function IndicadorEtapas({ atual }: { atual: Etapa }) {
+  const indiceAtual = ORDEM_ETAPAS.indexOf(atual);
 
   return (
-    <div className="mb-5 flex gap-1.5" role="progressbar" aria-valuenow={indiceAtual + 1} aria-valuemax={etapas.length}>
-      {etapas.map((et, i) => (
+    <div className="mb-5 flex gap-1.5" role="progressbar" aria-valuenow={indiceAtual + 1} aria-valuemax={ORDEM_ETAPAS.length}>
+      {ORDEM_ETAPAS.map((et, i) => (
         <span
           key={et}
           className={cn("h-1.5 flex-1 rounded-full transition-colors duration-300", i <= indiceAtual ? "bg-accent" : "bg-border")}
