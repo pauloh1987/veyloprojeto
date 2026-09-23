@@ -88,6 +88,7 @@ export const configuracoesSchema = z.object({
   antecedenciaMinMin: z.coerce.number().int().min(0).max(1440),
   plano: z.enum(["SOLO", "EQUIPE"]),
   foto: fotoDataUrlSchema("png"),
+  logoFundo: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Cor inválida."),
 });
 export type ConfiguracoesInput = z.infer<typeof configuracoesSchema>;
 

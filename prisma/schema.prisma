@@ -56,6 +56,7 @@ model Estabelecimento {
   fuso               String   @default("America/Recife")
   corDestaque        String   @default("#0EA5A0")
   foto               String?
+  logoFundo          String   @default("#FFFFFF")
   plano              Plano    @default(SOLO)
   antecedenciaMinMin Int      @default(120)
   criadoEm           DateTime @default(now())

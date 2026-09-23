@@ -46,10 +46,13 @@ export default async function PaginaPublicaEstabelecimento({ params }: PageProps
         }
       >
         {estabelecimento.foto ? (
-          // Cartão branco + borda + sombra sempre, mesmo com fundo já claro: a maioria das
-          // logos é desenhada para fundo branco "puro" e, sem essa moldura, uma logo branca
-          // se perde dentro do próprio fundo do cabeçalho por falta de contorno definido.
-          <div className="mx-auto flex w-fit rounded-2xl border border-border bg-white p-3 shadow-sm">
+          // Fundo do cartão é escolhido pela dona em Configurações (padrão branco, já que a
+          // maioria das logos é desenhada para fundo branco puro) — sem essa moldura, uma
+          // logo clara se perde dentro do próprio fundo do cabeçalho por falta de contorno.
+          <div
+            className="mx-auto flex w-fit rounded-2xl border border-border p-3 shadow-sm"
+            style={{ backgroundColor: estabelecimento.logoFundo }}
+          >
             <img
               src={estabelecimento.foto}
               alt={estabelecimento.nome}

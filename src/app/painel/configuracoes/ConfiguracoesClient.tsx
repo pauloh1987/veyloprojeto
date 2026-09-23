@@ -107,6 +107,7 @@ export function ConfiguracoesClient({
     antecedenciaMinMin: number;
     plano: string;
     foto: string | null;
+    logoFundo: string;
   };
   linkPublico: string;
 }) {
@@ -114,6 +115,7 @@ export function ConfiguracoesClient({
   const [copiado, setCopiado] = useState(false);
   const [plano, setPlano] = useState<"SOLO" | "EQUIPE">(estabelecimento.plano === "EQUIPE" ? "EQUIPE" : "SOLO");
   const [foto, setFoto] = useState<string | null>(estabelecimento.foto);
+  const [logoFundo, setLogoFundo] = useState(estabelecimento.logoFundo);
   const [erroLogo, setErroLogo] = useState<string | null>(null);
   const inputArquivoRef = useRef<HTMLInputElement>(null);
 
@@ -171,7 +173,10 @@ export function ConfiguracoesClient({
           <span className="mb-1.5 block text-sm font-medium text-text">Logo</span>
           <div className="flex items-center gap-3">
             {foto ? (
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-border-strong bg-white p-1.5">
+              <div
+                className="flex h-16 w-16 items-center justify-center rounded-2xl border border-border-strong p-1.5"
+                style={{ backgroundColor: logoFundo }}
+              >
                 <img src={foto} alt="Logo do estabelecimento" className="max-h-full max-w-full object-contain" />
               </div>
             ) : (
@@ -199,6 +204,21 @@ export function ConfiguracoesClient({
               {erroLogo && <p className="text-xs text-danger">{erroLogo}</p>}
             </div>
           </div>
+          {foto && (
+            <div className="mt-3 flex items-center gap-2.5">
+              <input
+                id="logoFundoPicker"
+                type="color"
+                value={logoFundo}
+                onChange={(e) => setLogoFundo(e.target.value)}
+                className="h-9 w-11 shrink-0 rounded-lg border border-border-strong bg-surface"
+              />
+              <label htmlFor="logoFundoPicker" className="text-xs text-text-faint">
+                Fundo do cartão do logo — se o logo tiver fundo branco, deixe branco; se a
+                cor combinar mal, veja o resultado aqui do lado e escolha outra.
+              </label>
+            </div>
+          )}
           <input
             ref={inputArquivoRef}
             type="file"
@@ -207,6 +227,7 @@ export function ConfiguracoesClient({
             className="hidden"
           />
           <input type="hidden" name="foto" value={foto ?? ""} />
+          <input type="hidden" name="logoFundo" value={logoFundo} />
         </div>
 
         <Campo rotulo="Nome do estabelecimento" htmlFor="nome">
