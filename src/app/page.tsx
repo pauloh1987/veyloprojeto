@@ -1,16 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { db } from "@/lib/db";
 import { LinkButton } from "@/components/ui/Button";
 
-export const dynamic = "force-dynamic";
-
-export default async function PaginaInicial() {
-  const estabelecimentos = await db.estabelecimento.findMany({
-    orderBy: { nome: "asc" },
-    select: { slug: true, nome: true, plano: true },
-  });
-
+export default function PaginaInicial() {
   return (
     <main className="veylo-hero-bg flex min-h-screen flex-col items-center justify-center px-4 py-16 text-center">
       <Image src="/veylo-logo.png" alt="" width={72} height={83} priority />
@@ -33,23 +25,6 @@ export default async function PaginaInicial() {
           Entrar no painel
         </Link>
       </div>
-
-      {estabelecimentos.length > 0 && (
-        <div className="mt-12 w-full max-w-sm">
-          <p className="mb-3 text-xs uppercase tracking-wide text-white/40">Páginas públicas de demonstração</p>
-          <div className="space-y-2">
-            {estabelecimentos.map((e) => (
-              <Link
-                key={e.slug}
-                href={`/${e.slug}`}
-                className="block w-full rounded-xl border border-white/20 px-4 py-3 text-sm font-medium text-white hover:bg-white/10"
-              >
-                {e.nome}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </main>
   );
 }
