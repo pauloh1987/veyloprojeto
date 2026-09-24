@@ -125,6 +125,16 @@ especificação não determinava um caminho exato. Organizado por área.
     para confirmar ou cancelar.`
   - LEMBRETE: `{{1}}: lembrando do seu horário de {{2}} em {{3}}. Responda esta mensagem para
     confirmar ou cancelar.`
+- **Teste grátis de 14 dias, só aviso — sem bloqueio nem cobrança automática**: `Estabelecimento.assinanteDesde`
+  (nulo = ainda em teste) decide isso; `testeGratisExpirado()` em `src/lib/assinatura.ts` compara
+  `criadoEm + 14 dias` contra agora. Quando expira, `PainelShell` mostra uma faixa de aviso no topo
+  do painel — não trava nenhuma funcionalidade, porque não existe cobrança de verdade ainda (Mercado
+  Pago/Stripe): a ideia é a dona ver o aviso e o Paulo entrar em contato manualmente pra combinar
+  pagamento, não o sistema decidir sozinho cortar o acesso de alguém. Contas que já existiam antes
+  desse recurso foram marcadas como assinantes retroativamente na própria migração (`UPDATE ...
+  SET assinanteDesde = criadoEm WHERE assinanteDesde IS NULL`) — só cadastro feito depois disso entra
+  de fato no relógio do teste. Preço de referência pesquisado no mercado (Trinks R$76-110/mês, Booksy
+  R$99,90+/mês) — o Veylo ainda não tem preço público definido, isso é decisão do Paulo, não do código.
 - **Bloqueio.motivo é texto livre**, não um enum — a especificação cita "folga, almoço,
   compromisso" como exemplos, não como lista fechada; o formulário sugere esses valores via
   `<datalist>`, mas aceita qualquer texto.
