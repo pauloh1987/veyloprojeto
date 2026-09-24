@@ -25,6 +25,10 @@ export default function PaginaInicial() {
           Entrar no painel
         </Link>
       </div>
+
+      <Link href="/privacidade" className="mt-12 text-xs text-white/40 hover:text-white/70">
+        Política de Privacidade
+      </Link>
     </main>
   );
 }

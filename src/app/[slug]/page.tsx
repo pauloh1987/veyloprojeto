@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { MapPin } from "lucide-react";
 import { obterEstabelecimentoPorSlug } from "@/lib/estabelecimentoPublico";
 import { db } from "@/lib/db";
@@ -92,6 +93,11 @@ export default async function PaginaPublicaEstabelecimento({ params }: PageProps
           profissionais={profissionais.map((p) => ({ id: p.id, nome: p.nome, foto: p.foto }))}
           categorias={categorias.map((c) => ({ id: c.id, nome: c.nome }))}
         />
+        <p className="pb-4 pt-8 text-center text-xs text-text-faint">
+          <Link href="/privacidade" className="hover:text-text-muted">
+            Política de Privacidade
+          </Link>
+        </p>
       </div>
     </main>
   );
