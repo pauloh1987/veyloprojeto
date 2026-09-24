@@ -19,12 +19,17 @@ export interface ServicoPublico {
   duracaoMin: number;
   precoCentavos: number;
   cor: string;
+  categoriaId: string | null;
   profissionaisIds: string[];
 }
 export interface ProfissionalPublico {
   id: string;
   nome: string;
   foto: string | null;
+}
+export interface CategoriaServicoPublica {
+  id: string;
+  nome: string;
 }
 export interface EstabelecimentoPublico {
   id: string;
@@ -39,10 +44,12 @@ export function AgendamentoPublicoFlow({
   estabelecimento,
   servicos,
   profissionais,
+  categorias = [],
 }: {
   estabelecimento: EstabelecimentoPublico;
   servicos: ServicoPublico[];
   profissionais: ProfissionalPublico[];
+  categorias?: CategoriaServicoPublica[];
 }) {
   const [etapa, setEtapa] = useState<Etapa>("servico");
   const [servicoId, setServicoId] = useState<string | null>(null);
@@ -170,32 +177,42 @@ export function AgendamentoPublicoFlow({
           <h2 className="mb-3 font-heading text-lg font-bold text-text">Escolha o serviço</h2>
           {servicos.length === 0 ? (
             <p className="text-text-muted">Nenhum serviço disponível no momento.</p>
-          ) : (
+          ) : categorias.length === 0 ? (
             <div className="space-y-2.5">
               {servicos.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => escolherServico(s)}
-                  className="group flex w-full items-center gap-3.5 rounded-2xl border border-border bg-surface p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent hover:shadow-md active:translate-y-0 active:scale-[0.99]"
-                >
-                  <span
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-heading text-base font-bold text-white"
-                    style={{ backgroundColor: s.cor }}
-                    aria-hidden
-                  >
-                    {s.nome.charAt(0).toUpperCase()}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold text-text">{s.nome}</span>
-                    <span className="block text-sm text-text-muted">{formatarDuracao(s.duracaoMin)}</span>
-                  </span>
-                  <span className="shrink-0 font-heading font-bold text-text">{formatarCentavos(s.precoCentavos)}</span>
-                  <ChevronRight
-                    size={18}
-                    className="shrink-0 text-text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-accent"
-                  />
-                </button>
+                <CartaoServicoPublico key={s.id} servico={s} aoEscolher={escolherServico} />
               ))}
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {categorias.map((cat) => {
+                const doGrupo = servicos.filter((s) => s.categoriaId === cat.id);
+                if (doGrupo.length === 0) return null;
+                return (
+                  <div key={cat.id}>
+                    <p className="mb-2 text-xs font-semibold tracking-wide text-text-faint uppercase">{cat.nome}</p>
+                    <div className="space-y-2.5">
+                      {doGrupo.map((s) => (
+                        <CartaoServicoPublico key={s.id} servico={s} aoEscolher={escolherServico} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              {(() => {
+                const semCategoria = servicos.filter((s) => !s.categoriaId);
+                if (semCategoria.length === 0) return null;
+                return (
+                  <div>
+                    <p className="mb-2 text-xs font-semibold tracking-wide text-text-faint uppercase">Outros</p>
+                    <div className="space-y-2.5">
+                      {semCategoria.map((s) => (
+                        <CartaoServicoPublico key={s.id} servico={s} aoEscolher={escolherServico} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>
@@ -337,6 +354,32 @@ export function AgendamentoPublicoFlow({
         </div>
       )}
     </div>
+  );
+}
+
+function CartaoServicoPublico({ servico, aoEscolher }: { servico: ServicoPublico; aoEscolher: (s: ServicoPublico) => void }) {
+  return (
+    <button
+      onClick={() => aoEscolher(servico)}
+      className="group flex w-full items-center gap-3.5 rounded-2xl border border-border bg-surface p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent hover:shadow-md active:translate-y-0 active:scale-[0.99]"
+    >
+      <span
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-heading text-base font-bold text-white"
+        style={{ backgroundColor: servico.cor }}
+        aria-hidden
+      >
+        {servico.nome.charAt(0).toUpperCase()}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-semibold text-text">{servico.nome}</span>
+        <span className="block text-sm text-text-muted">{formatarDuracao(servico.duracaoMin)}</span>
+      </span>
+      <span className="shrink-0 font-heading font-bold text-text">{formatarCentavos(servico.precoCentavos)}</span>
+      <ChevronRight
+        size={18}
+        className="shrink-0 text-text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-accent"
+      />
+    </button>
   );
 }
 

@@ -20,11 +20,19 @@ export async function salvarServico(_estadoAnterior: EstadoAcao, formData: FormD
       cor: formData.get("cor"),
       ativo: formData.get("ativo") === "on",
       profissionaisIds: formData.getAll("profissionaisIds").map(String),
+      categoriaId: formData.get("categoriaId") ?? "",
     });
     if (!resultado.success) {
       return { erro: resultado.error.issues[0]?.message ?? "Dados inválidos." };
     }
     const dados = resultado.data;
+
+    if (dados.categoriaId) {
+      const categoria = await db.categoriaServico.findFirst({
+        where: { id: dados.categoriaId, estabelecimentoId: usuario.estabelecimentoId },
+      });
+      if (!categoria) throw new NaoAutorizadoError();
+    }
 
     if (id) {
       const existente = await db.servico.findFirst({ where: { id, estabelecimentoId: usuario.estabelecimentoId } });
@@ -38,6 +46,7 @@ export async function salvarServico(_estadoAnterior: EstadoAcao, formData: FormD
           precoCentavos: dados.precoCentavos,
           cor: dados.cor,
           ativo: dados.ativo,
+          categoriaId: dados.categoriaId,
           profissionais: {
             deleteMany: {},
             create: dados.profissionaisIds.map((profissionalId) => ({ profissionalId })),
@@ -53,6 +62,7 @@ export async function salvarServico(_estadoAnterior: EstadoAcao, formData: FormD
           precoCentavos: dados.precoCentavos,
           cor: dados.cor,
           ativo: dados.ativo,
+          categoriaId: dados.categoriaId,
           estabelecimentoId: usuario.estabelecimentoId,
           profissionais: { create: dados.profissionaisIds.map((profissionalId) => ({ profissionalId })) },
         },

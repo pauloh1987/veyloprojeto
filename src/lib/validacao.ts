@@ -32,8 +32,18 @@ export const servicoSchema = z.object({
   cor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Cor inválida."),
   ativo: z.coerce.boolean().default(true),
   profissionaisIds: z.array(z.string().min(1)).min(1, "Selecione ao menos uma profissional."),
+  categoriaId: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v ? v : null)),
 });
 export type ServicoInput = z.infer<typeof servicoSchema>;
+
+export const categoriaServicoSchema = z.object({
+  nome: z.string().trim().min(1, "Informe o nome da categoria.").max(60),
+});
+export type CategoriaServicoInput = z.infer<typeof categoriaServicoSchema>;
 
 export const horarioDiaSchema = z.object({
   profissionalId: z.string().min(1),

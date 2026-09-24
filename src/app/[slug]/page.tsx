@@ -20,7 +20,7 @@ export default async function PaginaPublicaEstabelecimento({ params }: PageProps
   const estabelecimento = await obterEstabelecimentoPorSlug(slug);
   if (!estabelecimento) notFound();
 
-  const [servicos, profissionais] = await Promise.all([
+  const [servicos, profissionais, categorias] = await Promise.all([
     db.servico.findMany({
       where: { estabelecimentoId: estabelecimento.id, ativo: true },
       include: { profissionais: { select: { profissionalId: true } } },
@@ -29,6 +29,10 @@ export default async function PaginaPublicaEstabelecimento({ params }: PageProps
     db.profissional.findMany({
       where: { estabelecimentoId: estabelecimento.id, ativo: true },
       orderBy: { nome: "asc" },
+    }),
+    db.categoriaServico.findMany({
+      where: { estabelecimentoId: estabelecimento.id },
+      orderBy: { ordem: "asc" },
     }),
   ]);
 
@@ -82,9 +86,11 @@ export default async function PaginaPublicaEstabelecimento({ params }: PageProps
             duracaoMin: s.duracaoMin,
             precoCentavos: s.precoCentavos,
             cor: s.cor,
+            categoriaId: s.categoriaId,
             profissionaisIds: s.profissionais.map((sp) => sp.profissionalId),
           }))}
           profissionais={profissionais.map((p) => ({ id: p.id, nome: p.nome, foto: p.foto }))}
+          categorias={categorias.map((c) => ({ id: c.id, nome: c.nome }))}
         />
       </div>
     </main>

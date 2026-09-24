@@ -67,11 +67,12 @@ model Estabelecimento {
   antecedenciaMinMin Int      @default(120)
   criadoEm           DateTime @default(now())
 
-  usuarios      Usuario[]
-  profissionais Profissional[]
-  servicos      Servico[]
-  clientes      Cliente[]
-  agendamentos  Agendamento[]
+  usuarios          Usuario[]
+  profissionais     Profissional[]
+  servicos          Servico[]
+  categoriasServico CategoriaServico[]
+  clientes          Cliente[]
+  agendamentos      Agendamento[]
 }
 
 model Usuario {
@@ -128,9 +129,28 @@ model Servico {
   ativo             Boolean  @default(true)
   estabelecimentoId String
   estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  categoriaId       String?
+  categoria         CategoriaServico? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
 
   profissionais ServicoProfissional[]
   agendamentos  Agendamento[]
+
+  @@index([estabelecimentoId])
+  @@index([categoriaId])
+}
+
+/** Agrupa serviços na tela "Serviços" e no link público (ex: "Aplicação", "Manutenção",
+ * "Gel", "Avulso") — opcional: um serviço sem categoria continua funcionando normalmente,
+ * só aparece fora de qualquer grupo. `ordem` controla a sequência dos grupos (não é
+ * alfabética — o dono decide, ex. Aplicação antes de Manutenção). */
+model CategoriaServico {
+  id                String   @id @default(cuid())
+  nome              String
+  ordem             Int      @default(0)
+  estabelecimentoId String
+  estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+
+  servicos Servico[]
 
   @@index([estabelecimentoId])
 }

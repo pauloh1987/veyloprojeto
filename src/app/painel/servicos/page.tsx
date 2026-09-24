@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Serviços" };
 export default async function PaginaServicos() {
   const usuario = await exigirDono();
 
-  const [servicos, profissionais] = await Promise.all([
+  const [servicos, profissionais, categorias] = await Promise.all([
     db.servico.findMany({
       where: { estabelecimentoId: usuario.estabelecimentoId },
       include: { profissionais: { select: { profissionalId: true } } },
@@ -19,7 +19,11 @@ export default async function PaginaServicos() {
       where: { estabelecimentoId: usuario.estabelecimentoId, ativo: true },
       orderBy: { nome: "asc" },
     }),
+    db.categoriaServico.findMany({
+      where: { estabelecimentoId: usuario.estabelecimentoId },
+      orderBy: { ordem: "asc" },
+    }),
   ]);
 
-  return <ServicosClient servicos={servicos} profissionais={profissionais} />;
+  return <ServicosClient servicos={servicos} profissionais={profissionais} categorias={categorias} />;
 }
