@@ -94,8 +94,8 @@ export class NotificadorTwilio implements Notificador {
 }
 
 /** Templates aprovados na Meta (via Content Template Builder da Twilio) para cada tipo de
- * mensagem que este sistema de fato produz hoje (ver `fila.ts` — CONFIRMACAO e LEMBRETE; não
- * existe template pra CONVITE_RETORNO porque nada ainda cria esse tipo de mensagem). */
+ * mensagem que este sistema de fato produz hoje (ver `fila.ts` — CONFIRMACAO, LEMBRETE e
+ * CONVITE_RETORNO). */
 type ContentSidsPorTipo = Partial<Record<TipoMensagem, string>>;
 
 /** Envia WhatsApp de verdade via WhatsApp Business Platform (usando a Twilio como provedor).
@@ -167,6 +167,7 @@ function criarNotificadorPadrao(): Notificador {
     TWILIO_WHATSAPP_FROM,
     TWILIO_WHATSAPP_CONTENT_SID_CONFIRMACAO,
     TWILIO_WHATSAPP_CONTENT_SID_LEMBRETE,
+    TWILIO_WHATSAPP_CONTENT_SID_CONVITE_RETORNO,
   } = process.env;
 
   if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_WHATSAPP_FROM) {
@@ -174,6 +175,7 @@ function criarNotificadorPadrao(): Notificador {
     return new NotificadorTwilioWhatsApp(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, numeroOrigem, {
       CONFIRMACAO: TWILIO_WHATSAPP_CONTENT_SID_CONFIRMACAO,
       LEMBRETE: TWILIO_WHATSAPP_CONTENT_SID_LEMBRETE,
+      CONVITE_RETORNO: TWILIO_WHATSAPP_CONTENT_SID_CONVITE_RETORNO,
     });
   }
   if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_FROM_NUMBER) {

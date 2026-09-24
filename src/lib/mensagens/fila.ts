@@ -1,13 +1,14 @@
 import { db } from "@/lib/db";
 import { notificadorPadrao } from "./notificador";
-import { textoConfirmacao, textoLembrete, textoPedidoRecebido, variaveisMensagem } from "./textos";
+import { textoConfirmacao, textoConviteRetorno, textoLembrete, textoPedidoRecebido, variaveisMensagem } from "./textos";
 
 const MINUTOS_LEMBRETE_ANTES = 24 * 60;
 const AVANCO_SIMULACAO_MIN = 25 * 60;
 const RELOGIO_ID = 1;
 
-/** Cria a mensagem de confirmação (enviada de imediato) e o lembrete (agendado para 24h
- * antes do horário) de um agendamento recém-criado. */
+/** Cria a mensagem de confirmação (enviada de imediato, só se a dona não tiver desligado isso
+ * em Configurações) e o lembrete (agendado para 24h antes do horário, sempre criado — o
+ * toggle é só sobre a confirmação) de um agendamento recém-criado. */
 export async function criarMensagensParaAgendamento(agendamentoId: string): Promise<void> {
   const agendamento = await db.agendamento.findUniqueOrThrow({
     where: { id: agendamentoId },
@@ -22,27 +23,30 @@ export async function criarMensagensParaAgendamento(agendamentoId: string): Prom
   };
 
   const variaveis = variaveisMensagem(dadosTexto);
-  const textoConf = agendamento.status === "PENDENTE" ? textoPedidoRecebido(dadosTexto) : textoConfirmacao(dadosTexto);
-  const resultadoConf = await notificadorPadrao.enviar({
-    canal: notificadorPadrao.canal,
-    destinatario: agendamento.cliente.telefone,
-    texto: textoConf,
-    tipo: "CONFIRMACAO",
-    variaveis,
-  });
 
-  await db.mensagem.create({
-    data: {
-      agendamentoId,
-      tipo: "CONFIRMACAO",
+  if (agendamento.estabelecimento.confirmacaoAutomatica) {
+    const textoConf = agendamento.status === "PENDENTE" ? textoPedidoRecebido(dadosTexto) : textoConfirmacao(dadosTexto);
+    const resultadoConf = await notificadorPadrao.enviar({
       canal: notificadorPadrao.canal,
-      status: resultadoConf.sucesso ? "ENVIADA" : "ERRO",
+      destinatario: agendamento.cliente.telefone,
       texto: textoConf,
-      variaveisTemplate: JSON.stringify(variaveis),
-      agendadaPara: new Date(),
-      enviadaEm: resultadoConf.sucesso ? new Date() : null,
-    },
-  });
+      tipo: "CONFIRMACAO",
+      variaveis,
+    });
+
+    await db.mensagem.create({
+      data: {
+        agendamentoId,
+        tipo: "CONFIRMACAO",
+        canal: notificadorPadrao.canal,
+        status: resultadoConf.sucesso ? "ENVIADA" : "ERRO",
+        texto: textoConf,
+        variaveisTemplate: JSON.stringify(variaveis),
+        agendadaPara: new Date(),
+        enviadaEm: resultadoConf.sucesso ? new Date() : null,
+      },
+    });
+  }
 
   await db.mensagem.create({
     data: {
@@ -64,25 +68,35 @@ export async function obterAgoraEfetivo(): Promise<Date> {
   return new Date(Date.now() + (relogio?.offsetMin ?? 0) * 60_000);
 }
 
-/** Processa a fila: envia (via Notificador) toda mensagem pendente cujo agendamento não foi
- * cancelado e cujo horário programado já chegou, considerando o "agora" efetivo. */
+/** Processa a fila: envia (via Notificador) toda mensagem pendente cujo horário programado já
+ * chegou, considerando o "agora" efetivo. Mensagens ligadas a um agendamento cancelado são
+ * canceladas sem enviar; mensagens ligadas direto a um cliente (lembrete de retorno, sem
+ * agendamento nenhum por trás) não têm esse conceito de cancelamento — só saem quando chega a
+ * hora, a menos que o cliente tenha sido excluído nesse meio tempo (aí a linha nem existe mais,
+ * por causa do onDelete: Cascade). */
 export async function processarFilaMensagens(): Promise<{ processadas: number; agoraEfetivo: Date }> {
   const agoraEfetivo = await obterAgoraEfetivo();
 
   const pendentes = await db.mensagem.findMany({
     where: { status: "PENDENTE", agendadaPara: { lte: agoraEfetivo } },
-    include: { agendamento: { include: { cliente: true } } },
+    include: { agendamento: { include: { cliente: true } }, cliente: true },
   });
 
   for (const mensagem of pendentes) {
-    if (mensagem.agendamento.status === "CANCELADO") {
+    if (mensagem.agendamento?.status === "CANCELADO") {
       await db.mensagem.update({ where: { id: mensagem.id }, data: { status: "CANCELADA" } });
+      continue;
+    }
+
+    const cliente = mensagem.cliente ?? mensagem.agendamento?.cliente;
+    if (!cliente) {
+      await db.mensagem.update({ where: { id: mensagem.id }, data: { status: "ERRO" } });
       continue;
     }
 
     const resultado = await notificadorPadrao.enviar({
       canal: mensagem.canal,
-      destinatario: mensagem.agendamento.cliente.telefone,
+      destinatario: cliente.telefone,
       texto: mensagem.texto,
       tipo: mensagem.tipo,
       variaveis: mensagem.variaveisTemplate ? JSON.parse(mensagem.variaveisTemplate) : [],
@@ -98,6 +112,36 @@ export async function processarFilaMensagens(): Promise<{ processadas: number; a
   }
 
   return { processadas: pendentes.length, agoraEfetivo };
+}
+
+/** Agenda um lembrete de retorno (ex. manutenção) pra daqui X dias, direto pro cliente — sem
+ * estar ligado a nenhum agendamento específico. Usa o mesmo texto/template fixo de sempre
+ * (`textoConviteRetorno`), só variando o serviço mencionado e a data de envio, porque WhatsApp
+ * de negócio não permite mandar texto totalmente livre (precisa de template aprovado). */
+export async function criarLembreteRetorno(clienteId: string, servicoNome: string, dias: number): Promise<void> {
+  const cliente = await db.cliente.findUniqueOrThrow({
+    where: { id: clienteId },
+    include: { estabelecimento: true },
+  });
+
+  const dadosTexto = {
+    nomeEstabelecimento: cliente.estabelecimento.nome,
+    nomeServico: servicoNome,
+    inicio: new Date(),
+    fuso: cliente.estabelecimento.fuso,
+  };
+
+  await db.mensagem.create({
+    data: {
+      clienteId,
+      tipo: "CONVITE_RETORNO",
+      canal: notificadorPadrao.canal,
+      status: "PENDENTE",
+      texto: textoConviteRetorno(dadosTexto),
+      variaveisTemplate: JSON.stringify([dadosTexto.nomeEstabelecimento, dadosTexto.nomeServico]),
+      agendadaPara: new Date(Date.now() + dias * 24 * 60 * 60_000),
+    },
+  });
 }
 
 /** Avança o relógio simulado e processa a fila em seguida. Usado pelo botão de demonstração

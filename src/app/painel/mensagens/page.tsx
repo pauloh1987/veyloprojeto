@@ -30,12 +30,19 @@ export default async function PaginaMensagens() {
 
   const mensagens = await db.mensagem.findMany({
     where: {
-      agendamento: {
-        estabelecimentoId: usuario.estabelecimentoId,
-        ...(usuario.papel === "PROFISSIONAL" ? { profissionalId: usuario.profissionalId ?? "" } : {}),
-      },
+      OR: [
+        {
+          agendamento: {
+            estabelecimentoId: usuario.estabelecimentoId,
+            ...(usuario.papel === "PROFISSIONAL" ? { profissionalId: usuario.profissionalId ?? "" } : {}),
+          },
+        },
+        // Lembretes de retorno não são ligados a um agendamento (nem a uma profissional
+        // específica) — aparecem pra qualquer um da equipe, não só pra dona.
+        { cliente: { estabelecimentoId: usuario.estabelecimentoId } },
+      ],
     },
-    include: { agendamento: { include: { cliente: true } } },
+    include: { agendamento: { include: { cliente: true } }, cliente: true },
     orderBy: { agendadaPara: "desc" },
     take: 100,
   });
@@ -61,6 +68,7 @@ export default async function PaginaMensagens() {
         <ul className="space-y-2.5">
           {mensagens.map((m) => {
             const status = CONFIG_STATUS[m.status];
+            const cliente = m.agendamento?.cliente ?? m.cliente;
             return (
               <li key={m.id} className="rounded-2xl border border-border bg-surface p-4">
                 <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -73,7 +81,7 @@ export default async function PaginaMensagens() {
                   </span>
                 </div>
                 <p className="text-sm text-text-muted">
-                  Para <span className="font-medium text-text">{m.agendamento.cliente.nome}</span> · {m.canal}
+                  Para <span className="font-medium text-text">{cliente?.nome ?? "—"}</span> · {m.canal}
                 </p>
                 <p className="mt-1.5 text-sm text-text">{m.texto}</p>
               </li>

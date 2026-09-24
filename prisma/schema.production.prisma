@@ -66,6 +66,7 @@ model Estabelecimento {
   logoFundo          String   @default("#FFFFFF")
   plano              Plano    @default(SOLO)
   antecedenciaMinMin Int      @default(120)
+  confirmacaoAutomatica Boolean @default(true)
   criadoEm           DateTime @default(now())
   assinanteDesde     DateTime?
 
@@ -200,6 +201,7 @@ model Cliente {
   estabelecimentoId String
   estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
   agendamentos      Agendamento[]
+  mensagens         Mensagem[]
   criadoEm          DateTime @default(now())
 
   @@index([estabelecimentoId])
@@ -241,8 +243,10 @@ model RelogioSimulado {
 
 model Mensagem {
   id            String         @id @default(cuid())
-  agendamentoId String
-  agendamento   Agendamento    @relation(fields: [agendamentoId], references: [id], onDelete: Cascade)
+  agendamentoId String?
+  agendamento   Agendamento?   @relation(fields: [agendamentoId], references: [id], onDelete: Cascade)
+  clienteId     String?
+  cliente       Cliente?       @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   tipo          TipoMensagem
   canal         CanalMensagem
   status        StatusMensagem @default(PENDENTE)
@@ -252,4 +256,5 @@ model Mensagem {
   enviadaEm     DateTime?
 
   @@index([status, agendadaPara])
+  @@index([clienteId])
 }

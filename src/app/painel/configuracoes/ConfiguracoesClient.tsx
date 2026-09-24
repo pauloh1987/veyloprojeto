@@ -108,6 +108,7 @@ export function ConfiguracoesClient({
     plano: string;
     foto: string | null;
     logoFundo: string;
+    confirmacaoAutomatica: boolean;
   };
   linkPublico: string;
 }) {
@@ -289,6 +290,21 @@ export function ConfiguracoesClient({
             />
           </Campo>
         </div>
+
+        <label className="flex items-start gap-2.5 text-sm text-text">
+          <input
+            type="checkbox"
+            name="confirmacaoAutomatica"
+            defaultChecked={estabelecimento.confirmacaoAutomatica}
+            className="mt-0.5 h-4 w-4 rounded"
+          />
+          <span>
+            Enviar confirmação automática por SMS/WhatsApp assim que a cliente agenda
+            <span className="block text-xs text-text-faint">
+              O lembrete do dia anterior continua sendo enviado mesmo com isso desligado.
+            </span>
+          </span>
+        </label>
 
         {estado?.erro && <p className="text-sm text-danger">{estado.erro}</p>}
         {estado?.sucesso && <p className="text-sm text-success">Configurações salvas.</p>}

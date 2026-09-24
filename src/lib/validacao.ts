@@ -99,6 +99,7 @@ export const configuracoesSchema = z.object({
   plano: z.enum(["SOLO", "EQUIPE"]),
   foto: fotoDataUrlSchema("png"),
   logoFundo: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Cor inválida."),
+  confirmacaoAutomatica: z.boolean(),
 });
 export type ConfiguracoesInput = z.infer<typeof configuracoesSchema>;
 
@@ -134,6 +135,12 @@ export const alternarArquivadoServicoSchema = z.object({
 });
 
 export const idSchema = z.string().min(1, "Identificador inválido.");
+
+export const lembreteRetornoSchema = z.object({
+  clienteId: idSchema,
+  servicoId: idSchema,
+  dias: z.coerce.number().int().min(1, "Mínimo de 1 dia.").max(365, "Máximo de 365 dias."),
+});
 
 const REGEX_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const PALAVRAS_RESERVADAS = new Set([

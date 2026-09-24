@@ -11,6 +11,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Card, CardBody } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/painel/StatusBadge";
 import { FormularioClienteModal } from "../FormularioClienteModal";
+import { LembreteRetornoForm } from "../LembreteRetornoForm";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Cliente" };
@@ -24,11 +25,17 @@ export default async function PaginaFichaCliente({ params }: PageProps<"/painel/
   });
   if (!cliente) notFound();
 
-  const agendamentos = await db.agendamento.findMany({
-    where: { clienteId: cliente.id },
-    include: { servico: true, profissional: true },
-    orderBy: { inicio: "desc" },
-  });
+  const [agendamentos, servicos] = await Promise.all([
+    db.agendamento.findMany({
+      where: { clienteId: cliente.id },
+      include: { servico: true, profissional: true },
+      orderBy: { inicio: "desc" },
+    }),
+    db.servico.findMany({
+      where: { estabelecimentoId: usuario.estabelecimentoId, ativo: true },
+      orderBy: { nome: "asc" },
+    }),
+  ]);
 
   const atendidos = agendamentos.filter((a) => a.status === "ATENDIDO");
   const totalGastoCentavos = atendidos.reduce((soma, a) => soma + a.servico.precoCentavos, 0);
@@ -91,6 +98,14 @@ export default async function PaginaFichaCliente({ params }: PageProps<"/painel/
           </CardBody>
         </Card>
       </div>
+
+      {servicos.length > 0 && (
+        <LembreteRetornoForm
+          clienteId={cliente.id}
+          servicos={servicos.map((s) => ({ id: s.id, nome: s.nome }))}
+          servicoSugeridoId={atendidos[0]?.servico.id}
+        />
+      )}
 
       <h2 className="mb-3 font-heading text-lg font-bold text-text">Histórico</h2>
       {agendamentos.length === 0 ? (

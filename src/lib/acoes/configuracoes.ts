@@ -20,6 +20,7 @@ export async function salvarConfiguracoes(_estadoAnterior: EstadoAcao, formData:
       plano: formData.get("plano"),
       foto: formData.get("foto") ?? "",
       logoFundo: formData.get("logoFundo"),
+      confirmacaoAutomatica: formData.get("confirmacaoAutomatica") === "on",
     });
     if (!resultado.success) {
       return { erro: resultado.error.issues[0]?.message ?? "Dados inválidos." };
@@ -48,6 +49,7 @@ export async function salvarConfiguracoes(_estadoAnterior: EstadoAcao, formData:
         plano: dados.plano,
         foto: dados.foto,
         logoFundo: dados.logoFundo,
+        confirmacaoAutomatica: dados.confirmacaoAutomatica,
       },
     });
 

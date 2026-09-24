@@ -135,6 +135,19 @@ especificação não determinava um caminho exato. Organizado por área.
   SET assinanteDesde = criadoEm WHERE assinanteDesde IS NULL`) — só cadastro feito depois disso entra
   de fato no relógio do teste. Preço de referência pesquisado no mercado (Trinks R$76-110/mês, Booksy
   R$99,90+/mês) — o Veylo ainda não tem preço público definido, isso é decisão do Paulo, não do código.
+- **Confirmação automática é opcional, lembrete de 24h não é**: `Estabelecimento.confirmacaoAutomatica`
+  (padrão `true`, pra não mudar nada de quem já usa) liga/desliga só a mensagem imediata de
+  confirmação — o lembrete do dia anterior é sempre criado, porque foi só a confirmação que a
+  dona pediu pra poder desligar.
+- **Lembrete de retorno (`CONVITE_RETORNO`) não é ligado a nenhum agendamento**: por isso
+  `Mensagem.agendamentoId` virou opcional e ganhou `Mensagem.clienteId` (também opcional) —
+  uma mensagem sempre tem um dos dois, nunca os dois nem nenhum. Mesmo assim o texto é fixo
+  (`textoConviteRetorno`, só variando o nome do serviço), não texto livre: WhatsApp de negócio
+  não permite mandar qualquer coisa, só templates aprovados — deixar a dona digitar uma
+  mensagem qualquer ia funcionar no SMS mas quebrar silenciosamente no WhatsApp assim que
+  configurado. O serviço sugerido no formulário é o último atendimento de fato concluído
+  do cliente (`atendidos[0]`), pra cobrir o caso comum (lembrar da mesma manutenção) sem
+  obrigar a dona a escolher toda vez.
 - **Bloqueio.motivo é texto livre**, não um enum — a especificação cita "folga, almoço,
   compromisso" como exemplos, não como lista fechada; o formulário sugere esses valores via
   `<datalist>`, mas aceita qualquer texto.
