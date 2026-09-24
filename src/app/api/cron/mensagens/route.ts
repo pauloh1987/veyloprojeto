@@ -1,12 +1,21 @@
 import { processarFilaMensagens } from "@/lib/mensagens/fila";
 
 /**
- * Processa a fila de mensagens pendentes (confirmações/lembretes cujo horário chegou).
- * Sem autenticação de propósito: é o endpoint que um cron job real chamaria periodicamente
- * neste protótipo local. Em produção, adicionar um segredo compartilhado (header ou query
- * string) antes de expor publicamente.
+ * Disparo manual/depuração da fila de mensagens (o disparo automático de verdade é a função
+ * agendada `netlify/functions/cron-mensagens.mts`, que chama `processarFilaMensagens`
+ * diretamente, sem passar por HTTP). Protegido por segredo compartilhado porque processa fila
+ * de verdade (envia SMS/WhatsApp reais, com custo) — sem `CRON_SECRET` configurado, a rota
+ * fica sempre bloqueada, nunca aberta por padrão.
  */
-async function processar() {
+function autorizado(request: Request): boolean {
+  const segredo = process.env.CRON_SECRET;
+  return Boolean(segredo) && request.headers.get("authorization") === `Bearer ${segredo}`;
+}
+
+async function processar(request: Request) {
+  if (!autorizado(request)) {
+    return new Response("Não autorizado.", { status: 401 });
+  }
   const resultado = await processarFilaMensagens();
   return Response.json({
     processadas: resultado.processadas,
@@ -14,10 +23,10 @@ async function processar() {
   });
 }
 
-export async function GET() {
-  return processar();
+export async function GET(request: Request) {
+  return processar(request);
 }
 
-export async function POST() {
-  return processar();
+export async function POST(request: Request) {
+  return processar(request);
 }
