@@ -99,6 +99,14 @@ especificação não determinava um caminho exato. Organizado por área.
   código antes de poder receber qualquer coisa) depende de verificação de empresa pela Meta
   — um processo de dias, fora do controle do código. `Cliente.telefone` é só dígitos (DDD +
   número); o envio assume Brasil e monta o E.164 (`+55...`) na hora de chamar a Twilio.
+- **Categorias de serviço (`CategoriaServico`) são opcionais e não destrutivas**: um
+  estabelecimento sem nenhuma categoria cadastrada continua vendo a lista de serviços exatamente
+  como antes (plana, sem seções) — tanto no painel quanto no link público. A ordem das categorias
+  é manual (`ordem: Int`, reordenada por botões cima/baixo), não alfabética, porque o dono de um
+  salão pensa em "primeiro os cortes, depois a barba", não em ordem de dicionário. Apagar uma
+  categoria não apaga nem bloqueia os serviços dela (`onDelete: SetNull` em `Servico.categoriaId`)
+  — eles só voltam a aparecer sob "Sem categoria"/"Outros", igual a um serviço que nunca foi
+  categorizado.
 - **Bloqueio.motivo é texto livre**, não um enum — a especificação cita "folga, almoço,
   compromisso" como exemplos, não como lista fechada; o formulário sugere esses valores via
   `<datalist>`, mas aceita qualquer texto.
