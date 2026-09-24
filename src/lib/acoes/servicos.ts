@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { exigirDono } from "@/lib/auth";
-import { alternarArquivadoServicoSchema, servicoSchema } from "@/lib/validacao";
-import { mensagemSeguraDeErro, NaoAutorizadoError } from "@/lib/erros";
+import { alternarArquivadoServicoSchema, idSchema, servicoSchema } from "@/lib/validacao";
+import { mensagemSeguraDeErro, NaoAutorizadoError, ValidacaoError } from "@/lib/erros";
 import type { EstadoAcao } from "./agendamentos";
 
 export async function salvarServico(_estadoAnterior: EstadoAcao, formData: FormData): Promise<EstadoAcao> {
@@ -83,4 +83,26 @@ export async function alternarArquivadoServico(servicoId: string, ativo: boolean
   if (!servico) throw new NaoAutorizadoError();
   await db.servico.update({ where: { id: idValidado }, data: { ativo: ativoValidado } });
   revalidatePath("/painel/servicos");
+}
+
+export async function excluirServico(servicoIdBruto: string): Promise<EstadoAcao> {
+  try {
+    const usuario = await exigirDono();
+    const servicoId = idSchema.parse(servicoIdBruto);
+    const servico = await db.servico.findFirst({ where: { id: servicoId, estabelecimentoId: usuario.estabelecimentoId } });
+    if (!servico) throw new NaoAutorizadoError();
+
+    const totalAgendamentos = await db.agendamento.count({ where: { servicoId } });
+    if (totalAgendamentos > 0) {
+      throw new ValidacaoError(
+        `Esse serviço já tem ${totalAgendamentos} agendamento${totalAgendamentos > 1 ? "s" : ""} no histórico e não pode ser excluído. Use "Arquivar" para escondê-lo sem apagar nada.`,
+      );
+    }
+
+    await db.servico.delete({ where: { id: servicoId } });
+    revalidatePath("/painel/servicos");
+    return { sucesso: true };
+  } catch (erro) {
+    return { erro: mensagemSeguraDeErro(erro) };
+  }
 }

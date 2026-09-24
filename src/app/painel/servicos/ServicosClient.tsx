@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { Plus, Scissors, Archive, ArchiveRestore, Pencil, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
-import { salvarServico, alternarArquivadoServico } from "@/lib/acoes/servicos";
+import { salvarServico, alternarArquivadoServico, excluirServico } from "@/lib/acoes/servicos";
 import {
   criarCategoriaServico,
   renomearCategoriaServico,
@@ -229,11 +229,12 @@ function CartaoServico({ servico, aoEditar }: { servico: ServicoLinha; aoEditar:
           </div>
         </div>
       </div>
-      <div className="mt-3 flex gap-2 border-t border-border pt-3">
+      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
         <Button size="sm" variant="secondary" onClick={() => aoEditar(servico)}>
           <Pencil size={14} /> Editar
         </Button>
         <BotaoArquivar servicoId={servico.id} ativo={servico.ativo} />
+        <BotaoExcluir servicoId={servico.id} nome={servico.nome} />
       </div>
     </li>
   );
@@ -368,6 +369,35 @@ function LinhaCategoria({
         <Trash2 size={14} />
       </Button>
     </li>
+  );
+}
+
+function BotaoExcluir({ servicoId, nome }: { servicoId: string; nome: string }) {
+  const [pendente, iniciar] = useTransition();
+  const [erro, setErro] = useState<string | null>(null);
+
+  function excluir() {
+    if (!confirm(`Excluir "${nome}" definitivamente? Essa ação não pode ser desfeita.`)) return;
+    setErro(null);
+    iniciar(async () => {
+      const resultado = await excluirServico(servicoId);
+      if (resultado?.erro) setErro(resultado.erro);
+    });
+  }
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="ghost"
+        disabled={pendente}
+        onClick={excluir}
+        className="text-text-muted hover:bg-danger-bg hover:text-danger"
+      >
+        <Trash2 size={14} /> Excluir
+      </Button>
+      {erro && <p className="w-full text-xs text-danger">{erro}</p>}
+    </>
   );
 }
 
