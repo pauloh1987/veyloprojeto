@@ -135,6 +135,55 @@ especificação não determinava um caminho exato. Organizado por área.
   "agora real + deslocamento" como referência — não é algo pedido explicitamente na
   especificação, mas é a peça mínima necessária para o botão pedido ter efeito visível.
 
+## Colocando em produção de verdade (confiabilidade e conformidade)
+
+- **A home pública listava TODOS os estabelecimentos** (`db.estabelecimento.findMany()` sem
+  filtro nenhum, rotulado "páginas públicas de demonstração"). Fazia sentido enquanto só
+  existiam contas de teste, mas significava que a primeira cliente real (Hulyanne Nunes)
+  apareceria publicamente pra qualquer visitante da home assim que se cadastrasse. Removido —
+  a home agora não consulta o banco (virou rota estática). Quem precisar mostrar um exemplo
+  pra um cliente em potencial pode simplesmente compartilhar o link direto do estabelecimento.
+- **Lembretes de agendamento não estavam saindo em produção**: `/api/cron/mensagens` (que
+  processa a fila e de fato envia SMS/WhatsApp) nunca era chamado por nada — não existia
+  agendamento configurado no `netlify.toml` nem função nenhuma. Só a confirmação imediata
+  funcionava (é chamada direto no fluxo de criar agendamento, sem passar pela fila). Corrigido
+  com `netlify/functions/cron-mensagens.mts`, uma Netlify Scheduled Function (`schedule:
+  "*/15 * * * *"`, disponível em qualquer plano) que chama `processarFilaMensagens()`
+  diretamente — sem depender da rota HTTP, então não precisa de rede nem de autenticação pra
+  funcionar.
+- **`/api/cron/mensagens` passou a exigir `CRON_SECRET`** (header `Authorization: Bearer
+  ...`), sempre — sem a variável configurada, a rota fica sempre bloqueada (nunca "aberta por
+  padrão"). Antes ficava pública de propósito ("ajustar antes de produção" já estava anotado
+  no próprio código) — fazia pouca diferença enquanto só ecoava no console, mas agora que
+  processa envios reais (com custo) não faz sentido deixar exposta. A função agendada não
+  depende dessa rota (chama a lógica direto), então a rota HTTP hoje só serve pra
+  disparo manual/depuração.
+- **Backup diário via Netlify Blobs, não um serviço de banco pago**: o plano gratuito da
+  Netlify DB (Neon) só oferece um snapshot manual, sem backup automático/point-in-time
+  recovery (isso começa no plano Solo). Em vez de forçar upgrade de plano,
+  `netlify/functions/backup-diario.mts` roda 1x/dia, exporta todas as tabelas de negócio via
+  Prisma pra um JSON e guarda no Netlify Blobs (incluso em qualquer plano), mantendo os
+  últimos 30 dias. `Sessao` fica de fora de propósito — são tokens de login, regeneram
+  sozinhos, não vale guardar por 30 dias. Não existe um "botão restaurar" de propósito (seria
+  perigoso demais como self-service) — restaurar é sempre manual, puxando o JSON do dia via
+  `getStore("backups-diarios").get(chave, { type: "json" })` e recriando as linhas.
+- **Sentry para captura de erro, sem Session Replay**: `@sentry/nextjs` foi adicionado só pra
+  alertar por e-mail quando algo quebra em produção (`instrumentation.ts` captura erro de
+  servidor/rota, `error.tsx` captura erro de render no cliente). Session Replay (gravação de
+  tela) foi deixado de fora de propósito — ligaria sem estar coberto pela Política de
+  Privacidade, e não é o que foi pedido. **Achado consertando isso**: com Next.js 16.3.5 +
+  Turbopack, `instrumentation.ts` importando `@sentry/nextjs` quebra o build
+  (`Module not found: @vercel/turbopack-next/internal/font/google/font`, nas fontes do
+  Google) a menos que `next.config.ts` use `withSentryConfig` (de `@sentry/nextjs/config`) —
+  não é só para upload de sourcemap como a documentação sugere, é necessário pro build
+  simplesmente compilar. Sem `SENTRY_DSN`/`NEXT_PUBLIC_SENTRY_DSN` configurado, vira no-op
+  seguro (mesmo padrão do Twilio).
+- **Política de Privacidade (`/privacidade`) escrita à mão, não gerada por um gerador
+  automático de termo**: cobre LGPD nos pontos que realmente importam aqui (dado de cliente
+  final é só nome+telefone; Twilio e Netlify como operadores; isolamento entre
+  estabelecimentos; direitos de acesso/correção/exclusão). O e-mail de contato
+  (`contato@veyloagenda.com.br`) é um placeholder — ainda não existe essa caixa de entrada.
+
 ## Motor de horários
 
 - **Passos de 15 min contados a partir do início de cada janela livre** (não do início do
