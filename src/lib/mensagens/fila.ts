@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { notificadorPadrao } from "./notificador";
-import { textoConfirmacao, textoLembrete, textoPedidoRecebido } from "./textos";
+import { textoConfirmacao, textoLembrete, textoPedidoRecebido, variaveisMensagem } from "./textos";
 
 const MINUTOS_LEMBRETE_ANTES = 24 * 60;
 const AVANCO_SIMULACAO_MIN = 25 * 60;
@@ -21,20 +21,24 @@ export async function criarMensagensParaAgendamento(agendamentoId: string): Prom
     fuso: agendamento.estabelecimento.fuso,
   };
 
+  const variaveis = variaveisMensagem(dadosTexto);
   const textoConf = agendamento.status === "PENDENTE" ? textoPedidoRecebido(dadosTexto) : textoConfirmacao(dadosTexto);
   const resultadoConf = await notificadorPadrao.enviar({
-    canal: "SMS",
+    canal: notificadorPadrao.canal,
     destinatario: agendamento.cliente.telefone,
     texto: textoConf,
+    tipo: "CONFIRMACAO",
+    variaveis,
   });
 
   await db.mensagem.create({
     data: {
       agendamentoId,
       tipo: "CONFIRMACAO",
-      canal: "SMS",
+      canal: notificadorPadrao.canal,
       status: resultadoConf.sucesso ? "ENVIADA" : "ERRO",
       texto: textoConf,
+      variaveisTemplate: JSON.stringify(variaveis),
       agendadaPara: new Date(),
       enviadaEm: resultadoConf.sucesso ? new Date() : null,
     },
@@ -44,9 +48,10 @@ export async function criarMensagensParaAgendamento(agendamentoId: string): Prom
     data: {
       agendamentoId,
       tipo: "LEMBRETE",
-      canal: "SMS",
+      canal: notificadorPadrao.canal,
       status: "PENDENTE",
       texto: textoLembrete(dadosTexto),
+      variaveisTemplate: JSON.stringify(variaveis),
       agendadaPara: new Date(agendamento.inicio.getTime() - MINUTOS_LEMBRETE_ANTES * 60_000),
     },
   });
@@ -79,6 +84,8 @@ export async function processarFilaMensagens(): Promise<{ processadas: number; a
       canal: mensagem.canal,
       destinatario: mensagem.agendamento.cliente.telefone,
       texto: mensagem.texto,
+      tipo: mensagem.tipo,
+      variaveis: mensagem.variaveisTemplate ? JSON.parse(mensagem.variaveisTemplate) : [],
     });
 
     await db.mensagem.update({

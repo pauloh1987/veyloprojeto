@@ -14,6 +14,14 @@ function dataHoraFormatada(inicio: Date, fuso: string): string {
   });
 }
 
+/** Mesmos dados usados para montar o texto em português, na ordem em que preenchem os
+ * placeholders {{1}}, {{2}}, {{3}} dos templates aprovados na Meta para WhatsApp — extraído
+ * à parte pra garantir que o texto (SMS/console) e as variáveis (WhatsApp) nunca fiquem
+ * dessincronizados. Ver os templates de referência em DECISOES.md. */
+export function variaveisMensagem(dados: DadosMensagem): string[] {
+  return [dados.nomeEstabelecimento, dados.nomeServico, dataHoraFormatada(dados.inicio, dados.fuso)];
+}
+
 export function textoConfirmacao(dados: DadosMensagem): string {
   const quando = dataHoraFormatada(dados.inicio, dados.fuso);
   return `${dados.nomeEstabelecimento}: seu horário de ${dados.nomeServico} foi agendado para ${quando}. Responda esta mensagem para confirmar ou cancelar.`;

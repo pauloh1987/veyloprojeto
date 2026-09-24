@@ -43,6 +43,7 @@ enum TipoMensagem {
 
 enum CanalMensagem {
   SMS
+  WHATSAPP
   EMAIL
 }
 
@@ -245,6 +246,7 @@ model Mensagem {
   canal         CanalMensagem
   status        StatusMensagem @default(PENDENTE)
   texto         String
+  variaveisTemplate String?
   agendadaPara  DateTime
   enviadaEm     DateTime?
 

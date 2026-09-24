@@ -107,6 +107,24 @@ especificação não determinava um caminho exato. Organizado por área.
   categoria não apaga nem bloqueia os serviços dela (`onDelete: SetNull` em `Servico.categoriaId`)
   — eles só voltam a aparecer sob "Sem categoria"/"Outros", igual a um serviço que nunca foi
   categorizado.
+- **WhatsApp via template, nunca texto livre**: diferente do SMS, toda mensagem de WhatsApp
+  enviada por este sistema é iniciada pela empresa (o cliente nunca manda WhatsApp pra empresa
+  primeiro — ele só agenda pelo link público), então cai sempre fora da janela de atendimento
+  de 24h da Meta e precisa de um template pré-aprovado. Por isso `NotificadorTwilioWhatsApp`
+  manda `ContentSid`+`ContentVariables` em vez de `Body`, e `Mensagem.variaveisTemplate`
+  guarda (como JSON) os mesmos valores usados no texto em português — `variaveisMensagem()` em
+  `textos.ts` é a única fonte desses valores, pra texto (SMS/console) e variáveis (WhatsApp)
+  nunca ficarem dessincronizados. Existe template só para `CONFIRMACAO` e `LEMBRETE` (via
+  `TWILIO_WHATSAPP_CONTENT_SID_*`) porque são os únicos tipos que `fila.ts` de fato produz
+  hoje — `CONVITE_RETORNO` já existe no enum mas nenhum fluxo cria esse tipo de mensagem.
+  `criarNotificadorPadrao()` prefere WhatsApp a SMS quando ambos estão configurados (mais
+  barato e é o canal que a cliente já usa no dia a dia); falta de um template específico só
+  derruba aquele envio (erro claro em `Mensagem.status = ERRO`), não o sistema inteiro.
+  Templates de referência (categoria "Utility" na Meta):
+  - CONFIRMACAO: `{{1}}: seu horário de {{2}} foi agendado para {{3}}. Responda esta mensagem
+    para confirmar ou cancelar.`
+  - LEMBRETE: `{{1}}: lembrando do seu horário de {{2}} em {{3}}. Responda esta mensagem para
+    confirmar ou cancelar.`
 - **Bloqueio.motivo é texto livre**, não um enum — a especificação cita "folga, almoço,
   compromisso" como exemplos, não como lista fechada; o formulário sugere esses valores via
   `<datalist>`, mas aceita qualquer texto.
