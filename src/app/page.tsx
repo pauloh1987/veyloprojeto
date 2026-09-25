@@ -13,8 +13,11 @@ import {
   XCircle,
   Repeat,
   ChevronDown,
+  Check,
+  Minus,
 } from "lucide-react";
 import { LinkButton } from "@/components/ui/Button";
+import { cn } from "@/lib/cn";
 
 export default function PaginaInicial() {
   return (
@@ -23,6 +26,7 @@ export default function PaginaInicial() {
       <Hero />
       <ParaQuemE />
       <Beneficios />
+      <Comparacao />
       <ComoFunciona />
       <Demonstracao />
       <Faq />
@@ -200,6 +204,70 @@ function Beneficios() {
             </div>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+interface LinhaComparacao {
+  recurso: string;
+  veylo: string;
+  outros: string;
+}
+
+const COMPARACAO: LinhaComparacao[] = [
+  { recurso: "Lembrete automático por WhatsApp/SMS", veylo: "Incluído", outros: "Geralmente cobrado à parte" },
+  { recurso: "Cliente agenda sozinha, 24h por dia", veylo: "Incluído", outros: "Varia conforme o plano" },
+  { recurso: "Cliente cancela sozinha pelo link", veylo: "Incluído", outros: "Raro" },
+  { recurso: "Lembrete de retorno/manutenção agendável", veylo: "Incluído", outros: "Raro" },
+  { recurso: "Logo e cores personalizadas no link público", veylo: "Incluído", outros: "Só em planos mais caros" },
+  { recurso: "Teste grátis sem pedir cartão de crédito", veylo: "14 dias", outros: "Varia" },
+];
+
+/** Compara contra "sistemas tradicionais" de forma genérica, sem nomear concorrente
+ * específico — preço e recurso de empresa real muda com o tempo, e propaganda comparativa
+ * nomeando uma marca exige que cada afirmação seja verificável na hora da publicação. As
+ * linhas do Veylo são só recursos que já existem de verdade no produto; as do "outros" são
+ * tendências gerais do mercado (pesquisadas), não uma alegação sobre uma empresa específica. */
+function Comparacao() {
+  return (
+    <section className="border-y border-border bg-surface-2 px-4 py-16 sm:px-6 sm:py-24">
+      <div className="mx-auto max-w-3xl">
+        <div className="text-center">
+          <Selo>Comparação</Selo>
+          <h2 className="mt-4 font-heading text-2xl font-extrabold text-text sm:text-3xl">
+            Veylo Agenda x sistemas tradicionais
+          </h2>
+        </div>
+        <div className="mt-8 overflow-hidden rounded-2xl border border-border-strong bg-surface">
+          <div className="hidden items-center gap-x-6 border-b border-border px-6 py-3 sm:grid sm:grid-cols-[1fr_auto_auto]">
+            <span />
+            <span className="w-32 text-center text-xs font-bold uppercase tracking-wide text-accent">Veylo Agenda</span>
+            <span className="w-32 text-center text-xs font-bold uppercase tracking-wide text-text-faint">Outros</span>
+          </div>
+          {COMPARACAO.map((linha, i) => (
+            <div
+              key={linha.recurso}
+              className={cn(
+                "flex flex-col gap-2.5 px-4 py-4 sm:grid sm:grid-cols-[1fr_auto_auto] sm:items-center sm:gap-x-6 sm:px-6",
+                i % 2 === 1 && "bg-surface-2/50",
+              )}
+            >
+              <span className="text-sm text-text">{linha.recurso}</span>
+              <div className="flex gap-2 sm:contents">
+                <span className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-success-bg px-2 py-1.5 text-center text-xs font-semibold text-success sm:w-32 sm:flex-none">
+                  <Check size={14} className="shrink-0" /> {linha.veylo}
+                </span>
+                <span className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-surface-2 px-2 py-1.5 text-center text-xs text-text-faint sm:w-32 sm:flex-none sm:bg-transparent">
+                  <Minus size={14} className="shrink-0" /> {linha.outros}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-center text-xs text-text-faint">
+          Comparação com base em recursos comuns de sistemas de agenda para salões e barbearias no Brasil.
+        </p>
       </div>
     </section>
   );
