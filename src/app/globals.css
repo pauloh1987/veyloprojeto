@@ -142,6 +142,19 @@ body {
   color: transparent;
 }
 
+/* Textura sutil de pontinhos para dar um acabamento menos "chapado" às seções de marketing,
+   sem competir com o conteúdo. Duas variantes porque o hero é sempre escuro (não segue tema)
+   enquanto o resto da página segue claro/escuro conforme o sistema. */
+.veylo-dot-grid {
+  background-image: radial-gradient(circle at 1px 1px, var(--border-strong) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+.veylo-dot-grid-escuro {
+  background-image: radial-gradient(circle at 1px 1px, color-mix(in oklab, white 18%, transparent) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
 /* Barra de rolagem discreta (apoio visual, não essencial). */
 * {
   scrollbar-width: thin;

@@ -55,19 +55,20 @@ function Cabecalho() {
 
 function Hero() {
   return (
-    <section className="veylo-hero-bg px-4 pb-20 pt-16 text-center sm:pb-28 sm:pt-24">
+    <section className="veylo-hero-bg veylo-dot-grid-escuro px-4 pb-20 pt-16 text-center sm:pb-28 sm:pt-24">
       <p className="mx-auto max-w-md text-xs font-semibold uppercase tracking-wide text-veylo-teal">
         Feito para salões, barbearias e profissionais autônomos de beleza
       </p>
-      <h1 className="mx-auto mt-4 max-w-2xl font-heading text-3xl font-extrabold leading-tight text-white sm:text-5xl">
-        Sua cliente agenda sozinha. Você organiza o resto.
+      <h1 className="mx-auto mt-4 max-w-2xl font-heading text-4xl font-extrabold leading-[1.1] text-white sm:text-6xl">
+        Sua cliente <span className="veylo-gradient-text">agenda sozinha</span>. Você organiza
+        o resto.
       </h1>
-      <p className="mx-auto mt-4 max-w-lg text-white/70 sm:text-lg">
+      <p className="mx-auto mt-5 max-w-lg text-white/70 sm:text-lg">
         Um link de agendamento pro seu Instagram, WhatsApp ou bio — a cliente escolhe o horário
         livre e recebe confirmação na hora, sem trocar mensagem pra combinar.
       </p>
       <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-        <LinkButton href="/cadastro" size="lg">
+        <LinkButton href="/cadastro" size="lg" className="shadow-[0_0_50px_-10px_var(--veylo-blue)]">
           Criar minha conta grátis
         </LinkButton>
         <a
@@ -78,6 +79,14 @@ function Hero() {
         </a>
       </div>
     </section>
+  );
+}
+
+function Selo({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-border-strong bg-surface px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-text-muted">
+      {children}
+    </span>
   );
 }
 
@@ -128,25 +137,28 @@ const BENEFICIOS: Beneficio[] = [
 
 function Beneficios() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
-      <div className="mx-auto max-w-xl text-center">
-        <h2 className="font-heading text-2xl font-extrabold text-text sm:text-3xl">
-          Por que usar o Veylo Agenda
-        </h2>
-        <p className="mt-3 text-text-muted">
-          Cada recurso resolve um problema real de quem organiza agenda de salão no dia a dia.
-        </p>
-      </div>
-      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {BENEFICIOS.map((b) => (
-          <div key={b.titulo} className="rounded-2xl border border-border bg-surface p-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
-              {b.icone}
+    <section className="veylo-dot-grid px-4 py-16 sm:px-6 sm:py-24">
+      <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-xl text-center">
+          <Selo>Recursos</Selo>
+          <h2 className="mt-4 font-heading text-2xl font-extrabold text-text sm:text-3xl">
+            Por que usar o Veylo Agenda
+          </h2>
+          <p className="mt-3 text-text-muted">
+            Cada recurso resolve um problema real de quem organiza agenda de salão no dia a dia.
+          </p>
+        </div>
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {BENEFICIOS.map((b) => (
+            <div key={b.titulo} className="rounded-2xl border border-border bg-surface p-5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                {b.icone}
+              </div>
+              <p className="mt-3 font-heading font-bold text-text">{b.titulo}</p>
+              <p className="mt-1.5 text-sm text-text-muted">{b.texto}</p>
             </div>
-            <p className="mt-3 font-heading font-bold text-text">{b.titulo}</p>
-            <p className="mt-1.5 text-sm text-text-muted">{b.texto}</p>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -188,10 +200,14 @@ const PASSOS: Passo[] = [
 
 function ComoFunciona() {
   return (
-    <section id="como-funciona" className="border-y border-border bg-surface-2 px-4 py-16 sm:px-6 sm:py-24">
+    <section
+      id="como-funciona"
+      className="veylo-dot-grid border-y border-border bg-surface-2 px-4 py-16 sm:px-6 sm:py-24"
+    >
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-xl text-center">
-          <h2 className="font-heading text-2xl font-extrabold text-text sm:text-3xl">Como funciona</h2>
+          <Selo>Passo a passo</Selo>
+          <h2 className="mt-4 font-heading text-2xl font-extrabold text-text sm:text-3xl">Como funciona</h2>
           <p className="mt-3 text-text-muted">Do link compartilhado ao lembrete automático, em quatro passos.</p>
         </div>
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -219,7 +235,8 @@ function Demonstracao() {
     <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
       <div className="grid items-center gap-10 lg:grid-cols-2">
         <div>
-          <h2 className="font-heading text-2xl font-extrabold text-text sm:text-3xl">
+          <Selo>Veja por dentro</Selo>
+          <h2 className="mt-4 font-heading text-2xl font-extrabold text-text sm:text-3xl">
             Isso é a tela que sua cliente vê
           </h2>
           <p className="mt-3 text-text-muted">
@@ -276,7 +293,7 @@ function Demonstracao() {
 
 function CtaFinal() {
   return (
-    <section className="veylo-hero-bg px-4 py-16 text-center sm:py-20">
+    <section className="veylo-hero-bg veylo-dot-grid-escuro px-4 py-16 text-center sm:py-20">
       <h2 className="mx-auto max-w-xl font-heading text-2xl font-extrabold text-white sm:text-3xl">
         Pronta pra parar de organizar agenda por mensagem?
       </h2>
@@ -284,7 +301,7 @@ function CtaFinal() {
         Crie sua conta grátis e receba seu link de agendamento em poucos minutos.
       </p>
       <div className="mt-7">
-        <LinkButton href="/cadastro" size="lg">
+        <LinkButton href="/cadastro" size="lg" className="shadow-[0_0_50px_-10px_var(--veylo-blue)]">
           Criar minha conta grátis
         </LinkButton>
       </div>
