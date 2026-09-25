@@ -83,6 +83,7 @@ model Usuario {
   nome              String
   email             String        @unique
   senhaHash         String
+  emailVerificadoEm DateTime?
   papel             PapelUsuario
   estabelecimentoId String
   estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
@@ -90,8 +91,26 @@ model Usuario {
   profissional      Profissional? @relation(fields: [profissionalId], references: [id], onDelete: SetNull)
   criadoEm          DateTime      @default(now())
   sessoes           Sessao[]
+  tokensVerificacao TokenVerificacao[]
 
   @@index([estabelecimentoId])
+}
+
+enum TipoTokenVerificacao {
+  CONFIRMAR_EMAIL
+  REDEFINIR_SENHA
+}
+
+model TokenVerificacao {
+  id        String               @id @default(cuid())
+  usuarioId String
+  usuario   Usuario              @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  tipo      TipoTokenVerificacao
+  expiraEm  DateTime
+  usadoEm   DateTime?
+  criadoEm  DateTime             @default(now())
+
+  @@index([usuarioId])
 }
 
 model Sessao {

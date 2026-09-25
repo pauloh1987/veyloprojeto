@@ -3,13 +3,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { obterSessaoAtual } from "@/lib/auth";
-import { FormularioLogin } from "./FormularioLogin";
+import { FormularioEsqueciSenha } from "./FormularioEsqueciSenha";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Esqueci minha senha" };
 
-export const metadata: Metadata = { title: "Entrar" };
-
-export default async function PaginaLogin() {
+export default async function PaginaEsqueciSenha() {
   const usuario = await obterSessaoAtual();
   if (usuario) redirect("/painel");
 
@@ -20,24 +19,20 @@ export default async function PaginaLogin() {
           <Image src="/veylo-logo.png" alt="" width={56} height={64} priority />
           <div>
             <p className="font-heading text-xl font-extrabold text-white">Veylo Agenda</p>
-            <p className="text-sm text-white/60">Entrar no painel</p>
+            <p className="text-sm text-white/60">Redefinir senha</p>
           </div>
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm sm:p-8">
-          <FormularioLogin />
+          <p className="mb-5 text-sm text-white/70">
+            Informe o e-mail da sua conta — vamos te mandar um link pra escolher uma nova senha.
+          </p>
+          <FormularioEsqueciSenha />
         </div>
 
         <p className="mt-6 text-center text-xs text-white/40">
-          Esqueceu a senha?{" "}
-          <Link href="/esqueci-senha" className="font-medium text-white/70 underline">
-            Redefinir senha
-          </Link>
-        </p>
-        <p className="mt-2 text-center text-xs text-white/40">
-          Ainda não tem conta?{" "}
-          <Link href="/cadastro" className="font-medium text-white/70 underline">
-            Cadastre seu negócio
+          <Link href="/login" className="font-medium text-white/70 underline">
+            Voltar pro login
           </Link>
         </p>
       </div>

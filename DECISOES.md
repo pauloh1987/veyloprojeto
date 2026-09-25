@@ -206,6 +206,20 @@ especificação não determinava um caminho exato. Organizado por área.
   final é só nome+telefone; Twilio e Netlify como operadores; isolamento entre
   estabelecimentos; direitos de acesso/correção/exclusão). O e-mail de contato
   (`contato@veyloagenda.com.br`) é um placeholder — ainda não existe essa caixa de entrada.
+- **E-mail transacional via Resend, mesmo padrão do Twilio** (`src/lib/email/notificadorEmail.ts`):
+  sem `RESEND_API_KEY`/`EMAIL_REMETENTE` configurados, cai num console-logger, então nenhum
+  ambiente quebra por não ter isso configurado ainda. Confirmação de conta e redefinição de
+  senha usam um único modelo `TokenVerificacao` (com `tipo`) em vez de duas tabelas quase
+  idênticas — a diferença real entre os dois é só o prazo de validade (7 dias pra confirmar
+  e-mail, contra 1 hora pra redefinir senha, porque redefinir senha é uma ação bem mais
+  sensível). O token em si é o próprio `id` (cuid) da linha, sem hash — mesmo padrão já usado
+  em `Sessao.id` neste projeto; token de uso único com validade curta já limita bastante o
+  risco de vazamento. **Confirmar e-mail nunca trava o uso do sistema** — é só um selo, dona
+  usa a conta inteira mesmo sem confirmar; isso é consistente com o resto do produto (teste
+  grátis também só avisa, nunca bloqueia). **Redefinir senha derruba todas as sessões abertas**
+  daquele usuário (`Sessao.deleteMany`), pra se a senha vazou, qualquer acesso antigo caia
+  junto. Pedido de redefinição sempre responde a mesma mensagem genérica, exista ou não o
+  e-mail — evita que alguém descubra quais e-mails têm conta só tentando redefinir senha deles.
 
 ## Motor de horários
 

@@ -77,6 +77,7 @@ model Usuario {
   nome              String
   email             String        @unique
   senhaHash         String
+  emailVerificadoEm DateTime?
   papel             PapelUsuario
   estabelecimentoId String
   estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
@@ -84,8 +85,29 @@ model Usuario {
   profissional      Profissional? @relation(fields: [profissionalId], references: [id], onDelete: SetNull)
   criadoEm          DateTime      @default(now())
   sessoes           Sessao[]
+  tokensVerificacao TokenVerificacao[]
 
   @@index([estabelecimentoId])
+}
+
+enum TipoTokenVerificacao {
+  CONFIRMAR_EMAIL
+  REDEFINIR_SENHA
+}
+
+/** Token de uso único para confirmar e-mail ou redefinir senha — nunca bloqueia o uso do
+ * sistema (confirmar e-mail é só um selo de confiança, não uma trava de acesso), só existe
+ * pra provar que quem clicou no link tem acesso àquela caixa de e-mail. */
+model TokenVerificacao {
+  id        String               @id @default(cuid())
+  usuarioId String
+  usuario   Usuario              @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  tipo      TipoTokenVerificacao
+  expiraEm  DateTime
+  usadoEm   DateTime?
+  criadoEm  DateTime             @default(now())
+
+  @@index([usuarioId])
 }
 
 model Sessao {

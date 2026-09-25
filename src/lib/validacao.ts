@@ -16,6 +16,15 @@ export const loginSchema = z.object({
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
+export const solicitarRedefinicaoSenhaSchema = z.object({
+  email: z.string().trim().toLowerCase().min(1, "Informe o e-mail.").email("E-mail inválido."),
+});
+
+export const redefinirSenhaSchema = z.object({
+  token: z.string().min(1, "Link inválido."),
+  senha: z.string().min(6, "A senha precisa ter pelo menos 6 caracteres."),
+});
+
 export const clienteSchema = z.object({
   nome: z.string().trim().min(2, "Informe o nome completo."),
   telefone: telefoneSchema,

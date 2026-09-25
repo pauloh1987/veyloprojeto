@@ -6,6 +6,10 @@ import { cadastroSchema } from "@/lib/validacao";
 import { hashSenha } from "@/lib/senha";
 import { criarSessao } from "@/lib/auth";
 import { criarHorariosPadrao } from "@/lib/agenda/horariosPadrao";
+import { criarTokenVerificacao } from "@/lib/tokenVerificacao";
+import { notificadorEmailPadrao } from "@/lib/email/notificadorEmail";
+import { emailConfirmarConta } from "@/lib/email/textos";
+import { obterUrlBase } from "@/lib/url";
 import { mensagemSeguraDeErro, ValidacaoError } from "@/lib/erros";
 
 export interface EstadoCadastro {
@@ -71,6 +75,19 @@ export async function cadastrarEstabelecimento(
     });
   } catch (erro) {
     return { erro: mensagemSeguraDeErro(erro) };
+  }
+
+  // Fora da transação e sem travar o cadastro se falhar — a conta já existe de qualquer
+  // jeito; confirmação de e-mail aqui é só um selo de confiança, não uma trava de acesso.
+  try {
+    const token = await criarTokenVerificacao(usuarioId, "CONFIRMAR_EMAIL");
+    const urlBase = await obterUrlBase();
+    await notificadorEmailPadrao.enviar({
+      destinatario: dados.email,
+      ...emailConfirmarConta(dados.nomeEstabelecimento, `${urlBase}/confirmar-email/${token}`),
+    });
+  } catch {
+    // Segue o cadastro normalmente mesmo se o e-mail de confirmação falhar.
   }
 
   await criarSessao(usuarioId);
