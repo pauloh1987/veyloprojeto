@@ -10,6 +10,9 @@ import {
   CalendarCheck,
   CheckCircle2,
   ArrowRight,
+  XCircle,
+  Repeat,
+  ChevronDown,
 } from "lucide-react";
 import { LinkButton } from "@/components/ui/Button";
 
@@ -18,9 +21,11 @@ export default function PaginaInicial() {
     <main className="bg-bg text-text">
       <Cabecalho />
       <Hero />
+      <ParaQuemE />
       <Beneficios />
       <ComoFunciona />
       <Demonstracao />
+      <Faq />
       <CtaFinal />
       <Rodape />
     </main>
@@ -78,6 +83,30 @@ function Hero() {
           Ver como funciona <ArrowRight size={16} />
         </a>
       </div>
+      <p className="mt-5 text-sm text-white/50">14 dias grátis pra testar · sem cartão de crédito</p>
+    </section>
+  );
+}
+
+function ParaQuemE() {
+  const publicos = [
+    "Barbearias",
+    "Salões de beleza",
+    "Estúdios de unha",
+    "Designers de sobrancelha e cílios",
+    "Esteticistas",
+    "Profissionais autônomas",
+  ];
+  return (
+    <section className="border-b border-border bg-surface px-4 py-8 sm:px-6">
+      <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-x-6 gap-y-2.5">
+        <p className="text-xs font-bold uppercase tracking-wide text-text-faint">Feito para</p>
+        {publicos.map((p) => (
+          <span key={p} className="text-sm font-medium text-text-muted">
+            {p}
+          </span>
+        ))}
+      </div>
     </section>
   );
 }
@@ -132,6 +161,18 @@ const BENEFICIOS: Beneficio[] = [
     titulo: "Histórico e relatório",
     texto:
       "Veja quais clientes agendam mais e quanto cada profissional está faturando, tudo em um só lugar.",
+  },
+  {
+    icone: <XCircle size={22} />,
+    titulo: "Cliente cancela sozinha, se precisar",
+    texto:
+      "Todo agendamento vem com um link próprio pra ela cancelar caso não possa ir — sem precisar te ligar ou mandar mensagem de última hora.",
+  },
+  {
+    icone: <Repeat size={22} />,
+    titulo: "Lembrete de manutenção quando você quiser",
+    texto:
+      "Marcou uma cliente de gel ou coloração? Agende um lembrete automático pra daqui a X dias, na ficha dela — o sistema manda sozinho.",
   },
 ];
 
@@ -291,6 +332,70 @@ function Demonstracao() {
   );
 }
 
+interface Pergunta {
+  pergunta: string;
+  resposta: React.ReactNode;
+}
+
+const PERGUNTAS: Pergunta[] = [
+  {
+    pergunta: "Preciso saber mexer bem em tecnologia?",
+    resposta: "Não. Se você usa WhatsApp e Instagram no dia a dia, já sabe o suficiente — o painel foi feito pra quem nunca usou um sistema de agenda antes.",
+  },
+  {
+    pergunta: "Minha cliente vai precisar baixar algum aplicativo?",
+    resposta: "Não. É só um link — abre direto no navegador do celular dela, como qualquer site, sem instalar nada.",
+  },
+  {
+    pergunta: "Funciona só pra barbearia?",
+    resposta: "Não, serve pra qualquer negócio que agenda horário com cliente: salão, estúdio de unha, sobrancelha, cílios, estética e mais.",
+  },
+  {
+    pergunta: "Preciso pagar pra testar?",
+    resposta: "Não — toda conta nova tem 14 dias de teste grátis, sem precisar de cartão de crédito.",
+  },
+  {
+    pergunta: "Meus dados e os da minha cliente ficam seguros?",
+    resposta: (
+      <>
+        Sim. Cada estabelecimento só acessa os próprios dados, conforme a LGPD — veja nossa{" "}
+        <Link href="/privacidade" className="font-medium text-accent underline underline-offset-2">
+          Política de Privacidade
+        </Link>
+        .
+      </>
+    ),
+  },
+  {
+    pergunta: "E se eu já tiver uma agenda no papel ou em outro sistema?",
+    resposta: "Sem problema — você pode começar a usar o link público a qualquer momento pra receber agendamentos novos, sem precisar importar nada antes.",
+  },
+];
+
+function Faq() {
+  return (
+    <section className="veylo-dot-grid border-y border-border bg-surface-2 px-4 py-16 sm:px-6 sm:py-24">
+      <div className="mx-auto max-w-2xl">
+        <div className="text-center">
+          <Selo>Dúvidas comuns</Selo>
+          <h2 className="mt-4 font-heading text-2xl font-extrabold text-text sm:text-3xl">Perguntas frequentes</h2>
+        </div>
+        <div className="mt-8 space-y-3">
+          {PERGUNTAS.map((p) => (
+            <details key={p.pergunta} className="group rounded-2xl border border-border bg-surface p-4 open:pb-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-heading font-bold text-text">
+                {p.pergunta}
+                <ChevronDown size={18} className="shrink-0 text-text-faint transition-transform group-open:rotate-180" />
+              </summary>
+              <p className="mt-2.5 text-sm text-text-muted">{p.resposta}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function CtaFinal() {
   return (
     <section className="veylo-hero-bg veylo-dot-grid-escuro px-4 py-16 text-center sm:py-20">
@@ -305,6 +410,7 @@ function CtaFinal() {
           Criar minha conta grátis
         </LinkButton>
       </div>
+      <p className="mt-4 text-sm text-white/50">14 dias grátis pra testar · sem cartão de crédito</p>
     </section>
   );
 }
