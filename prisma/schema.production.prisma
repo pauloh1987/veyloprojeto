@@ -66,6 +66,8 @@ model Estabelecimento {
   logoFundo          String   @default("#FFFFFF")
   plano              Plano    @default(SOLO)
   antecedenciaMinMin Int      @default(120)
+  /** Até quantas semanas à frente a cliente pode marcar pelo link público. */
+  janelaAgendamentoSemanas Int @default(8)
   confirmacaoAutomatica Boolean @default(true)
   criadoEm           DateTime @default(now())
   assinanteDesde     DateTime?

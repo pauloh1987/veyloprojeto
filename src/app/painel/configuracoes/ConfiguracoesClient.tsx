@@ -5,7 +5,8 @@ import { Check, Copy, ImageOff } from "lucide-react";
 import { salvarConfiguracoes } from "@/lib/acoes/configuracoes";
 import type { EstadoAcao } from "@/lib/acoes/agendamentos";
 import { Button } from "@/components/ui/Button";
-import { Campo, Input, Rotulo } from "@/components/ui/Campo";
+import { Campo, Input, Rotulo, Select } from "@/components/ui/Campo";
+import { OPCOES_JANELA_SEMANAS } from "@/lib/agenda/janelaAgendamento";
 import { iniciais } from "@/lib/formatadores";
 import { cn } from "@/lib/cn";
 
@@ -105,6 +106,7 @@ export function ConfiguracoesClient({
     endereco: string;
     corDestaque: string;
     antecedenciaMinMin: number;
+    janelaAgendamentoSemanas: number;
     plano: string;
     foto: string | null;
     logoFundo: string;
@@ -290,6 +292,23 @@ export function ConfiguracoesClient({
             />
           </Campo>
         </div>
+
+        <Campo rotulo="Clientes podem agendar até" htmlFor="janelaAgendamentoSemanas">
+          <Select
+            id="janelaAgendamentoSemanas"
+            name="janelaAgendamentoSemanas"
+            defaultValue={String(estabelecimento.janelaAgendamentoSemanas)}
+          >
+            {OPCOES_JANELA_SEMANAS.map((semanas) => (
+              <option key={semanas} value={semanas}>
+                {semanas} semana{semanas > 1 ? "s" : ""} à frente
+              </option>
+            ))}
+          </Select>
+        </Campo>
+        <p className="-mt-3 text-xs text-text-faint">
+          Vale só pro link público — pelo painel você continua podendo encaixar qualquer data.
+        </p>
 
         <label className="flex items-start gap-2.5 text-sm text-text">
           <input

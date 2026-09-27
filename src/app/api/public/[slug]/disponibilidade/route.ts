@@ -2,9 +2,8 @@ import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { obterEstabelecimentoPorSlug } from "@/lib/estabelecimentoPublico";
 import { calcularHorariosDisponiveisNoBanco } from "@/lib/agenda/consultarDisponibilidade";
+import { ultimoDiaAgendavelYMD } from "@/lib/agenda/janelaAgendamento";
 import { paraDataYMD, somarDias } from "@/lib/tz";
-
-const DIAS_JANELA = 60;
 
 export async function GET(
   request: NextRequest,
@@ -29,8 +28,9 @@ export async function GET(
   const hojeYMD = paraDataYMD(new Date(), estabelecimento.fuso);
   const dias: { data: string; temVaga: boolean }[] = [];
 
-  for (let i = 0; i < DIAS_JANELA; i++) {
-    const dataYMD = somarDias(hojeYMD, i);
+  const ultimoDiaYMD = ultimoDiaAgendavelYMD(estabelecimento);
+
+  for (let dataYMD = hojeYMD; dataYMD <= ultimoDiaYMD; dataYMD = somarDias(dataYMD, 1)) {
     const slots = await calcularHorariosDisponiveisNoBanco(db, {
       profissionalId,
       dataYMD,

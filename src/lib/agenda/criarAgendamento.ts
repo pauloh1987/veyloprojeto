@@ -2,6 +2,7 @@ import type { OrigemAgendamento, StatusAgendamento } from "@prisma/client";
 import { db } from "@/lib/db";
 import { paraDataYMD } from "@/lib/tz";
 import { criarMensagensParaAgendamento } from "@/lib/mensagens/fila";
+import { ultimoDiaAgendavelYMD } from "./janelaAgendamento";
 import { ConflitoDeHorarioError, NaoEncontradoError, ValidacaoError } from "@/lib/erros";
 import { calcularHorariosDisponiveisNoBanco } from "./consultarDisponibilidade";
 
@@ -45,6 +46,15 @@ export async function criarAgendamento(input: CriarAgendamentoInput) {
 
   const fim = new Date(input.inicio.getTime() + servico.duracaoMin * 60_000);
   const dataYMD = paraDataYMD(input.inicio, estabelecimento.fuso);
+
+  // Mesma regra do link público: a janela de semanas à frente só limita a cliente, nunca
+  // um encaixe manual da própria equipe.
+  if (input.origem === "LINK" && dataYMD > ultimoDiaAgendavelYMD(estabelecimento)) {
+    const semanas = estabelecimento.janelaAgendamentoSemanas;
+    throw new ValidacaoError(
+      `Esse horário ainda não está aberto — dá pra marcar até ${semanas} semana${semanas > 1 ? "s" : ""} à frente.`,
+    );
+  }
 
   // Agendamento manual (feito pela própria equipe) não se sujeita à antecedência mínima
   // pensada para o link público — um encaixe de última hora é uma decisão da profissional.

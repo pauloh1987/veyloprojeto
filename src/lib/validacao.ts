@@ -106,6 +106,7 @@ export const configuracoesSchema = z.object({
   endereco: z.string().trim().min(4, "Informe o endereço."),
   corDestaque: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Cor inválida."),
   antecedenciaMinMin: z.coerce.number().int().min(0).max(1440),
+  janelaAgendamentoSemanas: z.coerce.number().int().min(1, "Escolha ao menos 1 semana.").max(12),
   plano: z.enum(["SOLO", "EQUIPE"]),
   foto: fotoDataUrlSchema("png"),
   logoFundo: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Cor inválida."),

@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { obterEstabelecimentoPorSlug } from "@/lib/estabelecimentoPublico";
 import { calcularHorariosDisponiveisNoBanco } from "@/lib/agenda/consultarDisponibilidade";
+import { ultimoDiaAgendavelYMD } from "@/lib/agenda/janelaAgendamento";
 
 export async function GET(
   request: NextRequest,
@@ -16,6 +17,10 @@ export async function GET(
   const data = request.nextUrl.searchParams.get("data");
   if (!servicoId || !profissionalId || !data || !/^\d{4}-\d{2}-\d{2}$/.test(data)) {
     return Response.json({ erro: "Parâmetros ausentes ou inválidos." }, { status: 400 });
+  }
+
+  if (data > ultimoDiaAgendavelYMD(estabelecimento)) {
+    return Response.json({ horarios: [] });
   }
 
   const [servico, profissional] = await Promise.all([
