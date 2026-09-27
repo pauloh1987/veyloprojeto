@@ -8,9 +8,12 @@ import { CadastroForm } from "./CadastroForm";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Criar conta" };
 
-export default async function PaginaCadastro() {
+export default async function PaginaCadastro({ searchParams }: PageProps<"/cadastro">) {
   const usuario = await obterSessaoAtual();
   if (usuario) redirect("/painel");
+  // Vem do botão de cada plano na página inicial (?plano=EQUIPE) — só pré-seleciona.
+  const { plano } = await searchParams;
+  const planoInicial = plano === "EQUIPE" ? "EQUIPE" : "SOLO";
 
   return (
     <main className="veylo-hero-bg flex min-h-screen items-center justify-center px-4 py-12">
@@ -24,7 +27,7 @@ export default async function PaginaCadastro() {
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm sm:p-8">
-          <CadastroForm />
+          <CadastroForm planoInicial={planoInicial} />
         </div>
 
         <p className="mt-6 text-center text-xs text-white/40">

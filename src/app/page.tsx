@@ -29,6 +29,7 @@ export default function PaginaInicial() {
       <Comparacao />
       <ComoFunciona />
       <Demonstracao />
+      <Planos />
       <Faq />
       <CtaFinal />
       <Rodape />
@@ -47,6 +48,12 @@ function Cabecalho() {
           </span>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-3">
+          <a
+            href="#planos"
+            className="hidden rounded-xl px-3 py-2 text-sm font-semibold text-white/80 transition-colors hover:text-white sm:block sm:px-4"
+          >
+            Planos
+          </a>
           <Link
             href="/login"
             className="rounded-xl px-3 py-2 text-sm font-semibold text-white/80 transition-colors hover:text-white sm:px-4"
@@ -400,6 +407,118 @@ function Demonstracao() {
   );
 }
 
+interface Plano {
+  id: "SOLO" | "EQUIPE";
+  nome: string;
+  preco: string;
+  paraQuem: string;
+  destaque: boolean;
+  itens: string[];
+}
+
+/** Só recursos que existem de verdade no produto. A diferença real entre os planos (ver
+ * `src/lib/acoes/profissionais.ts`) é o número de profissionais ativas — o resto é igual. */
+const PLANOS: Plano[] = [
+  {
+    id: "SOLO",
+    nome: "Solo",
+    preco: "69",
+    paraQuem: "Pra quem atende sozinha.",
+    destaque: false,
+    itens: [
+      "1 profissional com agenda completa",
+      "Link de agendamento 24h, com sua logo e suas cores",
+      "Confirmação e lembrete automáticos por WhatsApp",
+      "Cliente confirma ou cancela com um toque no WhatsApp",
+      "Lembrete de manutenção/retorno agendável",
+      "Serviços com foto, organizados por categoria",
+      "Ficha de clientes com histórico",
+      "Relatório de faturamento",
+    ],
+  },
+  {
+    id: "EQUIPE",
+    nome: "Equipe",
+    preco: "129",
+    paraQuem: "Pra salão com mais de uma profissional.",
+    destaque: true,
+    itens: [
+      "Tudo do plano Solo, e mais:",
+      "Profissionais ilimitadas, cada uma com sua agenda",
+      "Cliente escolhe com quem quer ser atendida",
+      "Login próprio pra cada profissional",
+      "Visão da agenda de toda a equipe num lugar só",
+      "Comissão por profissional no relatório",
+      "Horários e folgas individuais",
+    ],
+  },
+];
+
+function Planos() {
+  return (
+    <section id="planos" className="scroll-mt-16 px-4 py-16 sm:px-6 sm:py-24">
+      <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-xl text-center">
+          <Selo>Planos</Selo>
+          <h2 className="mt-4 font-heading text-2xl font-extrabold text-text sm:text-3xl">
+            Preço simples, sem surpresa
+          </h2>
+          <p className="mt-3 text-text-muted">
+            Os dois planos começam com 14 dias grátis, sem cartão de crédito. Dá pra trocar de plano quando quiser.
+          </p>
+        </div>
+        <div className="mt-10 grid gap-5 md:grid-cols-2">
+          {PLANOS.map((plano) => (
+            <div
+              key={plano.id}
+              className={cn(
+                "relative flex flex-col rounded-3xl border bg-surface p-6 sm:p-8",
+                plano.destaque
+                  ? "border-accent shadow-[0_0_60px_-20px_var(--veylo-blue)]"
+                  : "border-border-strong",
+              )}
+            >
+              {plano.destaque && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-foreground">
+                  Mais completo
+                </span>
+              )}
+              <p className="font-heading text-lg font-extrabold text-text">{plano.nome}</p>
+              <p className="mt-1 text-sm text-text-muted">{plano.paraQuem}</p>
+              <p className="mt-5 flex items-baseline gap-1">
+                <span className="text-sm font-semibold text-text-muted">R$</span>
+                <span className="font-heading text-4xl font-extrabold text-text">{plano.preco}</span>
+                <span className="text-sm text-text-muted">/mês</span>
+              </p>
+              <ul className="mt-6 flex-1 space-y-2.5">
+                {plano.itens.map((item, i) => {
+                  const cabecalho = item.endsWith(":");
+                  return (
+                    <li
+                      key={item}
+                      className={cn("flex items-start gap-2 text-sm", cabecalho ? "font-semibold text-text" : "text-text-muted")}
+                    >
+                      {!cabecalho && <Check size={16} className="mt-0.5 shrink-0 text-success" />}
+                      <span className={cn(i > 0 && cabecalho && "mt-1")}>{item}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+              <LinkButton
+                href={`/cadastro?plano=${plano.id}`}
+                variant={plano.destaque ? undefined : "secondary"}
+                className="mt-8 w-full"
+              >
+                Testar 14 dias grátis <ArrowRight size={16} />
+              </LinkButton>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 interface Pergunta {
   pergunta: string;
   resposta: React.ReactNode;
@@ -421,6 +540,10 @@ const PERGUNTAS: Pergunta[] = [
   {
     pergunta: "Preciso pagar pra testar?",
     resposta: "Não — toda conta nova tem 14 dias de teste grátis, sem precisar de cartão de crédito.",
+  },
+  {
+    pergunta: "Posso trocar de plano depois?",
+    resposta: "Pode, a qualquer momento, direto nas Configurações do painel. Começou sozinha e contratou alguém? É só passar pro Equipe.",
   },
   {
     pergunta: "Meus dados e os da minha cliente ficam seguros?",

@@ -19,12 +19,12 @@ function paraSlug(texto: string): string {
     .slice(0, 50);
 }
 
-export function CadastroForm() {
+export function CadastroForm({ planoInicial = "SOLO" }: { planoInicial?: "SOLO" | "EQUIPE" }) {
   const [estado, acao, pendente] = useActionState(cadastrarEstabelecimento, ESTADO_INICIAL);
   const [nomeEstabelecimento, setNomeEstabelecimento] = useState("");
   const [slug, setSlug] = useState("");
   const [slugEditadoManualmente, setSlugEditadoManualmente] = useState(false);
-  const [plano, setPlano] = useState<"SOLO" | "EQUIPE">("SOLO");
+  const [plano, setPlano] = useState<"SOLO" | "EQUIPE">(planoInicial);
   const [telefone, setTelefone] = useState("");
 
   function aoMudarNome(valor: string) {
