@@ -454,6 +454,7 @@ async function main() {
       nomeServico: agendamento.servico.nome,
       inicio: agendamento.inicio,
       fuso: agendamento.estabelecimento.fuso,
+      telefoneEstabelecimento: agendamento.estabelecimento.telefone,
     };
 
     const agendadaConfirmacao = new Date(agendamento.inicio.getTime() - inteiroEntre(2, 240) * 60 * 60_000);

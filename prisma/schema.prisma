@@ -240,6 +240,10 @@ model Agendamento {
   origem            OrigemAgendamento
   observacao        String?
   tokenPublico      String            @unique @default(cuid())
+  /** Preenchidos quando a própria cliente responde (botão no WhatsApp ou página do
+   * agendamento) — usados pra avisar a dona no painel. */
+  presencaConfirmadaEm   DateTime?
+  canceladoPelaClienteEm DateTime?
   criadoEm          DateTime          @default(now())
   atualizadoEm      DateTime          @updatedAt
 
@@ -271,7 +275,11 @@ model Mensagem {
   variaveisTemplate String?
   agendadaPara  DateTime
   enviadaEm     DateTime?
+  /** SID da mensagem na Twilio — é por ele que uma resposta da cliente (toque em
+   * "Confirmar"/"Cancelar") é ligada de volta ao agendamento certo. */
+  sidProvedor   String?
 
   @@index([status, agendadaPara])
   @@index([clienteId])
+  @@index([sidProvedor])
 }

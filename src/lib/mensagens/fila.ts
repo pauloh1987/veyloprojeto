@@ -1,6 +1,13 @@
 import { db } from "@/lib/db";
 import { notificadorPadrao } from "./notificador";
-import { textoConfirmacao, textoConviteRetorno, textoLembrete, textoPedidoRecebido, variaveisMensagem } from "./textos";
+import {
+  textoConfirmacao,
+  textoConviteRetorno,
+  textoLembrete,
+  urlBaseSite,
+  variaveisConviteRetorno,
+  variaveisMensagem,
+} from "./textos";
 
 const MINUTOS_LEMBRETE_ANTES = 24 * 60;
 const AVANCO_SIMULACAO_MIN = 25 * 60;
@@ -17,6 +24,7 @@ export async function criarMensagensParaAgendamento(agendamentoId: string): Prom
 
   const dadosTexto = {
     nomeEstabelecimento: agendamento.estabelecimento.nome,
+    telefoneEstabelecimento: agendamento.estabelecimento.telefone,
     nomeServico: agendamento.servico.nome,
     inicio: agendamento.inicio,
     fuso: agendamento.estabelecimento.fuso,
@@ -25,7 +33,7 @@ export async function criarMensagensParaAgendamento(agendamentoId: string): Prom
   const variaveis = variaveisMensagem(dadosTexto);
 
   if (agendamento.estabelecimento.confirmacaoAutomatica) {
-    const textoConf = agendamento.status === "PENDENTE" ? textoPedidoRecebido(dadosTexto) : textoConfirmacao(dadosTexto);
+    const textoConf = textoConfirmacao(dadosTexto);
     const resultadoConf = await notificadorPadrao.enviar({
       canal: notificadorPadrao.canal,
       destinatario: agendamento.cliente.telefone,
@@ -44,6 +52,7 @@ export async function criarMensagensParaAgendamento(agendamentoId: string): Prom
         variaveisTemplate: JSON.stringify(variaveis),
         agendadaPara: new Date(),
         enviadaEm: resultadoConf.sucesso ? new Date() : null,
+        sidProvedor: resultadoConf.idProvedor ?? null,
       },
     });
   }
@@ -107,6 +116,7 @@ export async function processarFilaMensagens(): Promise<{ processadas: number; a
       data: {
         status: resultado.sucesso ? "ENVIADA" : "ERRO",
         enviadaEm: resultado.sucesso ? mensagem.agendadaPara : null,
+        sidProvedor: resultado.idProvedor ?? null,
       },
     });
   }
@@ -126,10 +136,10 @@ export async function criarLembreteRetorno(clienteId: string, servicoNome: strin
 
   const dadosTexto = {
     nomeEstabelecimento: cliente.estabelecimento.nome,
+    telefoneEstabelecimento: cliente.estabelecimento.telefone,
     nomeServico: servicoNome,
-    inicio: new Date(),
-    fuso: cliente.estabelecimento.fuso,
   };
+  const linkAgendar = `${urlBaseSite()}/${cliente.estabelecimento.slug}`;
 
   await db.mensagem.create({
     data: {
@@ -137,8 +147,8 @@ export async function criarLembreteRetorno(clienteId: string, servicoNome: strin
       tipo: "CONVITE_RETORNO",
       canal: notificadorPadrao.canal,
       status: "PENDENTE",
-      texto: textoConviteRetorno(dadosTexto),
-      variaveisTemplate: JSON.stringify([dadosTexto.nomeEstabelecimento, dadosTexto.nomeServico]),
+      texto: textoConviteRetorno(dadosTexto, linkAgendar),
+      variaveisTemplate: JSON.stringify(variaveisConviteRetorno(dadosTexto, linkAgendar)),
       agendadaPara: new Date(Date.now() + dias * 24 * 60 * 60_000),
     },
   });

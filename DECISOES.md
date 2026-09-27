@@ -120,11 +120,23 @@ especificação não determinava um caminho exato. Organizado por área.
   `criarNotificadorPadrao()` prefere WhatsApp a SMS quando ambos estão configurados (mais
   barato e é o canal que a cliente já usa no dia a dia); falta de um template específico só
   derruba aquele envio (erro claro em `Mensagem.status = ERRO`), não o sistema inteiro.
-  Templates de referência (categoria "Utility" na Meta):
-  - CONFIRMACAO: `{{1}}: seu horário de {{2}} foi agendado para {{3}}. Responda esta mensagem
-    para confirmar ou cancelar.`
-  - LEMBRETE: `{{1}}: lembrando do seu horário de {{2}} em {{3}}. Responda esta mensagem para
-    confirmar ou cancelar.`
+  Templates de referência (a Meta não aceita template que comece ou termine com variável):
+  - CONFIRMACAO (Utility, quick-reply com botões `Confirmar` id `CONFIRMAR` e `Cancelar` id
+    `CANCELAR`): `Olá! Aqui é {{1}}. Seu horário de {{2}} está marcado para {{3}}.` /
+    `Toque em Confirmar ou Cancelar logo abaixo.` / `Dúvidas? Fale direto com o salão: {{4}}
+    — este número só envia avisos.`
+  - LEMBRETE (Utility, mesmos botões): igual, com `Lembrete: seu horário de {{2}} é {{3}}.`
+  - CONVITE_RETORNO (Marketing, sem botões): `Olá! Aqui é {{1}}. Já faz um tempo desde seu
+    último {{2}} — que tal marcar um novo horário? Agende pelo link: {{3}}` / rodapé com {{4}}.
+- **Um número da Veylo pra todos os salões, respostas tratadas pelo sistema**: o remetente é
+  um número único (perfil "Veylo Agenda"); o nome do salão vai no texto. Como ninguém lê esse
+  número, `src/app/api/whatsapp/entrada/route.ts` (webhook de entrada na Twilio, assinatura
+  `X-Twilio-Signature` validada com `TWILIO_AUTH_TOKEN`) resolve tudo sozinho: toque em
+  Confirmar marca `Agendamento.presencaConfirmadaEm` (sem mexer no status — PENDENTE continua
+  esperando a dona); Cancelar cancela, libera o horário e marca `canceladoPelaClienteEm`;
+  qualquer outro texto recebe resposta automática com o `wa.me` do salão. A resposta é ligada
+  ao agendamento pelo `OriginalRepliedMessageSid` (= `Mensagem.sidProvedor`), com fallback
+  pela última mensagem enviada pro telefone. A dona vê as respostas em "Hoje".
 - **Teste grátis de 14 dias, só aviso — sem bloqueio nem cobrança automática**: `Estabelecimento.assinanteDesde`
   (nulo = ainda em teste) decide isso; `testeGratisExpirado()` em `src/lib/assinatura.ts` compara
   `criadoEm + 14 dias` contra agora. Quando expira, `PainelShell` mostra uma faixa de aviso no topo

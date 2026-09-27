@@ -1,18 +1,22 @@
 import type { Metadata } from "next";
 import { formatInTimeZone } from "date-fns-tz";
+import { subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarCheck } from "lucide-react";
+import { CalendarCheck, CheckCircle2, MessageCircle, XCircle } from "lucide-react";
 import { exigirSessao } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { limitesDoDia, paraDataYMD } from "@/lib/tz";
 import { formatarCentavos } from "@/lib/formatadores";
 import { Avatar } from "@/components/ui/Avatar";
 import { EstadoVazio } from "@/components/ui/EstadoVazio";
+import { Badge } from "@/components/ui/Badge";
 import { StatusBadge } from "@/components/painel/StatusBadge";
 import { BotoesStatusAgendamento } from "@/components/painel/BotoesStatusAgendamento";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Hoje" };
+
+const DIAS_RESPOSTAS_RECENTES = 3;
 
 export default async function PaginaHoje() {
   const usuario = await exigirSessao();
@@ -20,15 +24,31 @@ export default async function PaginaHoje() {
   const hojeYMD = paraDataYMD(new Date(), fuso);
   const { inicio, fimExclusivo } = limitesDoDia(hojeYMD, fuso);
 
-  const agendamentos = await db.agendamento.findMany({
-    where: {
-      estabelecimentoId: usuario.estabelecimentoId,
-      ...(usuario.papel === "PROFISSIONAL" ? { profissionalId: usuario.profissionalId ?? "" } : {}),
-      inicio: { gte: inicio, lt: fimExclusivo },
-    },
-    include: { cliente: true, servico: true, profissional: true },
-    orderBy: { inicio: "asc" },
-  });
+  const filtroProfissional = usuario.papel === "PROFISSIONAL" ? { profissionalId: usuario.profissionalId ?? "" } : {};
+  const desde = subDays(new Date(), DIAS_RESPOSTAS_RECENTES);
+
+  const [agendamentos, respostas] = await Promise.all([
+    db.agendamento.findMany({
+      where: {
+        estabelecimentoId: usuario.estabelecimentoId,
+        ...filtroProfissional,
+        inicio: { gte: inicio, lt: fimExclusivo },
+      },
+      include: { cliente: true, servico: true, profissional: true },
+      orderBy: { inicio: "asc" },
+    }),
+    db.agendamento.findMany({
+      where: {
+        estabelecimentoId: usuario.estabelecimentoId,
+        ...filtroProfissional,
+        inicio: { gte: inicio },
+        OR: [{ presencaConfirmadaEm: { gte: desde } }, { canceladoPelaClienteEm: { gte: desde } }],
+      },
+      include: { cliente: true, servico: true },
+      orderBy: { atualizadoEm: "desc" },
+      take: 10,
+    }),
+  ]);
 
   const totalCentavos = agendamentos
     .filter((a) => a.status !== "CANCELADO")
@@ -49,6 +69,34 @@ export default async function PaginaHoje() {
           <p className="font-heading text-xl font-bold text-text">{formatarCentavos(totalCentavos)}</p>
         </div>
       </header>
+
+      {respostas.length > 0 && (
+        <section className="mb-6 rounded-2xl border border-border bg-surface p-4">
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-text">
+            <MessageCircle size={16} className="text-accent" /> Respostas das clientes
+          </h2>
+          <ul className="space-y-2">
+            {respostas.map((r) => {
+              const cancelou = r.status === "CANCELADO" && r.canceladoPelaClienteEm;
+              return (
+                <li key={r.id} className="flex items-start gap-2 text-sm">
+                  {cancelou ? (
+                    <XCircle size={16} className="mt-0.5 shrink-0 text-danger" />
+                  ) : (
+                    <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-success" />
+                  )}
+                  <p className="text-text-muted">
+                    <span className="font-semibold text-text">{r.cliente.nome}</span>{" "}
+                    {cancelou ? "cancelou" : "confirmou presença em"} {r.servico.nome} ·{" "}
+                    <span className="capitalize">{formatInTimeZone(r.inicio, fuso, "EEE, d/MM 'às' HH:mm", { locale: ptBR })}</span>
+                    {cancelou && " — o horário voltou a ficar livre no link."}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       {agendamentos.length === 0 ? (
         <EstadoVazio
@@ -73,8 +121,13 @@ export default async function PaginaHoje() {
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="font-semibold text-text">{formatarCentavos(a.servico.precoCentavos)}</p>
-                  <div className="mt-1">
+                  <div className="mt-1 flex flex-col items-end gap-1">
                     <StatusBadge status={a.status} />
+                    {a.presencaConfirmadaEm && a.status !== "CANCELADO" && (
+                      <Badge tom="success">
+                        <CheckCircle2 size={11} /> cliente confirmou
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>

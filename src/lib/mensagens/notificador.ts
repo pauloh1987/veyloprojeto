@@ -11,6 +11,8 @@ export interface EnvioMensagem {
 export interface ResultadoEnvio {
   sucesso: boolean;
   erro?: string;
+  /** Identificador da mensagem no provedor (SID da Twilio), quando houver. */
+  idProvedor?: string;
 }
 
 /** Camada de envio de mensagens. Trocar a implementação (ex. plugar um provedor real de
@@ -48,7 +50,8 @@ export class NotificadorNulo implements Notificador {
  * "81991234567") — provedores de SMS exigem E.164 (+ código do país). Assume Brasil porque
  * todo o resto do sistema (máscara de telefone, fuso padrão) já assume isso. */
 function paraE164Brasil(telefoneDigitos: string): string {
-  return telefoneDigitos.startsWith("+") ? telefoneDigitos : `+55${telefoneDigitos}`;
+  if (telefoneDigitos.startsWith("+")) return telefoneDigitos;
+  return `+55${telefoneDigitos.replace(/\D/g, "")}`;
 }
 
 /** Envia SMS de verdade via Twilio (https://www.twilio.com) — a mensagem chega no celular da
@@ -86,7 +89,8 @@ export class NotificadorTwilio implements Notificador {
         const detalhe = await resposta.text();
         return { sucesso: false, erro: `Twilio ${resposta.status}: ${detalhe.slice(0, 300)}` };
       }
-      return { sucesso: true };
+      const json = (await resposta.json().catch(() => ({}))) as { sid?: string };
+      return { sucesso: true, idProvedor: json.sid };
     } catch (erro) {
       return { sucesso: false, erro: erro instanceof Error ? erro.message : "Falha ao enviar SMS." };
     }
@@ -148,7 +152,8 @@ export class NotificadorTwilioWhatsApp implements Notificador {
         const detalhe = await resposta.text();
         return { sucesso: false, erro: `Twilio ${resposta.status}: ${detalhe.slice(0, 300)}` };
       }
-      return { sucesso: true };
+      const json = (await resposta.json().catch(() => ({}))) as { sid?: string };
+      return { sucesso: true, idProvedor: json.sid };
     } catch (erro) {
       return { sucesso: false, erro: erro instanceof Error ? erro.message : "Falha ao enviar WhatsApp." };
     }

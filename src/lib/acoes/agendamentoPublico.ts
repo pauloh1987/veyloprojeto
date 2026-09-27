@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { cancelarMensagensPendentes } from "@/lib/mensagens/fila";
+import { cancelarPelaCliente } from "@/lib/agenda/respostaCliente";
 import { idSchema } from "@/lib/validacao";
 
 export async function cancelarAgendamentoPublico(
@@ -13,12 +13,10 @@ export async function cancelarAgendamentoPublico(
 
   const agendamento = await db.agendamento.findUnique({ where: { tokenPublico } });
   if (!agendamento) return { erro: "Agendamento não encontrado." };
-  if (agendamento.status === "CANCELADO") return { sucesso: true };
-  if (agendamento.status === "ATENDIDO" || agendamento.status === "FALTOU") {
+
+  const resultado = await cancelarPelaCliente(agendamento.id);
+  if (resultado.tipo === "ja_concluido") {
     return { erro: "Este agendamento já foi concluído e não pode mais ser cancelado." };
   }
-
-  await db.agendamento.update({ where: { id: agendamento.id }, data: { status: "CANCELADO" } });
-  await cancelarMensagensPendentes(agendamento.id);
   return { sucesso: true };
 }
