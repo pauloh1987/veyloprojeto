@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
-import { Plus, Scissors, Archive, ArchiveRestore, Pencil, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { Plus, Scissors, Archive, ArchiveRestore, Pencil, ChevronUp, ChevronDown, Trash2, ImagePlus } from "lucide-react";
+import { recortarFotoQuadrada } from "@/lib/imagem";
 import { salvarServico, alternarArquivadoServico, excluirServico } from "@/lib/acoes/servicos";
 import {
   criarCategoriaServico,
@@ -24,6 +25,7 @@ interface ServicoLinha {
   duracaoMin: number;
   precoCentavos: number;
   cor: string;
+  foto: string | null;
   ativo: boolean;
   categoriaId: string | null;
   profissionais: { profissionalId: string }[];
@@ -130,6 +132,7 @@ export function ServicosClient({
           <Campo rotulo="Descrição" htmlFor="descricao">
             <Textarea id="descricao" name="descricao" defaultValue={editando?.descricao} placeholder="Opcional" />
           </Campo>
+          <CampoFotoServico fotoInicial={editando?.foto ?? null} />
           <div className="grid grid-cols-2 gap-3">
             <Campo rotulo="Duração (min)" htmlFor="duracaoMin">
               <Input id="duracaoMin" name="duracaoMin" type="number" min={5} step={5} required defaultValue={editando?.duracaoMin ?? 30} />
@@ -214,7 +217,11 @@ function CartaoServico({ servico, aoEditar }: { servico: ServicoLinha; aoEditar:
     <li className="rounded-2xl border border-border bg-surface p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
-          <span className="mt-1 h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: servico.cor }} aria-hidden />
+          {servico.foto ? (
+            <img src={servico.foto} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
+          ) : (
+            <span className="mt-1 h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: servico.cor }} aria-hidden />
+          )}
           <div className="min-w-0">
             <p className="font-semibold text-text">{servico.nome}</p>
             <p className="text-sm text-text-muted">
@@ -369,6 +376,55 @@ function LinhaCategoria({
         <Trash2 size={14} />
       </Button>
     </li>
+  );
+}
+
+/** Foto opcional do serviço (ex: unha pronta) — aparece no lugar da letra no link público. */
+function CampoFotoServico({ fotoInicial }: { fotoInicial: string | null }) {
+  const [foto, setFoto] = useState(fotoInicial);
+  const [erro, setErro] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function aoEscolherArquivo(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0];
+    e.target.value = "";
+    if (!arquivo) return;
+    setErro(null);
+    try {
+      setFoto(await recortarFotoQuadrada(arquivo));
+    } catch (falha) {
+      setErro(falha instanceof Error ? falha.message : "Não foi possível usar essa imagem.");
+    }
+  }
+
+  return (
+    <div>
+      <Rotulo>Foto (opcional)</Rotulo>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-dashed border-border-strong bg-surface-2 text-text-faint hover:text-text"
+          aria-label={foto ? "Trocar foto" : "Enviar foto"}
+        >
+          {foto ? <img src={foto} alt="" className="h-full w-full object-cover" /> : <ImagePlus size={22} />}
+        </button>
+        <div className="flex flex-col items-start gap-1">
+          <Button type="button" size="sm" variant="secondary" onClick={() => inputRef.current?.click()}>
+            {foto ? "Trocar foto" : "Enviar foto"}
+          </Button>
+          {foto && (
+            <button type="button" onClick={() => setFoto(null)} className="text-xs text-text-muted hover:text-danger">
+              Remover foto
+            </button>
+          )}
+        </div>
+      </div>
+      <p className="mt-1.5 text-xs text-text-faint">Aparece pra cliente no lugar da letra, na hora de escolher o serviço.</p>
+      {erro && <p className="mt-1 text-xs text-danger">{erro}</p>}
+      <input ref={inputRef} type="file" accept="image/*" onChange={aoEscolherArquivo} className="hidden" />
+      <input type="hidden" name="foto" value={foto ?? ""} />
+    </div>
   );
 }
 

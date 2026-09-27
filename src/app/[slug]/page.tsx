@@ -87,6 +87,7 @@ export default async function PaginaPublicaEstabelecimento({ params }: PageProps
             duracaoMin: s.duracaoMin,
             precoCentavos: s.precoCentavos,
             cor: s.cor,
+            foto: s.foto,
             categoriaId: s.categoriaId,
             profissionaisIds: s.profissionais.map((sp) => sp.profissionalId),
           }))}

@@ -19,6 +19,7 @@ export interface ServicoPublico {
   duracaoMin: number;
   precoCentavos: number;
   cor: string;
+  foto: string | null;
   categoriaId: string | null;
   profissionaisIds: string[];
 }
@@ -363,13 +364,17 @@ function CartaoServicoPublico({ servico, aoEscolher }: { servico: ServicoPublico
       onClick={() => aoEscolher(servico)}
       className="group flex w-full items-center gap-3.5 rounded-2xl border border-border bg-surface p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent hover:shadow-md active:translate-y-0 active:scale-[0.99]"
     >
-      <span
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-heading text-base font-bold text-white"
-        style={{ backgroundColor: servico.cor }}
-        aria-hidden
-      >
-        {servico.nome.charAt(0).toUpperCase()}
-      </span>
+      {servico.foto ? (
+        <img src={servico.foto} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" />
+      ) : (
+        <span
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-heading text-base font-bold text-white"
+          style={{ backgroundColor: servico.cor }}
+          aria-hidden
+        >
+          {servico.nome.charAt(0).toUpperCase()}
+        </span>
+      )}
       <span className="min-w-0 flex-1">
         <span className="block truncate font-semibold text-text">{servico.nome}</span>
         <span className="block text-sm text-text-muted">{formatarDuracao(servico.duracaoMin)}</span>

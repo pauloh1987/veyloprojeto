@@ -18,6 +18,7 @@ export async function salvarServico(_estadoAnterior: EstadoAcao, formData: FormD
       duracaoMin: formData.get("duracaoMin"),
       precoCentavos: Math.round(Number(formData.get("precoReais") || 0) * 100),
       cor: formData.get("cor"),
+      foto: formData.get("foto") ?? "",
       ativo: formData.get("ativo") === "on",
       profissionaisIds: formData.getAll("profissionaisIds").map(String),
       categoriaId: formData.get("categoriaId") ?? "",
@@ -45,6 +46,7 @@ export async function salvarServico(_estadoAnterior: EstadoAcao, formData: FormD
           duracaoMin: dados.duracaoMin,
           precoCentavos: dados.precoCentavos,
           cor: dados.cor,
+          foto: dados.foto,
           ativo: dados.ativo,
           categoriaId: dados.categoriaId,
           profissionais: {
@@ -61,6 +63,7 @@ export async function salvarServico(_estadoAnterior: EstadoAcao, formData: FormD
           duracaoMin: dados.duracaoMin,
           precoCentavos: dados.precoCentavos,
           cor: dados.cor,
+          foto: dados.foto,
           ativo: dados.ativo,
           categoriaId: dados.categoriaId,
           estabelecimentoId: usuario.estabelecimentoId,

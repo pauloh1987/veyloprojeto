@@ -145,6 +145,7 @@ model Servico {
   duracaoMin        Int
   precoCentavos     Int
   cor               String
+  foto              String?
   ativo             Boolean  @default(true)
   estabelecimentoId String
   estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)

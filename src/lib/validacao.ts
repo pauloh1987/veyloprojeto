@@ -40,6 +40,7 @@ export const servicoSchema = z.object({
   precoCentavos: z.coerce.number().int().min(0, "Preço não pode ser negativo."),
   cor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Cor inválida."),
   ativo: z.coerce.boolean().default(true),
+  foto: fotoDataUrlSchema("jpeg"),
   profissionaisIds: z.array(z.string().min(1)).min(1, "Selecione ao menos uma profissional."),
   categoriaId: z
     .string()
