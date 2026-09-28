@@ -10,6 +10,8 @@ export interface ConfigDiaTrabalho {
   fecha: string;
   almocoInicio?: string | null;
   almocoFim?: string | null;
+  /** Horários de início fixos ("HH:mm"). Quando tem algum, substitui abre/fecha/almoço. */
+  horariosFixos?: string[] | null;
 }
 
 export interface CalcularHorariosDisponiveisParams {
@@ -94,6 +96,33 @@ function calcularJanelasLivres(
   return livres;
 }
 
+/** Modo "horários fixos": só os horários de início listados, cada um oferecido se o serviço
+ * inteiro não colide com bloqueio nem agendamento e respeita a antecedência mínima. Não
+ * limita pelo próximo horário fixo — um serviço longo às 11h não esconde o das 13h, a menos
+ * que de fato se sobreponham. */
+function calcularHorariosFixos(
+  data: string,
+  fuso: string,
+  duracaoMin: number,
+  horariosFixos: string[],
+  ocupadas: FaixaHoraria[],
+  agora: Date,
+  antecedenciaMinMin: number,
+): Date[] {
+  const limiteAntecedencia = agora.getTime() + antecedenciaMinMin * 60_000;
+  const duracaoMs = duracaoMin * 60_000;
+
+  return [...new Set(horariosFixos)]
+    .sort()
+    .map((hora) => horaLocalParaInstante(data, hora, fuso))
+    .filter((inicio) => {
+      const inicioMs = inicio.getTime();
+      const fimMs = inicioMs + duracaoMs;
+      if (inicioMs < limiteAntecedencia) return false;
+      return !ocupadas.some((o) => o.inicio.getTime() < fimMs && o.fim.getTime() > inicioMs);
+    });
+}
+
 /**
  * Motor de cálculo de horários disponíveis. Função pura: não acessa banco de dados nem
  * relógio do sistema — tudo que precisa (horário de funcionamento do dia, bloqueios,
@@ -120,6 +149,10 @@ export function calcularHorariosDisponiveis(
   } = params;
 
   if (!configDia) return [];
+
+  if (configDia.horariosFixos && configDia.horariosFixos.length > 0) {
+    return calcularHorariosFixos(data, fuso, duracaoMin, configDia.horariosFixos, [...bloqueios, ...agendamentos], agora, antecedenciaMinMin);
+  }
 
   const expedienteInicio = horaLocalParaInstante(data, configDia.abre, fuso);
   const expedienteFim = horaLocalParaInstante(data, configDia.fecha, fuso);

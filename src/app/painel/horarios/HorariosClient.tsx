@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check } from "lucide-react";
+import { Check, Copy, Plus, X } from "lucide-react";
 import { salvarHorariosSemana, type DiaHorarioInput } from "@/lib/acoes/horarios";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
@@ -59,8 +59,18 @@ function FormularioSemana({
   const [pendente, iniciar] = useTransition();
   const [mensagem, setMensagem] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
 
-  function atualizar(diaSemana: number, campo: keyof DiaHorarioInput, valor: string | boolean) {
+  function atualizar(diaSemana: number, campo: keyof DiaHorarioInput, valor: string | boolean | string[] | null) {
     setDias((atual) => atual.map((d) => (d.diaSemana === diaSemana ? { ...d, [campo]: valor } : d)));
+  }
+
+  /** Repete a lista de horários fixos deste dia em todos os outros dias abertos — o caso
+   * comum é "terça a sexta nos mesmos horários". */
+  function copiarFixosParaDiasAbertos(origem: DiaHorarioInput) {
+    setDias((atual) =>
+      atual.map((d) =>
+        d.diaSemana !== origem.diaSemana && !d.fechado ? { ...d, horariosFixos: [...(origem.horariosFixos ?? [])] } : d,
+      ),
+    );
   }
 
   function salvar() {
@@ -92,6 +102,19 @@ function FormularioSemana({
             </label>
           </div>
           {!dia.fechado && (
+            <SeletorModo
+              fixos={dia.horariosFixos !== null}
+              aoMudar={(fixos) => atualizar(dia.diaSemana, "horariosFixos", fixos ? [] : null)}
+            />
+          )}
+          {!dia.fechado && dia.horariosFixos !== null && (
+            <EditorHorariosFixos
+              horarios={dia.horariosFixos}
+              aoMudar={(lista) => atualizar(dia.diaSemana, "horariosFixos", lista)}
+              aoCopiar={() => copiarFixosParaDiasAbertos(dia)}
+            />
+          )}
+          {!dia.fechado && dia.horariosFixos === null && (
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <CampoHora rotulo="Abre" valor={dia.abre} aoMudar={(v) => atualizar(dia.diaSemana, "abre", v)} />
               <CampoHora rotulo="Fecha" valor={dia.fecha} aoMudar={(v) => atualizar(dia.diaSemana, "fecha", v)} />
@@ -116,6 +139,102 @@ function FormularioSemana({
         </Button>
         {mensagem && (
           <p className={mensagem.tipo === "ok" ? "text-sm text-success" : "text-sm text-danger"}>{mensagem.texto}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SeletorModo({ fixos, aoMudar }: { fixos: boolean; aoMudar: (fixos: boolean) => void }) {
+  const opcoes = [
+    { fixos: false, rotulo: "Intervalo", dica: "Abre e fecha" },
+    { fixos: true, rotulo: "Horários fixos", dica: "Só em horários certos" },
+  ];
+  return (
+    <div className="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-surface-2 p-1" role="radiogroup" aria-label="Tipo de horário">
+      {opcoes.map((o) => (
+        <button
+          key={o.rotulo}
+          type="button"
+          role="radio"
+          aria-checked={fixos === o.fixos}
+          onClick={() => aoMudar(o.fixos)}
+          className={cn(
+            "rounded-lg px-3 py-1.5 text-left text-sm transition-colors",
+            fixos === o.fixos ? "bg-surface font-semibold text-text shadow-sm" : "text-text-muted hover:text-text",
+          )}
+        >
+          {o.rotulo}
+          <span className="block text-xs font-normal text-text-faint">{o.dica}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function EditorHorariosFixos({
+  horarios,
+  aoMudar,
+  aoCopiar,
+}: {
+  horarios: string[];
+  aoMudar: (lista: string[]) => void;
+  aoCopiar: () => void;
+}) {
+  const [novo, setNovo] = useState("");
+  const ordenados = [...horarios].sort();
+
+  function adicionar() {
+    if (!novo || horarios.includes(novo)) return;
+    aoMudar([...horarios, novo].sort());
+    setNovo("");
+  }
+
+  return (
+    <div className="mt-3 space-y-3">
+      {ordenados.length === 0 ? (
+        <p className="text-sm text-text-faint">Adicione os horários em que a cliente pode começar um atendimento.</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {ordenados.map((h) => (
+            <span
+              key={h}
+              className="inline-flex items-center gap-1 rounded-full bg-accent/10 py-1 pl-3 pr-1 text-sm font-semibold text-accent tabular-nums"
+            >
+              {h}
+              <button
+                type="button"
+                onClick={() => aoMudar(horarios.filter((x) => x !== h))}
+                className="rounded-full p-0.5 hover:bg-accent/20"
+                aria-label={`Remover ${h}`}
+              >
+                <X size={14} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="time"
+          value={novo}
+          onChange={(e) => setNovo(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              adicionar();
+            }
+          }}
+          aria-label="Novo horário"
+          className="rounded-lg border border-border-strong bg-surface px-2 py-1.5 text-sm text-text"
+        />
+        <Button type="button" size="sm" variant="secondary" onClick={adicionar} disabled={!novo}>
+          <Plus size={14} /> Adicionar
+        </Button>
+        {ordenados.length > 0 && (
+          <Button type="button" size="sm" variant="ghost" onClick={aoCopiar}>
+            <Copy size={14} /> Usar nos outros dias abertos
+          </Button>
         )}
       </div>
     </div>

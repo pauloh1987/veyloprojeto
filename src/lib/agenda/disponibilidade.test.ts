@@ -207,4 +207,45 @@ describe("calcularHorariosDisponiveis", () => {
     expect(horas).not.toContain("12:45");
     expect(horas[0]).toBe("13:00");
   });
+  it("horários fixos: oferece só os horários listados, ignorando abre/fecha e almoço", () => {
+    const configDia: ConfigDiaTrabalho = {
+      abre: "09:00",
+      fecha: "18:00",
+      almocoInicio: "12:00",
+      almocoFim: "13:00",
+      horariosFixos: ["14:30", "11:00", "13:00", "16:00", "18:00"],
+    };
+    const resultado = calcularHorariosDisponiveis({
+      data: "2026-10-06",
+      fuso: FUSO,
+      duracaoMin: 90,
+      configDia,
+      bloqueios: [],
+      agendamentos: [],
+      agora: AGORA_NEUTRO,
+    });
+    expect(paraHorasMinutos(resultado)).toEqual(["11:00", "13:00", "14:30", "16:00", "18:00"]);
+  });
+
+  it("horários fixos: esconde o horário que colide com agendamento ou bloqueio e respeita a antecedência", () => {
+    const data = "2026-10-06";
+    const configDia: ConfigDiaTrabalho = {
+      abre: "09:00",
+      fecha: "18:00",
+      horariosFixos: ["11:00", "13:00", "14:30", "16:00", "18:00"],
+    };
+    const resultado = calcularHorariosDisponiveis({
+      data,
+      fuso: FUSO,
+      duracaoMin: 120,
+      configDia,
+      // 11:00 cai antes de "agora" + 2h de antecedência; 13:00 bate no agendamento das 13:30;
+      // 14:30 (até 16:30) e 16:00 (até 18:00) batem no bloqueio das 16:00. Sobra só 18:00.
+      agendamentos: [{ inicio: horario(data, "13:30"), fim: horario(data, "14:00") }],
+      bloqueios: [{ inicio: horario(data, "16:00"), fim: horario(data, "17:00") }],
+      agora: horario(data, "09:30"),
+      antecedenciaMinMin: 120,
+    });
+    expect(paraHorasMinutos(resultado)).toEqual(["18:00"]);
+  });
 });

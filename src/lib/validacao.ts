@@ -69,6 +69,14 @@ export const horarioDiaSchema = z.object({
     .union([z.string().regex(REGEX_HORA), z.literal("")])
     .optional()
     .transform((v) => (v ? v : null)),
+  /** null = modo intervalo (abre/fecha). Lista = só esses horários de início. */
+  horariosFixos: z
+    .array(z.string().regex(REGEX_HORA, "Horário fixo inválido."))
+    .max(40, "Máximo de 40 horários por dia.")
+    .nullable()
+    .default(null),
+}).refine((d) => d.fechado || d.horariosFixos === null || d.horariosFixos.length > 0, {
+  message: "Adicione pelo menos um horário fixo, ou volte para o modo intervalo.",
 });
 export type HorarioDiaInput = z.infer<typeof horarioDiaSchema>;
 

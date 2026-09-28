@@ -31,6 +31,7 @@ export default async function PaginaHorarios() {
         fecha: existente?.fecha ?? "18:00",
         almocoInicio: existente?.almocoInicio ?? "",
         almocoFim: existente?.almocoFim ?? "",
+        horariosFixos: existente?.horariosFixos ? existente.horariosFixos.split(",") : null,
       };
     });
     return { id: p.id, nome: p.nome, horarios };

@@ -199,6 +199,9 @@ model HorarioFuncionamento {
   almocoInicio   String?
   almocoFim      String?
   fechado        Boolean @default(false)
+  /** Quando preenchido ("11:00,13:00,14:30"), o dia funciona só nesses horários de início
+   * em vez do intervalo abre/fecha com almoço — ex.: esmalteria que atende em horários fixos. */
+  horariosFixos  String?
 
   @@unique([profissionalId, diaSemana])
 }

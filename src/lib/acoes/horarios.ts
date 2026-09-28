@@ -13,6 +13,8 @@ export interface DiaHorarioInput {
   fecha: string;
   almocoInicio: string;
   almocoFim: string;
+  /** null = intervalo (abre/fecha/almoço); lista = só esses horários de início. */
+  horariosFixos: string[] | null;
 }
 
 export async function salvarHorariosSemana(
@@ -35,6 +37,8 @@ export async function salvarHorariosSemana(
         return { erro: resultado.error.issues[0]?.message ?? "Horário inválido." };
       }
     }
+    const fixosDe = (dia: DiaHorarioInput) =>
+      dia.horariosFixos && dia.horariosFixos.length > 0 ? [...new Set(dia.horariosFixos)].sort().join(",") : null;
 
     await db.$transaction(
       dias.map((dia) =>
@@ -46,6 +50,7 @@ export async function salvarHorariosSemana(
             fecha: dia.fecha,
             almocoInicio: dia.almocoInicio || null,
             almocoFim: dia.almocoFim || null,
+            horariosFixos: fixosDe(dia),
           },
           create: {
             profissionalId,
@@ -55,6 +60,7 @@ export async function salvarHorariosSemana(
             fecha: dia.fecha,
             almocoInicio: dia.almocoInicio || null,
             almocoFim: dia.almocoFim || null,
+            horariosFixos: fixosDe(dia),
           },
         }),
       ),

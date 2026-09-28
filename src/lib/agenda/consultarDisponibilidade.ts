@@ -47,6 +47,7 @@ export async function calcularHorariosDisponiveisNoBanco(
           fecha: horarioDia.fecha,
           almocoInicio: horarioDia.almocoInicio,
           almocoFim: horarioDia.almocoFim,
+          horariosFixos: horarioDia.horariosFixos ? horarioDia.horariosFixos.split(",") : null,
         }
       : null;
 
