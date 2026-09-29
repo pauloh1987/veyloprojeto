@@ -88,14 +88,14 @@ function Hero() {
       <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
         <div className="text-center lg:text-left">
           <p className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold text-veylo-teal">
-            <Sparkles size={13} /> Agenda online para salões, esmalterias e estúdios
+            <Sparkles size={13} /> Feito para salões, barbearias e profissionais autônomos de beleza
           </p>
           <h1 className="mt-5 font-heading text-4xl font-extrabold leading-[1.05] text-white sm:text-6xl">
-            Sua agenda cheia, <span className="veylo-gradient-text">24 horas</span> por dia.
+            Sua cliente <span className="veylo-gradient-text">agenda sozinha</span>. Você organiza o resto.
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-white/70 sm:text-lg lg:mx-0">
-            Sua cliente marca sozinha pelo link na sua bio e recebe confirmação e lembrete no WhatsApp, com
-            botão pra confirmar ou cancelar. Você para de responder &quot;tem horário?&quot; e foca no atendimento.
+            Um link de agendamento pro seu Instagram, WhatsApp ou bio — a cliente escolhe o horário livre e recebe
+            confirmação na hora, sem trocar mensagem pra combinar.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row lg:justify-start sm:justify-center">
             <LinkButton
