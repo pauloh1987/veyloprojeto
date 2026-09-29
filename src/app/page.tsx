@@ -88,7 +88,7 @@ function Hero() {
       <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
         <div className="text-center lg:text-left">
           <p className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold text-veylo-teal">
-            <Sparkles size={13} /> Feito para salões, barbearias e profissionais autônomos de beleza
+            <Sparkles size={13} className="shrink-0" /> Para salões, barbearias, esmalterias, estética e todo serviço com horário marcado
           </p>
           <h1 className="mt-5 font-heading text-4xl font-extrabold leading-[1.05] text-white sm:text-6xl">
             Sua cliente <span className="veylo-gradient-text">agenda sozinha</span>. Você organiza o resto.
