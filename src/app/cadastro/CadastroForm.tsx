@@ -5,7 +5,6 @@ import { cadastrarEstabelecimento, type EstadoCadastro } from "@/lib/acoes/cadas
 import { Button } from "@/components/ui/Button";
 import { Campo, Input } from "@/components/ui/Campo";
 import { aplicarMascaraTelefone } from "@/lib/formatadores";
-import { cn } from "@/lib/cn";
 
 const ESTADO_INICIAL: EstadoCadastro = {};
 
@@ -19,12 +18,11 @@ function paraSlug(texto: string): string {
     .slice(0, 50);
 }
 
-export function CadastroForm({ planoInicial = "SOLO" }: { planoInicial?: "SOLO" | "EQUIPE" }) {
+export function CadastroForm() {
   const [estado, acao, pendente] = useActionState(cadastrarEstabelecimento, ESTADO_INICIAL);
   const [nomeEstabelecimento, setNomeEstabelecimento] = useState("");
   const [slug, setSlug] = useState("");
   const [slugEditadoManualmente, setSlugEditadoManualmente] = useState(false);
-  const [plano, setPlano] = useState<"SOLO" | "EQUIPE">(planoInicial);
   const [telefone, setTelefone] = useState("");
 
   function aoMudarNome(valor: string) {
@@ -62,32 +60,6 @@ export function CadastroForm({ planoInicial = "SOLO" }: { planoInicial?: "SOLO" 
           />
         </div>
       </Campo>
-
-      <div>
-        <span className="mb-1.5 block text-sm font-medium text-text">Plano</span>
-        <div className="grid grid-cols-2 gap-2.5">
-          {(
-            [
-              { valor: "SOLO" as const, titulo: "Solo", desc: "Você atende sozinha." },
-              { valor: "EQUIPE" as const, titulo: "Equipe", desc: "Você e outras profissionais." },
-            ]
-          ).map((op) => (
-            <button
-              key={op.valor}
-              type="button"
-              onClick={() => setPlano(op.valor)}
-              className={cn(
-                "rounded-xl border p-3.5 text-left transition-colors",
-                plano === op.valor ? "border-accent bg-surface-2" : "border-border-strong bg-surface",
-              )}
-            >
-              <p className="font-semibold text-text">{op.titulo}</p>
-              <p className="text-xs text-text-muted">{op.desc}</p>
-            </button>
-          ))}
-        </div>
-        <input type="hidden" name="plano" value={plano} />
-      </div>
 
       <div className="h-px bg-border" />
 

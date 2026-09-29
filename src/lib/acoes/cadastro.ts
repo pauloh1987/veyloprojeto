@@ -23,7 +23,6 @@ export async function cadastrarEstabelecimento(
   const resultado = cadastroSchema.safeParse({
     nomeEstabelecimento: formData.get("nomeEstabelecimento"),
     slug: formData.get("slug"),
-    plano: formData.get("plano"),
     nomeDono: formData.get("nomeDono"),
     email: formData.get("email"),
     senha: formData.get("senha"),
@@ -51,7 +50,8 @@ export async function cadastrarEstabelecimento(
           slug: dados.slug,
           telefone: dados.telefone,
           endereco: dados.endereco,
-          plano: dados.plano,
+          // Plano único desde 29/09/2026: toda conta tem todos os recursos, equipe inclusa.
+          plano: "EQUIPE",
         },
       });
 

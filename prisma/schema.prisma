@@ -58,7 +58,7 @@ model Estabelecimento {
   corDestaque        String   @default("#0EA5A0")
   foto               String?
   logoFundo          String   @default("#FFFFFF")
-  plano              Plano    @default(SOLO)
+  plano              Plano    @default(EQUIPE)
   antecedenciaMinMin Int      @default(120)
   /** Até quantas semanas à frente a cliente pode marcar pelo link público. */
   janelaAgendamentoSemanas Int @default(8)

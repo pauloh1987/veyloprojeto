@@ -115,7 +115,6 @@ export const configuracoesSchema = z.object({
   corDestaque: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Cor inválida."),
   antecedenciaMinMin: z.coerce.number().int().min(0).max(1440),
   janelaAgendamentoSemanas: z.coerce.number().int().min(1, "Escolha ao menos 1 semana.").max(12),
-  plano: z.enum(["SOLO", "EQUIPE"]),
   foto: fotoDataUrlSchema("png"),
   logoFundo: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Cor inválida."),
   confirmacaoAutomatica: z.boolean(),
@@ -176,7 +175,6 @@ export const cadastroSchema = z.object({
     .max(50)
     .regex(REGEX_SLUG, "Use só letras minúsculas, números e hífen (ex: studio-da-ana).")
     .refine((v) => !PALAVRAS_RESERVADAS.has(v), "Esse endereço é reservado. Escolha outro."),
-  plano: z.enum(["SOLO", "EQUIPE"]),
   nomeDono: z.string().trim().min(2, "Informe seu nome.").max(80),
   email: z.string().trim().toLowerCase().min(1, "Informe o e-mail.").email("E-mail inválido."),
   senha: z.string().min(6, "A senha precisa ter pelo menos 6 caracteres."),

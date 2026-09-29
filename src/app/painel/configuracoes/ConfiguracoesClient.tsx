@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/Button";
 import { Campo, Input, Rotulo, Select } from "@/components/ui/Campo";
 import { OPCOES_JANELA_SEMANAS } from "@/lib/agenda/janelaAgendamento";
 import { iniciais } from "@/lib/formatadores";
-import { cn } from "@/lib/cn";
 
 const ESTADO_INICIAL: EstadoAcao = {};
 // 480px (não 320) porque logo com traço fino (script, contorno) perde legibilidade se exportado
@@ -107,7 +106,6 @@ export function ConfiguracoesClient({
     corDestaque: string;
     antecedenciaMinMin: number;
     janelaAgendamentoSemanas: number;
-    plano: string;
     foto: string | null;
     logoFundo: string;
     confirmacaoAutomatica: boolean;
@@ -116,7 +114,6 @@ export function ConfiguracoesClient({
 }) {
   const [estado, acao] = useActionState(salvarConfiguracoes, ESTADO_INICIAL);
   const [copiado, setCopiado] = useState(false);
-  const [plano, setPlano] = useState<"SOLO" | "EQUIPE">(estabelecimento.plano === "EQUIPE" ? "EQUIPE" : "SOLO");
   const [foto, setFoto] = useState<string | null>(estabelecimento.foto);
   const [logoFundo, setLogoFundo] = useState(estabelecimento.logoFundo);
   const [erroLogo, setErroLogo] = useState<string | null>(null);
@@ -150,7 +147,7 @@ export function ConfiguracoesClient({
     <div className="mx-auto max-w-2xl px-4 py-6 sm:py-8">
       <header className="mb-6">
         <h1 className="font-heading text-2xl font-extrabold text-text">Configurações</h1>
-        <p className="text-sm text-text-muted">Plano atual: {estabelecimento.plano === "EQUIPE" ? "Equipe" : "Solo"}</p>
+        <p className="text-sm text-text-muted">Dados do seu negócio e do seu link de agendamento.</p>
       </header>
 
       <div className="mb-6 rounded-2xl border border-border bg-surface p-4">
@@ -242,32 +239,6 @@ export function ConfiguracoesClient({
         <Campo rotulo="Endereço" htmlFor="endereco">
           <Input id="endereco" name="endereco" required defaultValue={estabelecimento.endereco} />
         </Campo>
-
-        <div>
-          <span className="mb-1.5 block text-sm font-medium text-text">Plano</span>
-          <div className="grid grid-cols-2 gap-2.5">
-            {(
-              [
-                { valor: "SOLO" as const, titulo: "Solo", desc: "Você atende sozinha." },
-                { valor: "EQUIPE" as const, titulo: "Equipe", desc: "Você e outras profissionais." },
-              ]
-            ).map((op) => (
-              <button
-                key={op.valor}
-                type="button"
-                onClick={() => setPlano(op.valor)}
-                className={cn(
-                  "rounded-xl border p-3.5 text-left transition-colors",
-                  plano === op.valor ? "border-accent bg-surface-2" : "border-border-strong bg-surface",
-                )}
-              >
-                <p className="font-semibold text-text">{op.titulo}</p>
-                <p className="text-xs text-text-muted">{op.desc}</p>
-              </button>
-            ))}
-          </div>
-          <input type="hidden" name="plano" value={plano} />
-        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>

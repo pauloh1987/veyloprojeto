@@ -28,13 +28,7 @@ interface ProfissionalLinha {
 
 const ESTADO_INICIAL: EstadoAcao = {};
 
-export function ProfissionaisClient({
-  profissionais,
-  plano,
-}: {
-  profissionais: ProfissionalLinha[];
-  plano: "SOLO" | "EQUIPE";
-}) {
+export function ProfissionaisClient({ profissionais }: { profissionais: ProfissionalLinha[] }) {
   const [modalAberto, setModalAberto] = useState(false);
   const [criarLogin, setCriarLogin] = useState(false);
   const [estado, acao] = useActionState(criarProfissional, ESTADO_INICIAL);
@@ -46,8 +40,6 @@ export function ProfissionaisClient({
     }
   }, [estado]);
 
-  const ativos = profissionais.filter((p) => p.ativo).length;
-  const limiteSoloAtingido = plano === "SOLO" && ativos >= 1;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:py-8">
@@ -58,9 +50,7 @@ export function ProfissionaisClient({
         </Button>
       </header>
       <p className="mb-6 text-sm text-text-muted">
-        {plano === "SOLO"
-          ? "Plano Solo: 1 profissional ativa por vez."
-          : "Plano Equipe: adicione quantas profissionais precisar."}
+        Adicione quantas profissionais precisar, cada uma com a sua agenda.
       </p>
 
       {profissionais.length === 0 ? (
@@ -87,7 +77,7 @@ export function ProfissionaisClient({
                     )}
                   </div>
                 </div>
-                <BotaoAlternarAtivo id={p.id} ativo={p.ativo} bloqueado={!p.ativo && limiteSoloAtingido} />
+                <BotaoAlternarAtivo id={p.id} ativo={p.ativo} />
               </div>
               <EditorComissao id={p.id} comissaoPercentual={p.comissaoPercentual} />
             </li>
@@ -235,7 +225,7 @@ function EditorComissao({ id, comissaoPercentual }: { id: string; comissaoPercen
   );
 }
 
-function BotaoAlternarAtivo({ id, ativo, bloqueado }: { id: string; ativo: boolean; bloqueado: boolean }) {
+function BotaoAlternarAtivo({ id, ativo }: { id: string; ativo: boolean }) {
   const [pendente, iniciar] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
 
@@ -245,14 +235,14 @@ function BotaoAlternarAtivo({ id, ativo, bloqueado }: { id: string; ativo: boole
       try {
         await alternarAtivoProfissional(id, !ativo);
       } catch {
-        setErro("Não foi possível concluir. Veja o limite do seu plano.");
+        setErro("Não foi possível concluir. Tente de novo.");
       }
     });
   }
 
   return (
     <div className="shrink-0 text-right">
-      <Button size="sm" variant={ativo ? "ghost" : "secondary"} disabled={pendente || bloqueado} onClick={alternar}>
+      <Button size="sm" variant={ativo ? "ghost" : "secondary"} disabled={pendente} onClick={alternar}>
         {ativo ? <Ban size={14} /> : <CheckCircle2 size={14} />}
         {ativo ? "Desativar" : "Ativar"}
       </Button>

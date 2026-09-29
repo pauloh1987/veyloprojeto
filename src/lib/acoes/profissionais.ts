@@ -33,20 +33,6 @@ export async function criarProfissional(_estadoAnterior: EstadoAcao, formData: F
       if (existente) throw new ValidacaoError("Já existe uma conta com esse e-mail.");
     }
 
-    const estabelecimento = await db.estabelecimento.findUniqueOrThrow({
-      where: { id: usuario.estabelecimentoId },
-    });
-    if (estabelecimento.plano === "SOLO") {
-      const totalAtivos = await db.profissional.count({
-        where: { estabelecimentoId: usuario.estabelecimentoId, ativo: true },
-      });
-      if (totalAtivos >= 1) {
-        throw new ValidacaoError(
-          "O plano Solo permite só 1 profissional ativa. Mude para o plano Equipe em Configurações para adicionar mais.",
-        );
-      }
-    }
-
     await db.$transaction(async (tx) => {
       const profissional = await tx.profissional.create({
         data: {
@@ -87,13 +73,6 @@ export async function alternarAtivoProfissional(profissionalIdBruto: string, ati
     where: { id: profissionalId, estabelecimentoId: usuario.estabelecimentoId },
   });
   if (!profissional) throw new NaoAutorizadoError();
-
-  if (ativo && (await db.estabelecimento.findUniqueOrThrow({ where: { id: usuario.estabelecimentoId } })).plano === "SOLO") {
-    const totalAtivos = await db.profissional.count({
-      where: { estabelecimentoId: usuario.estabelecimentoId, ativo: true },
-    });
-    if (totalAtivos >= 1) throw new ValidacaoError("O plano Solo permite só 1 profissional ativa.");
-  }
 
   await db.profissional.update({ where: { id: profissionalId }, data: { ativo } });
   revalidatePath("/painel/profissionais");

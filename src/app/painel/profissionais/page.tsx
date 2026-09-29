@@ -17,7 +17,6 @@ export default async function PaginaProfissionais() {
 
   return (
     <ProfissionaisClient
-      plano={usuario.estabelecimento.plano}
       profissionais={profissionais.map((p) => ({
         id: p.id,
         nome: p.nome,
