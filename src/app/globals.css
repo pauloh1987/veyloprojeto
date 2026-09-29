@@ -160,3 +160,26 @@ body {
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) transparent;
 }
+
+/* Troca suave de conteúdo nas ilustrações da página inicial (ex.: exemplo por tipo de
+   negócio no hero). Desligada para quem pede menos movimento no sistema. */
+@keyframes veylo-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.veylo-fade-in {
+  animation: veylo-fade-in 0.45s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .veylo-fade-in {
+    animation: none;
+  }
+}

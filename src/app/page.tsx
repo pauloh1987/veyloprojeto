@@ -20,6 +20,8 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { LinkButton } from "@/components/ui/Button";
+import { HeroSegmentos } from "@/components/marketing/HeroSegmentos";
+import { Celular, TelaLinkPublico, segmentoDemo } from "@/components/marketing/Mockups";
 import { cn } from "@/lib/cn";
 
 /** Preço único — toda conta tem todos os recursos, com profissionais ilimitadas. Mudou de
@@ -90,7 +92,7 @@ function Hero() {
           <p className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold text-veylo-teal">
             <Sparkles size={13} className="shrink-0" /> Para salões, barbearias, esmalterias, estética e todo serviço com horário marcado
           </p>
-          <h1 className="mt-5 font-heading text-4xl font-extrabold leading-[1.05] text-white sm:text-6xl">
+          <h1 className="mt-5 font-heading text-4xl font-extrabold leading-[1.05] text-white sm:text-6xl lg:text-5xl">
             Sua cliente <span className="veylo-gradient-text">agenda sozinha</span>. Você organiza o resto.
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-white/70 sm:text-lg lg:mx-0">
@@ -124,100 +126,9 @@ function Hero() {
             </li>
           </ul>
         </div>
-        <HeroMockup />
+        <HeroSegmentos />
       </div>
     </section>
-  );
-}
-
-/** Composição do hero: o link público (o que a cliente vê) e, por cima, a mensagem que chega
- * no WhatsApp dela. Tudo desenhado com a interface real do produto e dados de exemplo — não é
- * foto nem captura de um cliente real. */
-function HeroMockup() {
-  return (
-    <div className="relative mx-auto w-full max-w-sm pb-10 lg:max-w-md">
-      <Celular>
-        <TelaLinkPublico />
-      </Celular>
-      <div className="absolute -right-2 bottom-0 w-64 rounded-2xl border border-white/10 bg-veylo-navy-800/95 p-3.5 text-left shadow-2xl backdrop-blur sm:-right-8 sm:w-72">
-        <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#25D366] text-white">
-            <MessageCircle size={15} />
-          </span>
-          <div className="min-w-0">
-            <p className="text-xs font-bold text-white">WhatsApp · agora</p>
-            <p className="truncate text-[11px] text-white/60">Studio Bela Unha</p>
-          </div>
-        </div>
-        <p className="mt-2 text-[13px] leading-snug text-white/85">
-          Seu horário de <b>Gel na tips</b> está marcado para <b>sábado, 10 de outubro às 14:30</b>.
-        </p>
-        <div className="mt-2.5 grid grid-cols-2 gap-1.5">
-          <span className="rounded-lg bg-white/10 py-1.5 text-center text-xs font-semibold text-veylo-teal">Confirmar</span>
-          <span className="rounded-lg bg-white/10 py-1.5 text-center text-xs font-semibold text-white/70">Cancelar</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Celular({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div
-      className={cn(
-        "mx-auto w-full max-w-[290px] rounded-[2.4rem] border border-white/15 bg-veylo-navy-900 p-2.5 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]",
-        className,
-      )}
-    >
-      <div className="overflow-hidden rounded-[1.9rem] bg-white text-[#10151f]">{children}</div>
-    </div>
-  );
-}
-
-/** Link público de exemplo. Cores fixas (não seguem o tema do site) porque representa a
- * página da esmalteria, que tem a identidade dela. */
-function TelaLinkPublico() {
-  const servicos = [
-    { nome: "Gel na tips", info: "2h · R$ 150,00", cor: "#e2557a" },
-    { nome: "Manutenção do gel", info: "1h30 · R$ 110,00", cor: "#e2557a" },
-    { nome: "Esmaltação em gel", info: "1h · R$ 60,00", cor: "#9b6ad6" },
-  ];
-  return (
-    <div className="pb-4">
-      <div className="bg-[#fbe9ef] px-4 pb-4 pt-6 text-center">
-        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#e2557a] font-heading text-lg font-extrabold text-white">
-          B
-        </span>
-        <p className="mt-2 font-heading text-sm font-extrabold">Studio Bela Unha</p>
-        <p className="text-[11px] text-[#545d6e]">Escolha o serviço</p>
-      </div>
-      <div className="space-y-2 px-3.5 pt-3">
-        <p className="text-[10px] font-bold uppercase tracking-wide text-[#8891a0]">Aplicação</p>
-        {servicos.map((s) => (
-          <div key={s.nome} className="flex items-center gap-2.5 rounded-xl border border-[#e2e6ee] p-2.5">
-            <span className="h-8 w-8 shrink-0 rounded-lg" style={{ background: s.cor, opacity: 0.85 }} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-semibold">{s.nome}</p>
-              <p className="text-[11px] text-[#545d6e]">{s.info}</p>
-            </div>
-          </div>
-        ))}
-        <p className="pt-1 text-[10px] font-bold uppercase tracking-wide text-[#8891a0]">Sábado, 10 de outubro</p>
-        <div className="grid grid-cols-3 gap-1.5">
-          {["09:30", "11:00", "13:00", "14:30", "16:00", "17:30"].map((h) => (
-            <span
-              key={h}
-              className={cn(
-                "rounded-lg border py-1.5 text-center text-xs font-semibold tabular-nums",
-                h === "14:30" ? "border-[#e2557a] bg-[#e2557a] text-white" : "border-[#e2e6ee] text-[#10151f]",
-              )}
-            >
-              {h}
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -266,7 +177,7 @@ const RECURSOS: RecursoDestaque[] = [
     ],
     visual: (
       <Celular>
-        <TelaLinkPublico />
+        <TelaLinkPublico segmento={segmentoDemo("barbearia")} />
       </Celular>
     ),
   },
@@ -298,7 +209,7 @@ const RECURSOS: RecursoDestaque[] = [
     selo: "Cliente de volta",
     titulo: "Manutenção na data certa, sem você lembrar",
     texto:
-      "Fez gel, fibra ou alongamento? Na ficha da cliente, agende um lembrete pra daqui a 25 dias. No dia, ela recebe no WhatsApp um convite pra marcar de novo, com o seu link.",
+      "Corte a cada 20 dias, manutenção do gel a cada 25, sobrancelha a cada 15: na ficha de cada cliente, agende um lembrete pra daqui a X dias. No dia, chega no WhatsApp um convite pra marcar de novo, com o seu link.",
     pontos: ["Funciona pra qualquer serviço de retorno", "Você escolhe em quantos dias", "O convite já leva o link de agendamento"],
     visual: <MockRetorno />,
   },
@@ -364,20 +275,20 @@ function MockWhatsApp() {
 
 function MockPainel() {
   const linhas = [
-    { hora: "09:30", nome: "Carla M.", servico: "Esmaltação em gel", status: "Confirmado", cor: "text-info bg-info-bg" },
-    { hora: "11:00", nome: "Juliana S.", servico: "Gel na tips", status: "Atendido", cor: "text-success bg-success-bg" },
-    { hora: "14:30", nome: "Renata P.", servico: "Manutenção do gel", status: "Confirmado", cor: "text-info bg-info-bg" },
+    { hora: "09:00", nome: "Lucas A.", servico: "Corte masculino", profissional: "Rafael", status: "Atendido", cor: "text-success bg-success-bg" },
+    { hora: "09:40", nome: "Pedro H.", servico: "Corte + barba", profissional: "Rafael", status: "Confirmado", cor: "text-info bg-info-bg" },
+    { hora: "10:20", nome: "Marcos V.", servico: "Barba completa", profissional: "Diego", status: "Confirmado", cor: "text-info bg-info-bg" },
   ];
   return (
     <div className="mx-auto w-full max-w-sm rounded-3xl border border-border bg-bg p-4 shadow-2xl">
       <div className="flex items-end justify-between">
         <div>
           <p className="font-heading text-lg font-extrabold text-text">Hoje</p>
-          <p className="text-xs text-text-muted">sábado, 10 de outubro</p>
+          <p className="text-xs text-text-muted">sexta, 9 de outubro · Barbearia Corte Fino</p>
         </div>
         <div className="text-right">
           <p className="text-[11px] text-text-faint">Total do dia</p>
-          <p className="font-heading font-bold text-text">R$ 320,00</p>
+          <p className="font-heading font-bold text-text">R$ 385,00</p>
         </div>
       </div>
       <div className="mt-3 rounded-2xl border border-border bg-surface p-3">
@@ -387,7 +298,7 @@ function MockPainel() {
         <p className="mt-1.5 flex items-start gap-1.5 text-xs text-text-muted">
           <CheckCircle2 size={13} className="mt-0.5 shrink-0 text-success" />
           <span>
-            <b className="text-text">Renata P.</b> confirmou presença em Manutenção do gel
+            <b className="text-text">Pedro H.</b> confirmou presença em Corte + barba
           </span>
         </p>
       </div>
@@ -397,7 +308,9 @@ function MockPainel() {
             <span className="font-heading text-sm font-bold tabular-nums text-text">{l.hora}</span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-text">{l.nome}</p>
-              <p className="truncate text-xs text-text-muted">{l.servico}</p>
+              <p className="truncate text-xs text-text-muted">
+                {l.servico} · {l.profissional}
+              </p>
             </div>
             <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", l.cor)}>{l.status}</span>
           </div>
