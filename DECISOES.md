@@ -242,12 +242,16 @@ especificação não determinava um caminho exato. Organizado por área.
   deploys em lote (no máximo 1 por dia, salvo correção urgente); e o banco no Neon direto
   (mesmo Postgres, mínimo de 0,25 unidade, grátis até 100 unidades-hora por mês), na região
   AWS us-east-1, a mesma das funções da Netlify. `db.ts` usa `POSTGRES_URL` (Neon) e, sem ela,
-  `NETLIFY_DB_URL`. As migrações continuam em `netlify/database/migrations`; com o Neon quem
-  aplica é `scripts/aplicar-migracoes.mjs` no build (tabela de controle `_veylo_migracoes`), e
-  a cópia inicial dos dados é `npm run db:copiar-para-neon` (endereços em `.env.migracao`,
-  fora do git; o script nunca imprime os endereços), testada de ponta a ponta com dois
-  Postgres em memória via PGlite. Depois da troca, o Netlify Database deve ser removido para
-  não gerar cobrança de armazenamento. Estudo de custos (Netlify, Neon, Vercel, Railway, VPS)
+  `NETLIFY_DB_URL`. As migrações foram de `netlify/database/migrations` para
+  `prisma/migracoes-producao` e o pacote `@netlify/database` saiu, para a Netlify não recriar
+  o próprio banco; quem aplica as migrações é `scripts/aplicar-migracoes.mjs` no build (tabela
+  de controle `_veylo_migracoes`). A cópia inicial dos dados é `npm run db:copiar-para-neon`,
+  com os endereços em `.env.migracao` (fora do git; o script nunca imprime os endereços) ou
+  com `--backup <arquivo>`, a partir do backup diário: foi esse o caminho usado em 30/09/2026,
+  porque o Netlify Database não expõe o endereço de produção de forma simples. Testada de
+  ponta a ponta com dois Postgres em memória via PGlite. Depois da troca, o Netlify Database
+  deve ser removido para não gerar cobrança. Estudo de custos (Netlify, Neon, Vercel, Railway,
+  VPS, Cloudflare)
   feito à parte: a decisão é ficar na Netlify + Neon até uns 30 a 40 salões e reavaliar.
 
 ## Motor de horários

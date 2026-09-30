@@ -22,7 +22,7 @@ import { aplicarMigracoesPendentes } from "./migracoes-postgres.mjs";
  *       `netlify blobs:get backups-diarios <data>`) em vez de ORIGEM_URL. O backup não tem
  *       sessões de login nem tokens de e-mail/senha, que simplesmente não são copiados.
  *
- * No destino, antes de copiar, aplica as migrações de netlify/database/migrations e registra
+ * No destino, antes de copiar, aplica as migrações de prisma/migracoes-producao e registra
  * todas como aplicadas, para o build (scripts/aplicar-migracoes.mjs) não repeti-las.
  */
 

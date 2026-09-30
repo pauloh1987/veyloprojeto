@@ -1,10 +1,11 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
-/** Migrações SQL do banco de produção (Postgres), uma por subpasta, aplicadas em ordem
- * alfabética (o nome começa pela data). É a mesma pasta que o Netlify Database lia sozinho a
- * cada deploy; com o banco no Neon, quem aplica é `aplicarMigracoesPendentes`. */
-export const PASTA_MIGRACOES = path.join(process.cwd(), "netlify", "database", "migrations");
+/** Migrações SQL do banco de produção (Postgres, no Neon), uma por subpasta, aplicadas em
+ * ordem alfabética (o nome começa pela data). Até 30/09/2026 ficavam em
+ * netlify/database/migrations, onde o Netlify Database as aplicava sozinho; saíram de lá para
+ * a Netlify não recriar esse banco. */
+export const PASTA_MIGRACOES = path.join(process.cwd(), "prisma", "migracoes-producao");
 
 const TABELA_CONTROLE = "_veylo_migracoes";
 

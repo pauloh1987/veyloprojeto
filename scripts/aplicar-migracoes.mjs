@@ -3,9 +3,9 @@ import { aplicarMigracoesPendentes } from "./migracoes-postgres.mjs";
 
 /**
  * Roda no build da Netlify (netlify.toml), antes do `next build`: aplica no banco de produção
- * (Neon, em POSTGRES_URL) as migrações de `netlify/database/migrations` que ainda não foram
- * aplicadas. Sem POSTGRES_URL não faz nada: é o caso do ambiente local e da produção enquanto
- * ela ainda usa o banco da própria Netlify, que aplica essas migrações sozinho.
+ * (Neon, em POSTGRES_URL) as migrações de `prisma/migracoes-producao` que ainda não foram
+ * aplicadas. Sem POSTGRES_URL não faz nada: é o caso do ambiente local (SQLite) e das prévias
+ * de deploy, que não têm banco de produção configurado.
  */
 const url = process.env.POSTGRES_URL;
 if (!url) {
