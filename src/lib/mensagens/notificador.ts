@@ -97,6 +97,12 @@ export class NotificadorTwilio implements Notificador {
   }
 }
 
+/** Os três modelos aprovados na Meta (confirmação, lembrete e convite de retorno) têm exatamente
+ * 4 variáveis. Mensagem com outra quantidade é da época em que os modelos eram diferentes: se fosse
+ * enviada, a Twilio completaria o que falta com os valores de exemplo cadastrados no modelo (um
+ * salão fictício), então ela não sai. */
+export const VARIAVEIS_POR_MODELO_WHATSAPP = 4;
+
 /** Templates aprovados na Meta (via Content Template Builder da Twilio) para cada tipo de
  * mensagem que este sistema de fato produz hoje (ver `fila.ts` — CONFIRMACAO, LEMBRETE e
  * CONVITE_RETORNO). */
@@ -126,6 +132,13 @@ export class NotificadorTwilioWhatsApp implements Notificador {
       return {
         sucesso: false,
         erro: `Nenhum template do WhatsApp configurado para "${mensagem.tipo}" (defina a variável de ambiente correspondente).`,
+      };
+    }
+
+    if (mensagem.variaveis.length !== VARIAVEIS_POR_MODELO_WHATSAPP) {
+      return {
+        sucesso: false,
+        erro: `Mensagem com ${mensagem.variaveis.length} informações; os modelos do WhatsApp usam ${VARIAVEIS_POR_MODELO_WHATSAPP}. Não enviada.`,
       };
     }
 
