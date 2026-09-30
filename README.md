@@ -9,6 +9,9 @@ próprio cadastro self-service que cria o estabelecimento na hora.
 
 Feito para rodar 100% local e offline — sem Docker, sem chave de API, sem serviço externo.
 
+> Este README é da primeira versão. Como a produção funciona hoje (Netlify + Neon + WhatsApp
+> pela Twilio + e-mail pelo Resend), como publicar e o que está pendente: veja o `CLAUDE.md`.
+
 ## Como rodar
 
 Pré-requisito: Node.js 20.9+ (testado com Node 24).
