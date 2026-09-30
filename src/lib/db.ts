@@ -8,20 +8,21 @@ declare global {
 }
 
 /**
- * Em produção (Netlify) o banco é o Postgres gerenciado (Netlify Database, injetado em
- * NETLIFY_DB_URL — não NETLIFY_DATABASE_URL, apesar do nome do pacote e de exemplos
- * gerados por ele; conferido no código-fonte de @netlify/database) — schema dedicado em
- * schema.production.prisma, client gerado à
- * parte em src/generated/prisma-pg (import tardio: esse módulo só existe depois do build
- * de produção rodar `prisma generate` contra aquele schema). Local e em testes, nada disso
- * entra em ação — continua o arquivo SQLite de sempre, sem exigir rede.
+ * Em produção o banco é Postgres, com schema dedicado em schema.production.prisma e client
+ * gerado à parte em src/generated/prisma-pg (import tardio: esse módulo só existe depois do
+ * build de produção rodar `prisma generate` contra aquele schema). O endereço vem de
+ * POSTGRES_URL (Neon, cadastrado por nós na Netlify) e, sem ela, de NETLIFY_DB_URL (o
+ * Netlify Database, injetado pela própria Netlify — não NETLIFY_DATABASE_URL; conferido no
+ * código-fonte de @netlify/database). A troca para o Neon (30/09/2026) foi para sair da
+ * cobrança por hora de banco acordado da Netlify; ver DECISOES.md. Local e em testes, nada
+ * disso entra em ação: continua o arquivo SQLite de sempre, sem exigir rede.
  */
 function resolverUrlBancoSqlite(): string {
   return process.env.DATABASE_URL ?? "file:./prisma/dev.db";
 }
 
 function criarPrismaClient(): PrismaClient {
-  const urlPostgres = process.env.NETLIFY_DB_URL;
+  const urlPostgres = process.env.POSTGRES_URL ?? process.env.NETLIFY_DB_URL;
   if (urlPostgres) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { PrismaClient: PrismaClientPg } = require("../generated/prisma-pg");

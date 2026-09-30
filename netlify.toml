@@ -1,5 +1,7 @@
 [build]
-  command = "npx prisma generate && npx prisma generate --config=prisma.production.config.ts && npm run build"
+  # aplicar-migracoes.mjs só age quando POSTGRES_URL (Neon) está configurada; sem ela, o
+  # Netlify Database aplica as migrações sozinho, como antes.
+  command = "npx prisma generate && npx prisma generate --config=prisma.production.config.ts && node scripts/aplicar-migracoes.mjs && npm run build"
   publish = ".next"
 
 [[plugins]]

@@ -233,6 +233,23 @@ especificação não determinava um caminho exato. Organizado por área.
   junto. Pedido de redefinição sempre responde a mesma mensagem genérica, exista ou não o
   e-mail — evita que alguém descubra quais e-mails têm conta só tentando redefinir senha deles.
 
+- **Banco de produção sai do Netlify Database para o Neon (30/09/2026)**: os 1.000 créditos
+  do plano Personal da Netlify acabaram em 6 dias e o site foi pausado. O Netlify Database
+  cobra 10 créditos por hora acordado, com mínimo de 1 unidade de computação, e só dorme
+  depois de 5 minutos parado: a fila de mensagens a cada 15 minutos o mantinha acordado ~8h
+  por dia (~80 créditos/dia). Somavam-se 15 créditos por deploy de produção (23 no período).
+  Correções: fila 3 vezes por dia (08h, 12h e 18h de Brasília) com o backup junto às 08h;
+  deploys em lote (no máximo 1 por dia, salvo correção urgente); e o banco no Neon direto
+  (mesmo Postgres, mínimo de 0,25 unidade, grátis até 100 unidades-hora por mês), na região
+  AWS us-east-1, a mesma das funções da Netlify. `db.ts` usa `POSTGRES_URL` (Neon) e, sem ela,
+  `NETLIFY_DB_URL`. As migrações continuam em `netlify/database/migrations`; com o Neon quem
+  aplica é `scripts/aplicar-migracoes.mjs` no build (tabela de controle `_veylo_migracoes`), e
+  a cópia inicial dos dados é `npm run db:copiar-para-neon` (endereços em `.env.migracao`,
+  fora do git; o script nunca imprime os endereços), testada de ponta a ponta com dois
+  Postgres em memória via PGlite. Depois da troca, o Netlify Database deve ser removido para
+  não gerar cobrança de armazenamento. Estudo de custos (Netlify, Neon, Vercel, Railway, VPS)
+  feito à parte: a decisão é ficar na Netlify + Neon até uns 30 a 40 salões e reavaliar.
+
 ## Motor de horários
 
 - **Passos de 15 min contados a partir do início de cada janela livre** (não do início do
