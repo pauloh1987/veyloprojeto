@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import pg from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -17,6 +17,10 @@ import { aplicarMigracoesPendentes } from "./migracoes-postgres.mjs";
  *   npm run db:copiar-para-neon                 copia (o destino precisa estar vazio)
  *   npm run db:copiar-para-neon -- --substituir apaga os dados do destino e copia de novo
  *   npm run db:copiar-para-neon -- --conferir   só compara as contagens dos dois bancos
+ *   npm run db:copiar-para-neon -- --backup <arquivo.json>
+ *       usa como origem um backup diário (netlify/functions/backup-diario.mts, baixado com
+ *       `netlify blobs:get backups-diarios <data>`) em vez de ORIGEM_URL. O backup não tem
+ *       sessões de login nem tokens de e-mail/senha, que simplesmente não são copiados.
  *
  * No destino, antes de copiar, aplica as migrações de netlify/database/migrations e registra
  * todas como aplicadas, para o build (scripts/aplicar-migracoes.mjs) não repeti-las.
@@ -47,17 +51,62 @@ const TABELAS = [
 
 const LOTE = 500;
 
-function lerEnderecos(): { origem: string; destino: string } {
-  if (!process.env.ORIGEM_URL || !process.env.DESTINO_URL) {
-    if (!existsSync(".env.migracao")) {
-      throw new Error("Crie o arquivo .env.migracao na pasta do projeto com ORIGEM_URL e DESTINO_URL.");
-    }
-    process.loadEnvFile(".env.migracao");
-  }
-  const origem = process.env.ORIGEM_URL;
+type Modelo = (typeof TABELAS)[number]["modelo"];
+
+/** Nome de cada tabela dentro do JSON do backup diário (ver backup-diario.mts). */
+const CHAVE_NO_BACKUP: Partial<Record<Modelo, string>> = {
+  estabelecimento: "estabelecimentos",
+  profissional: "profissionais",
+  categoriaServico: "categorias",
+  servico: "servicos",
+  servicoProfissional: "servicoProfissional",
+  horarioFuncionamento: "horarios",
+  bloqueio: "bloqueios",
+  cliente: "clientes",
+  usuario: "usuarios",
+  agendamento: "agendamentos",
+  mensagem: "mensagens",
+  relogioSimulado: "relogioSimulado",
+};
+
+/** De onde os dados saem: o banco atual (ORIGEM_URL) ou um arquivo de backup. */
+interface Origem {
+  linhas(modelo: Modelo): Promise<Record<string, unknown>[]>;
+  contar(): Promise<Record<string, number>>;
+  fechar(): Promise<void>;
+}
+
+function origemDoBanco(url: string): Origem {
+  const cliente = conectarPrisma(url);
+  return {
+    linhas: (modelo) => cliente[modelo].findMany(),
+    contar: () => contar(cliente),
+    fechar: () => cliente.$disconnect(),
+  };
+}
+
+function origemDoBackup(arquivo: string): Origem {
+  const backup = JSON.parse(readFileSync(arquivo, "utf8")) as Record<string, unknown>;
+  const linhasDe = (modelo: Modelo): Record<string, unknown>[] => {
+    const chave = CHAVE_NO_BACKUP[modelo];
+    const valor = chave ? backup[chave] : undefined;
+    return Array.isArray(valor) ? valor : [];
+  };
+  console.log(`Origem: backup gerado em ${String(backup.geradoEm ?? "data desconhecida")}`);
+  return {
+    linhas: async (modelo) => linhasDe(modelo),
+    contar: async () => Object.fromEntries(TABELAS.map(({ modelo }) => [modelo, linhasDe(modelo).length])),
+    fechar: async () => {},
+  };
+}
+
+function lerEnderecos(usandoBackup: boolean): { origem?: string; destino: string } {
+  if (!process.env.DESTINO_URL && existsSync(".env.migracao")) process.loadEnvFile(".env.migracao");
+  const origem = process.env.ORIGEM_URL || undefined;
   const destino = process.env.DESTINO_URL;
-  if (!origem || !destino) throw new Error("Faltou ORIGEM_URL ou DESTINO_URL no .env.migracao.");
-  if (origem === destino) throw new Error("ORIGEM_URL e DESTINO_URL são o mesmo banco.");
+  if (!destino) throw new Error("Faltou DESTINO_URL no .env.migracao.");
+  if (!usandoBackup && !origem) throw new Error("Faltou ORIGEM_URL no .env.migracao (ou use --backup <arquivo>).");
+  if (origem && origem === destino) throw new Error("ORIGEM_URL e DESTINO_URL são o mesmo banco.");
   return { origem, destino };
 }
 
@@ -103,9 +152,9 @@ async function prepararDestino(url: string, substituir: boolean): Promise<void> 
   }
 }
 
-async function copiar(origem: Cliente, destino: Cliente): Promise<void> {
+async function copiar(origem: Origem, destino: Cliente): Promise<void> {
   for (const { modelo, tabela } of TABELAS) {
-    const linhas = await origem[modelo].findMany();
+    const linhas = await origem.linhas(modelo);
     for (let i = 0; i < linhas.length; i += LOTE) {
       await destino[modelo].createMany({ data: linhas.slice(i, i + LOTE) });
     }
@@ -117,22 +166,27 @@ async function principal() {
   const argumentos = process.argv.slice(2);
   const somenteConferir = argumentos.includes("--conferir");
   const substituir = argumentos.includes("--substituir");
-  const { origem: urlOrigem, destino: urlDestino } = lerEnderecos();
+  const indiceBackup = argumentos.indexOf("--backup");
+  const arquivoBackup = indiceBackup >= 0 ? argumentos[indiceBackup + 1] : undefined;
+  if (indiceBackup >= 0 && (!arquivoBackup || !existsSync(arquivoBackup))) {
+    throw new Error("Informe o arquivo de backup depois de --backup (e confira se ele existe).");
+  }
+  const { origem: urlOrigem, destino: urlDestino } = lerEnderecos(Boolean(arquivoBackup));
 
   if (!somenteConferir) await prepararDestino(urlDestino, substituir);
 
-  const origem = conectarPrisma(urlOrigem);
+  const origem = arquivoBackup ? origemDoBackup(arquivoBackup) : origemDoBanco(urlOrigem!);
   const destino = conectarPrisma(urlDestino);
   try {
     if (!somenteConferir) {
       console.log("Copiando...");
       await copiar(origem, destino);
     }
-    const tudoIgual = imprimirComparacao(await contar(origem), await contar(destino));
+    const tudoIgual = imprimirComparacao(await origem.contar(), await contar(destino));
     console.log(tudoIgual ? "\nOs dois bancos estão com as mesmas contagens." : "\nHá diferenças entre os bancos.");
     if (!tudoIgual) process.exitCode = 1;
   } finally {
-    await origem.$disconnect();
+    await origem.fechar();
     await destino.$disconnect();
   }
 }
