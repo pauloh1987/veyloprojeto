@@ -97,6 +97,13 @@ export async function processarFilaMensagens(): Promise<{ processadas: number; a
       continue;
     }
 
+    // A fila roda só em alguns horários do dia (ver netlify/functions/cron-mensagens.mts). Se
+    // por algum motivo ela ficar sem rodar, um lembrete nunca pode sair depois do horário.
+    if (mensagem.tipo === "LEMBRETE" && mensagem.agendamento && mensagem.agendamento.inicio <= agoraEfetivo) {
+      await db.mensagem.update({ where: { id: mensagem.id }, data: { status: "CANCELADA" } });
+      continue;
+    }
+
     const cliente = mensagem.cliente ?? mensagem.agendamento?.cliente;
     if (!cliente) {
       await db.mensagem.update({ where: { id: mensagem.id }, data: { status: "ERRO" } });
@@ -115,7 +122,7 @@ export async function processarFilaMensagens(): Promise<{ processadas: number; a
       where: { id: mensagem.id },
       data: {
         status: resultado.sucesso ? "ENVIADA" : "ERRO",
-        enviadaEm: resultado.sucesso ? mensagem.agendadaPara : null,
+        enviadaEm: resultado.sucesso ? agoraEfetivo : null,
         sidProvedor: resultado.idProvedor ?? null,
       },
     });

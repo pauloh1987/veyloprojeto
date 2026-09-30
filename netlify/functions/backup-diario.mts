@@ -77,5 +77,7 @@ export default async () => {
 };
 
 export const config: Config = {
-  schedule: "0 6 * * *",
+  // Mesmo horário da primeira rodada da fila de mensagens (08h de Brasília): as duas
+  // aproveitam o mesmo período em que o banco já está acordado, em vez de acordá-lo de novo às 3h.
+  schedule: "0 11 * * *",
 };
