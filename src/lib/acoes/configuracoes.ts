@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { exigirDono } from "@/lib/auth";
 import { configuracoesSchema } from "@/lib/validacao";
 import { mensagemSeguraDeErro } from "@/lib/erros";
+import { somenteDigitos } from "@/lib/formatadores";
+import { registrarPassoGuia } from "@/lib/guia/progresso";
 import type { EstadoAcao } from "./agendamentos";
 
 export async function salvarConfiguracoes(_estadoAnterior: EstadoAcao, formData: FormData): Promise<EstadoAcao> {
@@ -41,6 +43,11 @@ export async function salvarConfiguracoes(_estadoAnterior: EstadoAcao, formData:
         confirmacaoAutomatica: dados.confirmacaoAutomatica,
       },
     });
+
+    // Trocar o número conta como ter conferido o WhatsApp no guia "Comece por aqui".
+    if (dados.telefone !== somenteDigitos(usuario.estabelecimento.telefone)) {
+      await registrarPassoGuia(usuario.estabelecimentoId, "whatsapp");
+    }
 
     revalidatePath("/painel/configuracoes");
     revalidatePath("/painel", "layout");

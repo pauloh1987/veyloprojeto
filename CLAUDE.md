@@ -13,6 +13,8 @@ de verdade e a produção roda na Netlify + Neon, como descrito abaixo.
   Interface e código em português (variáveis, funções, commits e documentação).
 - Três áreas: link público de agendamento (`/[slug]`), painel do negócio (`/painel/*`) e
   cadastro self-service (`/cadastro`). Página institucional em `/` (`src/app/page.tsx`).
+- Conta nova vê o guia "Comece por aqui" no topo da tela Hoje (7 passos, `src/lib/guia/`); a
+  dona pode esconder e mostrar de novo em Configurações.
 - Plano único de R$ 89/mês, com tudo incluso e profissionais ilimitadas (desde 29/09/2026). O
   enum `Plano` ainda tem SOLO/EQUIPE, mas toda conta é EQUIPE.
 - Teste grátis de 14 dias: quando acaba, só aparece um aviso no painel (`src/lib/assinatura.ts`).

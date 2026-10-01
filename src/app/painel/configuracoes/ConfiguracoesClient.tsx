@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Campo, Input, Rotulo, Select } from "@/components/ui/Campo";
 import { OPCOES_JANELA_SEMANAS } from "@/lib/agenda/janelaAgendamento";
 import { iniciais } from "@/lib/formatadores";
+import { MostrarGuiaDeNovo } from "@/components/painel/MostrarGuiaDeNovo";
 
 const ESTADO_INICIAL: EstadoAcao = {};
 // 480px (não 320) porque logo com traço fino (script, contorno) perde legibilidade se exportado
@@ -98,6 +99,7 @@ function redimensionarLogo(arquivo: File): Promise<string> {
 export function ConfiguracoesClient({
   estabelecimento,
   linkPublico,
+  guiaEscondido,
 }: {
   estabelecimento: {
     nome: string;
@@ -111,6 +113,7 @@ export function ConfiguracoesClient({
     confirmacaoAutomatica: boolean;
   };
   linkPublico: string;
+  guiaEscondido: boolean;
 }) {
   const [estado, acao] = useActionState(salvarConfiguracoes, ESTADO_INICIAL);
   const [copiado, setCopiado] = useState(false);
@@ -301,6 +304,8 @@ export function ConfiguracoesClient({
 
         <Button type="submit">Salvar alterações</Button>
       </form>
+
+      {guiaEscondido && <MostrarGuiaDeNovo />}
     </div>
   );
 }

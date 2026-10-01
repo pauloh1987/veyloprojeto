@@ -292,3 +292,16 @@ especificação não determinava um caminho exato. Organizado por área.
   interações" — o modal recebe profissional/data/hora já preenchidos quando aberto a partir
   de um clique num espaço vazio da grade, sobrando só cliente e serviço para escolher; aberto
   pelo botão genérico "Novo", pede também profissional, data e hora.
+- **Guia "Comece por aqui" (01/10/2026)**: quadro no topo da tela Hoje, só para a dona, com 7
+  passos até o primeiro agendamento pelo link (marca, WhatsApp, serviços, horários, equipe,
+  agendamento de teste, link na bio). Um checklist em vez de um tour com balões porque a
+  configuração acontece em várias telas e em vários dias, e cada passo leva direto à tela
+  certa. O que dá para saber pelo banco se completa sozinho (logo enviada, primeiro serviço,
+  segunda profissional, agendamento com origem LINK); o resto tem botão para marcar ("Está
+  certo", "Só eu atendo"...), e salvar Horários ou trocar o telefone também marca o passo.
+  Os passos marcados ficam num texto (`guiaPassos`, ids separados por vírgula) e não numa
+  tabela, porque são poucos, só a própria conta lê e o mesmo formato serve no SQLite e no
+  Postgres. A definição dos passos (`src/lib/guia/passos.ts`) não acessa o banco, para o
+  componente do navegador usar os mesmos textos. Na migração, contas que já tinham
+  agendamento pelo link começam com o guia escondido (já passaram da configuração inicial);
+  qualquer conta pode esconder o guia e mostrar de novo em Configurações.

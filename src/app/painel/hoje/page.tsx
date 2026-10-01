@@ -6,12 +6,15 @@ import { CalendarCheck, CheckCircle2, MessageCircle, XCircle } from "lucide-reac
 import { exigirSessao } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { limitesDoDia, paraDataYMD } from "@/lib/tz";
-import { formatarCentavos } from "@/lib/formatadores";
+import { aplicarMascaraTelefone, formatarCentavos } from "@/lib/formatadores";
+import { carregarPassosFeitos } from "@/lib/guia/progresso";
+import { obterUrlBase } from "@/lib/url";
 import { Avatar } from "@/components/ui/Avatar";
 import { EstadoVazio } from "@/components/ui/EstadoVazio";
 import { Badge } from "@/components/ui/Badge";
 import { StatusBadge } from "@/components/painel/StatusBadge";
 import { BotoesStatusAgendamento } from "@/components/painel/BotoesStatusAgendamento";
+import { GuiaComecePorAqui } from "@/components/painel/GuiaComecePorAqui";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Hoje" };
@@ -26,8 +29,9 @@ export default async function PaginaHoje() {
 
   const filtroProfissional = usuario.papel === "PROFISSIONAL" ? { profissionalId: usuario.profissionalId ?? "" } : {};
   const desde = subDays(new Date(), DIAS_RESPOSTAS_RECENTES);
+  const mostrarGuia = usuario.papel === "DONO" && !usuario.estabelecimento.guiaEscondidoEm;
 
-  const [agendamentos, respostas] = await Promise.all([
+  const [agendamentos, respostas, guiaFeitos] = await Promise.all([
     db.agendamento.findMany({
       where: {
         estabelecimentoId: usuario.estabelecimentoId,
@@ -48,6 +52,7 @@ export default async function PaginaHoje() {
       orderBy: { atualizadoEm: "desc" },
       take: 10,
     }),
+    mostrarGuia ? carregarPassosFeitos(usuario.estabelecimento) : null,
   ]);
 
   const totalCentavos = agendamentos
@@ -56,6 +61,7 @@ export default async function PaginaHoje() {
 
   const tituloData = formatInTimeZone(new Date(), fuso, "EEEE, d 'de' MMMM", { locale: ptBR });
   const ehEquipe = usuario.estabelecimento.plano === "EQUIPE";
+  const linkPublico = guiaFeitos ? `${await obterUrlBase()}/${usuario.estabelecimento.slug}` : "";
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:py-8">
@@ -69,6 +75,15 @@ export default async function PaginaHoje() {
           <p className="font-heading text-xl font-bold text-text">{formatarCentavos(totalCentavos)}</p>
         </div>
       </header>
+
+      {guiaFeitos && (
+        <GuiaComecePorAqui
+          primeiroNome={usuario.nome.trim().split(/\s+/)[0] ?? ""}
+          feitos={guiaFeitos}
+          telefone={aplicarMascaraTelefone(usuario.estabelecimento.telefone)}
+          linkPublico={linkPublico}
+        />
+      )}
 
       {respostas.length > 0 && (
         <section className="mb-6 rounded-2xl border border-border bg-surface p-4">

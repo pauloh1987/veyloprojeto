@@ -11,5 +11,11 @@ export default async function PaginaConfiguracoes() {
   const urlBase = await obterUrlBase();
   const linkPublico = `${urlBase}/${usuario.estabelecimento.slug}`;
 
-  return <ConfiguracoesClient estabelecimento={usuario.estabelecimento} linkPublico={linkPublico} />;
+  return (
+    <ConfiguracoesClient
+      estabelecimento={usuario.estabelecimento}
+      linkPublico={linkPublico}
+      guiaEscondido={Boolean(usuario.estabelecimento.guiaEscondidoEm)}
+    />
+  );
 }

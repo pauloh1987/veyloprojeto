@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { exigirSessao } from "@/lib/auth";
 import { horarioDiaSchema } from "@/lib/validacao";
 import { mensagemSeguraDeErro, NaoAutorizadoError } from "@/lib/erros";
+import { registrarPassoGuia } from "@/lib/guia/progresso";
 
 export interface DiaHorarioInput {
   diaSemana: number;
@@ -66,7 +67,9 @@ export async function salvarHorariosSemana(
       ),
     );
 
+    await registrarPassoGuia(usuario.estabelecimentoId, "horarios");
     revalidatePath("/painel/horarios");
+    revalidatePath("/painel/hoje");
     return { sucesso: true };
   } catch (erro) {
     return { erro: mensagemSeguraDeErro(erro) };

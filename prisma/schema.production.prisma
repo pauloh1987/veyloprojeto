@@ -71,6 +71,11 @@ model Estabelecimento {
   confirmacaoAutomatica Boolean @default(true)
   criadoEm           DateTime @default(now())
   assinanteDesde     DateTime?
+  /** Guia "Comece por aqui" (tela Hoje): passos marcados à mão ou ao salvar uma tela, ids
+   * separados por vírgula. Os outros passos se completam sozinhos (ver src/lib/guia). */
+  guiaPassos         String   @default("")
+  /** Quando a dona escondeu o guia; nulo = o guia aparece na tela Hoje. */
+  guiaEscondidoEm    DateTime?
 
   usuarios          Usuario[]
   profissionais     Profissional[]
