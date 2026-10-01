@@ -78,6 +78,7 @@ export default async function PaginaRelatorio({ searchParams }: PageProps<"/pain
             <VariacaoIndicador
               variacaoPercentual={relatorio.variacaoPercentual}
               nomeMesAnterior={nomeDoMes(somarMeses(mes, -1)).toLowerCase()}
+              mesmoPeriodo={relatorio.comparaMesmoPeriodo}
             />
           </CardBody>
         </Card>
@@ -159,25 +160,35 @@ export default async function PaginaRelatorio({ searchParams }: PageProps<"/pain
   );
 }
 
+/** Mês fechado: "vs. agosto". Mês em andamento: "vs. mesmo período de setembro" (até o mesmo
+ * dia e hora do mês anterior). */
 function VariacaoIndicador({
   variacaoPercentual,
   nomeMesAnterior,
+  mesmoPeriodo,
 }: {
   variacaoPercentual: number | null;
   nomeMesAnterior: string;
+  mesmoPeriodo: boolean;
 }) {
   if (variacaoPercentual === null) {
-    return <p className="text-xs text-text-faint">Sem comparação ({nomeMesAnterior} sem dados)</p>;
+    return (
+      <p className="text-xs text-text-faint">
+        {mesmoPeriodo
+          ? `Sem comparação (nada faturado no mesmo período de ${nomeMesAnterior})`
+          : `Sem comparação (${nomeMesAnterior} sem faturamento)`}
+      </p>
+    );
   }
   const positivo = variacaoPercentual > 0.5;
   const negativo = variacaoPercentual < -0.5;
   const Icone = positivo ? TrendingUp : negativo ? TrendingDown : Minus;
   const cor = positivo ? "text-success" : negativo ? "text-danger" : "text-text-faint";
   return (
-    <p className={`flex items-center gap-1 text-xs ${cor}`}>
-      <Icone size={13} />
+    <p className={`flex items-start gap-1 text-xs ${cor}`}>
+      <Icone size={13} className="mt-0.5 shrink-0" aria-hidden />
       {variacaoPercentual > 0 ? "+" : ""}
-      {variacaoPercentual.toFixed(0)}% vs. {nomeMesAnterior}
+      {variacaoPercentual.toFixed(0)}% vs. {mesmoPeriodo ? `mesmo período de ${nomeMesAnterior}` : nomeMesAnterior}
     </p>
   );
 }

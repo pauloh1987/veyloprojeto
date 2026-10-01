@@ -58,3 +58,20 @@ export function escolherMesRelatorio(pedido: MesAno | null, atual: MesAno, prime
     proximo: alvo < indice(atual) ? somarMeses(mes, 1) : null,
   };
 }
+
+/** Até onde o mês anterior entra na comparação do faturamento. Mês fechado: o mês anterior
+ * inteiro. Mês em andamento: só o mesmo tanto de tempo desde o começo dele (até o mesmo dia e
+ * hora), senão todo começo de mês pareceria uma queda. */
+export function periodoDeComparacao(
+  inicioMesAnterior: Date,
+  inicioMes: Date,
+  fimMesExclusivo: Date,
+  agora: Date,
+): { fimExclusivo: Date; mesmoPeriodo: boolean } {
+  if (agora < inicioMes || agora >= fimMesExclusivo) return { fimExclusivo: inicioMes, mesmoPeriodo: false };
+  const decorrido = agora.getTime() - inicioMes.getTime();
+  return {
+    fimExclusivo: new Date(Math.min(inicioMesAnterior.getTime() + decorrido, inicioMes.getTime())),
+    mesmoPeriodo: true,
+  };
+}
