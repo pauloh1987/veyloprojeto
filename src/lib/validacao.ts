@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { telefoneValido, somenteDigitos } from "@/lib/formatadores";
+import { IDS_ETAPAS, normalizarInstagram } from "@/lib/admin/funil";
 
 const REGEX_HORA = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;
@@ -208,3 +209,37 @@ export const atualizarComissaoSchema = z.object({
   comissaoPercentual: comissaoPercentualSchema,
 });
 export type AtualizarComissaoInput = z.infer<typeof atualizarComissaoSchema>;
+
+/** Contato do funil comercial do admin. Só o nome é obrigatório: no começo da prospecção às
+ * vezes só se sabe o Instagram do salão. */
+export const leadSchema = z.object({
+  id: z.string().trim().max(40),
+  nome: z.string().trim().min(2, "Informe o nome do salão.").max(120, "Nome muito longo."),
+  contato: z.string().trim().max(120, "Nome do contato muito longo."),
+  telefone: z
+    .string()
+    .trim()
+    .max(30)
+    .transform((valor) => {
+      const digitos = somenteDigitos(valor);
+      return digitos.length >= 12 && digitos.startsWith("55") ? digitos.slice(2) : digitos;
+    })
+    .refine((digitos) => digitos === "" || telefoneValido(digitos), "Telefone inválido. Use DDD + número."),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(120)
+    .refine((valor) => valor === "" || z.string().email().safeParse(valor).success, "E-mail inválido."),
+  instagram: z.string().max(120).transform(normalizarInstagram),
+  cidade: z.string().trim().max(80),
+  segmento: z.string().trim().max(40),
+  etapa: z.enum(IDS_ETAPAS, { message: "Etapa inválida." }),
+  responsavel: z.string().trim().max(60),
+  proximoContato: z
+    .string()
+    .trim()
+    .refine((valor) => valor === "" || REGEX_DATA.test(valor), "Data do próximo contato inválida."),
+  anotacoes: z.string().trim().max(4000, "Anotações muito longas."),
+  estabelecimentoId: z.string().trim().max(40),
+});

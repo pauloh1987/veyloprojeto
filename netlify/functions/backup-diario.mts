@@ -16,7 +16,8 @@ const NOME_STORE = "backups-diarios";
  * + `.get(chave, { type: "json" })` e recriar as linhas com Prisma — não existe um botão de
  * restaurar de propósito (é uma operação rara e perigosa demais pra deixar self-service).
  * `Sessao` fica de fora de propósito (são tokens de login, regeneram sozinhos e não têm valor
- * nenhum guardados por 30 dias).
+ * nenhum guardados por 30 dias), assim como as sessões e os links de acesso do admin. O funil
+ * comercial do admin (`leads`) entra.
  */
 export default async () => {
   const [
@@ -32,6 +33,7 @@ export default async () => {
     agendamentos,
     mensagens,
     relogioSimulado,
+    leads,
   ] = await Promise.all([
     db.estabelecimento.findMany(),
     db.usuario.findMany(),
@@ -45,6 +47,7 @@ export default async () => {
     db.agendamento.findMany(),
     db.mensagem.findMany(),
     db.relogioSimulado.findMany(),
+    db.lead.findMany(),
   ]);
 
   const backup = {
@@ -61,6 +64,7 @@ export default async () => {
     agendamentos,
     mensagens,
     relogioSimulado,
+    leads,
   };
 
   const store = getStore(NOME_STORE);

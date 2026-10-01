@@ -17,7 +17,10 @@ export async function autenticar(email: string, senha: string) {
 
 export async function criarSessao(usuarioId: string): Promise<void> {
   const expiraEm = new Date(Date.now() + SESSAO_DURACAO_DIAS * 24 * 60 * 60 * 1000);
-  const sessao = await db.sessao.create({ data: { usuarioId, expiraEm } });
+  const [sessao] = await Promise.all([
+    db.sessao.create({ data: { usuarioId, expiraEm } }),
+    db.usuario.update({ where: { id: usuarioId }, data: { ultimoLoginEm: new Date() } }),
+  ]);
 
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_SESSAO, sessao.id, {

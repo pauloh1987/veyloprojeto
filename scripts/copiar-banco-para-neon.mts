@@ -47,6 +47,7 @@ const TABELAS = [
   { modelo: "agendamento", tabela: "Agendamento" },
   { modelo: "mensagem", tabela: "Mensagem" },
   { modelo: "relogioSimulado", tabela: "RelogioSimulado" },
+  { modelo: "lead", tabela: "Lead" },
 ] as const;
 
 const LOTE = 500;
@@ -67,6 +68,7 @@ const CHAVE_NO_BACKUP: Partial<Record<Modelo, string>> = {
   agendamento: "agendamentos",
   mensagem: "mensagens",
   relogioSimulado: "relogioSimulado",
+  lead: "leads",
 };
 
 /** De onde os dados saem: o banco atual (ORIGEM_URL) ou um arquivo de backup. */

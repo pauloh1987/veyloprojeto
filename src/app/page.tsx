@@ -23,10 +23,11 @@ import { LinkButton } from "@/components/ui/Button";
 import { HeroSegmentos } from "@/components/marketing/HeroSegmentos";
 import { Celular, TelaLinkPublico, segmentoDemo } from "@/components/marketing/Mockups";
 import { cn } from "@/lib/cn";
+import { PRECO_MENSAL_REAIS } from "@/lib/plano";
 
 /** Preço único — toda conta tem todos os recursos, com profissionais ilimitadas. Mudou de
  * Solo R$ 69 / Equipe R$ 129 para plano único em 29/09/2026. */
-const PRECO_MENSAL = "89";
+const PRECO_MENSAL = String(PRECO_MENSAL_REAIS);
 
 export default function PaginaInicial() {
   return (

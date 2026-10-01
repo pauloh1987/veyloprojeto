@@ -305,3 +305,18 @@ especificação não determinava um caminho exato. Organizado por área.
   componente do navegador usar os mesmos textos. Na migração, contas que já tinham
   agendamento pelo link começam com o guia escondido (já passaram da configuração inicial);
   qualquer conta pode esconder o guia e mostrar de novo em Configurações.
+- **Admin interno em /admin (01/10/2026)**: no mesmo site e no mesmo banco, sem custo extra e
+  sem link em nenhuma página (e `noindex`). Entra só quem está em `ADMIN_EMAILS` (variável da
+  Netlify, fora do git), por um link de uso único enviado ao e-mail (vale 15 minutos) em vez de
+  senha: não há senha para vazar ou esquecer, e o Resend já estava funcionando. A página do link
+  só mostra um botão "Entrar", porque leitores de e-mail que abrem links sozinhos gastariam o
+  acesso. A sessão do admin fica num cookie próprio (`veylo_admin`, restrito a `/admin`) e numa
+  tabela separada da dos salões; a lista de e-mails é conferida a cada acesso, então tirar alguém
+  da variável corta o acesso na hora. Tokens de 32 bytes aleatórios (`crypto.randomBytes`).
+  `parceira` (piloto sem cobrança) é separado de `assinanteDesde` (já paga) porque a receita do
+  admin só conta assinantes; `testeAte` guarda o teste estendido sem mexer em `criadoEm`. O funil
+  (`Lead`) fica no banco e não num Trello porque, quando o salão cria a conta com o mesmo
+  telefone (comparado pelo DDD + 8 últimos dígitos) ou e-mail, o cadastro já liga o contato e o
+  passa para "Em teste"; marcar o salão como parceira ou assinante o leva para "Fechado". LGPD: o
+  admin mostra os dados da dona e números de uso, nunca dados das clientes dos salões. O funil
+  entra no backup diário.

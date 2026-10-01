@@ -71,6 +71,10 @@ model Estabelecimento {
   confirmacaoAutomatica Boolean @default(true)
   criadoEm           DateTime @default(now())
   assinanteDesde     DateTime?
+  /** Conta parceira (piloto): usa sem cobrança e sem prazo de teste. Marcada no admin. */
+  parceira           Boolean  @default(false)
+  /** Fim do teste grátis quando o admin estende o prazo; nulo = 14 dias após o cadastro. */
+  testeAte           DateTime?
   /** Guia "Comece por aqui" (tela Hoje): passos marcados à mão ou ao salvar uma tela, ids
    * separados por vírgula. Os outros passos se completam sozinhos (ver src/lib/guia). */
   guiaPassos         String   @default("")
@@ -83,6 +87,7 @@ model Estabelecimento {
   categoriasServico CategoriaServico[]
   clientes          Cliente[]
   agendamentos      Agendamento[]
+  lead              Lead?
 }
 
 model Usuario {
@@ -91,6 +96,8 @@ model Usuario {
   email             String        @unique
   senhaHash         String
   emailVerificadoEm DateTime?
+  /** Último login no painel (o admin da Veylo mostra; a sessão some quando a pessoa sai). */
+  ultimoLoginEm     DateTime?
   papel             PapelUsuario
   estabelecimentoId String
   estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
@@ -295,4 +302,56 @@ model Mensagem {
   @@index([status, agendadaPara])
   @@index([clienteId])
   @@index([sidProvedor])
+}
+
+/** Funil comercial do admin da Veylo: um salão que a equipe está tentando conquistar. Quando
+ * ele cria a conta, o cadastro liga o contato ao estabelecimento e passa para "Em teste". */
+model Lead {
+  id                String    @id @default(cuid())
+  nome              String
+  contato           String    @default("")
+  telefone          String    @default("")
+  email             String    @default("")
+  instagram         String    @default("")
+  cidade            String    @default("")
+  segmento          String    @default("")
+  etapa             EtapaLead @default(PROSPECCAO)
+  responsavel       String    @default("")
+  proximoContatoEm  DateTime?
+  anotacoes         String    @default("")
+  estabelecimentoId String?   @unique
+  estabelecimento   Estabelecimento? @relation(fields: [estabelecimentoId], references: [id], onDelete: SetNull)
+  criadoEm          DateTime  @default(now())
+  atualizadoEm      DateTime  @updatedAt
+
+  @@index([etapa])
+}
+
+enum EtapaLead {
+  PROSPECCAO
+  CONTATO
+  DEMONSTRACAO
+  EM_TESTE
+  FECHADO
+  PERDIDO
+}
+
+/** Link de entrada no admin enviado por e-mail: uso único, vale 15 minutos. O id é o próprio
+ * token do link (32 bytes aleatórios). */
+model LinkAcessoAdmin {
+  id       String    @id
+  email    String
+  criadoEm DateTime  @default(now())
+  expiraEm DateTime
+  usadoEm  DateTime?
+
+  @@index([email])
+}
+
+/** Sessão do admin da Veylo, em cookie separado do painel dos salões. O id é o token do cookie. */
+model SessaoAdmin {
+  id       String   @id
+  email    String
+  criadaEm DateTime @default(now())
+  expiraEm DateTime
 }

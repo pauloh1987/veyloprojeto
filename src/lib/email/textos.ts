@@ -54,3 +54,15 @@ export function emailRedefinirSenha(link: string): EmailPronto {
     ),
   };
 }
+
+export function emailEntrarAdmin(nome: string, link: string): EmailPronto {
+  return {
+    assunto: "Seu link de acesso ao admin da Veylo",
+    html: layoutEmail(
+      "Entrar no admin",
+      link,
+      `<p style="margin:0 0 12px;">Olá, ${nome}! Toque no botão abaixo para entrar no admin da Veylo.</p>
+       <p style="margin:0;">O link vale por 15 minutos e só funciona uma vez. Se não foi você que pediu, pode ignorar este e-mail.</p>`,
+    ),
+  };
+}

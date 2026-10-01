@@ -10,6 +10,7 @@ import { criarTokenVerificacao } from "@/lib/tokenVerificacao";
 import { notificadorEmailPadrao } from "@/lib/email/notificadorEmail";
 import { emailConfirmarConta } from "@/lib/email/textos";
 import { obterUrlBase } from "@/lib/url";
+import { ligarLeadAoCadastro } from "@/lib/admin/leads";
 import { mensagemSeguraDeErro, ValidacaoError } from "@/lib/erros";
 
 export interface EstadoCadastro {
@@ -35,6 +36,7 @@ export async function cadastrarEstabelecimento(
   const dados = resultado.data;
 
   let usuarioId: string;
+  let estabelecimentoId: string;
   try {
     const [slugExistente, emailExistente] = await Promise.all([
       db.estabelecimento.findUnique({ where: { slug: dados.slug } }),
@@ -43,7 +45,7 @@ export async function cadastrarEstabelecimento(
     if (slugExistente) throw new ValidacaoError("Esse endereço já está em uso. Escolha outro.");
     if (emailExistente) throw new ValidacaoError("Já existe uma conta com esse e-mail.");
 
-    usuarioId = await db.$transaction(async (tx) => {
+    ({ usuarioId, estabelecimentoId } = await db.$transaction(async (tx) => {
       const estabelecimento = await tx.estabelecimento.create({
         data: {
           nome: dados.nomeEstabelecimento,
@@ -71,8 +73,8 @@ export async function cadastrarEstabelecimento(
         },
       });
 
-      return usuario.id;
-    });
+      return { usuarioId: usuario.id, estabelecimentoId: estabelecimento.id };
+    }));
   } catch (erro) {
     return { erro: mensagemSeguraDeErro(erro) };
   }
@@ -88,6 +90,13 @@ export async function cadastrarEstabelecimento(
     });
   } catch {
     // Segue o cadastro normalmente mesmo se o e-mail de confirmação falhar.
+  }
+
+  // Se o salão estava no funil do admin, passa para "Em teste". Nunca trava o cadastro.
+  try {
+    await ligarLeadAoCadastro({ id: estabelecimentoId, telefone: dados.telefone }, dados.email);
+  } catch (erro) {
+    console.error("[cadastro] não foi possível ligar o salão ao funil", erro);
   }
 
   await criarSessao(usuarioId);

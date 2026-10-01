@@ -18,7 +18,13 @@ de verdade e a produção roda na Netlify + Neon, como descrito abaixo.
 - Plano único de R$ 89/mês, com tudo incluso e profissionais ilimitadas (desde 29/09/2026). O
   enum `Plano` ainda tem SOLO/EQUIPE, mas toda conta é EQUIPE.
 - Teste grátis de 14 dias: quando acaba, só aparece um aviso no painel (`src/lib/assinatura.ts`).
-  Ainda não existe cobrança automática. Conta paga = `Estabelecimento.assinanteDesde` preenchido.
+  Ainda não existe cobrança automática. Conta paga = `Estabelecimento.assinanteDesde` preenchido;
+  `parceira` = piloto sem cobrança; `testeAte` = teste estendido. Os três se mudam no admin.
+- Admin interno da equipe em `/admin` (sem link no site, fora do Google): visão geral com os
+  números e os salões (botões "+7 dias de teste", "Marcar como parceira" e "Marcar como
+  assinante") e o funil comercial (`Lead`). Entra quem está em `ADMIN_EMAILS`, por um link enviado
+  ao e-mail (`src/lib/admin/`). Quando um salão do funil cria a conta com o mesmo telefone ou
+  e-mail, o contato passa sozinho para "Em teste".
 - Fase atual (fim de setembro/2026): piloto com 3 esmalterias, ainda sem cobrança. Time: Paulo
   (produto e tecnologia), Biel (implantação nas esmalterias) e Dudu (Instagram).
 
@@ -27,6 +33,8 @@ de verdade e a produção roda na Netlify + Neon, como descrito abaixo.
 - `npm install`, `npm run db:migrate`, `npm run db:seed`, `npm run dev` (http://localhost:3000).
   Local usa SQLite (`prisma/dev.db`, fora do git) e nenhum serviço externo: sem as variáveis da
   Twilio e do Resend, mensagens e e-mails só aparecem no console.
+- Admin local: coloque `ADMIN_EMAILS` com e-mails de teste no `.env.local` (fora do git; o `.env`
+  vai para o git), peça o link em `/admin/entrar` e copie o link que aparece no console.
 - Verificações: `npm test` (vitest), `npx tsc --noEmit -p .` e `npx eslint <arquivos>`.
 - Windows/OneDrive: pare o `next dev` antes de `rm -rf .next && npm run build`; com o servidor
   rodando, o cache do Turbopack trava ou corrompe.
@@ -45,7 +53,8 @@ Variáveis de ambiente de produção, cadastradas na Netlify (os valores ficam s
 nem na conversa): `POSTGRES_URL` (segredo, só produção), `TWILIO_ACCOUNT_SID`,
 `TWILIO_AUTH_TOKEN` (segredo), `TWILIO_WHATSAPP_FROM`, `TWILIO_WHATSAPP_CONTENT_SID_CONFIRMACAO`,
 `TWILIO_WHATSAPP_CONTENT_SID_LEMBRETE`, `TWILIO_WHATSAPP_CONTENT_SID_CONVITE_RETORNO`,
-`RESEND_API_KEY` (segredo) e `EMAIL_REMETENTE`. Opcionais ainda não configuradas:
+`RESEND_API_KEY` (segredo), `EMAIL_REMETENTE` e `ADMIN_EMAILS` (quem entra no `/admin`, no
+formato `Paulo <email>, Biel <email>, Dudu <email>`; sem ela ninguém entra). Opcionais ainda não configuradas:
 `NEXT_PUBLIC_SENTRY_DSN` e `CRON_SECRET`. Quem cadastra segredos é o Paulo, pelo painel da
 Netlify; o Claude não digita senhas nem chaves.
 
@@ -87,7 +96,7 @@ Netlify; o Claude não digita senhas nem chaves.
 
 - Meta aprovar os 3 modelos de WhatsApp e testar de ponta a ponta: agendar → confirmação →
   tocar em Confirmar → aparecer em Hoje, em "Respostas das clientes".
-- Marcar as esmalterias do piloto como assinantes (`assinanteDesde`) antes dos 14 dias de teste.
+- Marcar as esmalterias do piloto como parceiras no `/admin` antes dos 14 dias de teste.
 - Atualizar `/privacidade` para citar Neon, WhatsApp (Meta) e Resend.
 - Definir como cobrar (Pix manual no começo, cobrança automática depois), CNPJ/MEI, termos de
   uso, a caixa contato@veyloagenda.com.br e o limite de mensagens de WhatsApp por plano.
