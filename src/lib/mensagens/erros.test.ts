@@ -17,6 +17,11 @@ describe("erros de envio", () => {
     expect(explicarErroEnvio("Twilio 401: unauthorized")).toContain("credenciais");
   });
 
+  it("verificação da conta (KYC) pendente não é confundida com credencial errada", () => {
+    const erro = "Twilio 401, código 20003: Primary compliance profile is not approved. Please complete the KYC process in Trust Hub.";
+    expect(explicarErroEnvio(erro)).toContain("Trust Hub");
+  });
+
   it("erro desconhecido ou ausente", () => {
     expect(explicarErroEnvio("Twilio 400, código 99999: algo novo")).toBe("A mensagem não foi enviada.");
     expect(explicarErroEnvio(null)).toBeNull();

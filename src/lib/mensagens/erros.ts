@@ -33,6 +33,10 @@ const EXPLICACOES: Record<number, string> = {
 /** Explicação para quem vê o erro no painel ou no admin; null se não houver erro guardado. */
 export function explicarErroEnvio(erro: string | null): string | null {
   if (!erro) return null;
+  // O 20003 também aparece quando falta a verificação da conta (KYC), não só com credencial errada.
+  if (/compliance profile|KYC|Trust Hub/i.test(erro)) {
+    return "A conta da Twilio precisa ter o perfil de verificação (KYC) aprovado no Trust Hub para enviar.";
+  }
   const codigo = Number(/código (\d+)/.exec(erro)?.[1]);
   if (EXPLICACOES[codigo]) return EXPLICACOES[codigo];
   if (/^Twilio 401/.test(erro)) return EXPLICACOES[20003];
