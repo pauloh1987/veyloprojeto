@@ -100,9 +100,11 @@ Netlify; o Claude não digita senhas nem chaves.
 
 ## Pendências (01/10/2026)
 
-- A Meta aprovou os 3 modelos de WhatsApp (01/10/2026) e os SIDs na Netlify conferem. Falta o
-  teste de ponta a ponta: agendar → confirmação → tocar em Confirmar → aparecer em Hoje, em
-  "Respostas das clientes"; e o lembrete, que sai na rodada seguinte da fila (08h, 12h ou 18h).
+- WhatsApp funcionando de ponta a ponta desde 01/10/2026: modelos aprovados pela Meta e perfil
+  principal de conformidade (KYC) aprovado no Trust Hub da Twilio, como pessoa física (Individual);
+  sem esse perfil a Twilio recusa os envios com o código 20003. Com o MEI: converter o perfil para
+  comercial e pedir a verificação do negócio na Meta (selo verificado, para o nome "Veylo Agenda"
+  aparecer no lugar do número para quem não salvou o contato).
 - Marcar as esmalterias do piloto como parceiras no `/admin` antes dos 14 dias de teste.
 - Atualizar `/privacidade` para citar Neon, WhatsApp (Meta) e Resend.
 - Definir como cobrar (Pix manual no começo, cobrança automática depois), CNPJ/MEI, termos de
