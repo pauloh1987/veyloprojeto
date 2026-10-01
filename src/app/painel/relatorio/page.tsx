@@ -1,7 +1,17 @@
 import type { Metadata } from "next";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { exigirDono } from "@/lib/auth";
-import { calcularRelatorio } from "@/lib/relatorio";
+import { calcularRelatorio, primeiroMesDoNegocio } from "@/lib/relatorio";
+import {
+  escolherMesRelatorio,
+  lerParametroMes,
+  mesDoInstante,
+  nomeDoMes,
+  parametroMes,
+  somarMeses,
+  type MesAno,
+} from "@/lib/mesRelatorio";
 import { formatarCentavos } from "@/lib/formatadores";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
@@ -10,30 +20,65 @@ import { GraficoFaturamento } from "@/components/painel/GraficoFaturamento";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Relatório" };
 
-const NOMES_MES = [
-  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
-  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
-];
+const CLASSE_BOTAO_MES =
+  "inline-flex h-9 items-center gap-1 rounded-full border border-border px-3 text-sm font-medium " +
+  "text-text-muted hover:bg-surface-2 hover:text-text";
 
-export default async function PaginaRelatorio() {
+/** O mês atual fica sem `?mes=` na URL. */
+function hrefMes(mes: MesAno, atual: MesAno): string {
+  const ehAtual = mes.ano === atual.ano && mes.mes === atual.mes;
+  return ehAtual ? "/painel/relatorio" : `/painel/relatorio?mes=${parametroMes(mes)}`;
+}
+
+export default async function PaginaRelatorio({ searchParams }: PageProps<"/painel/relatorio">) {
   const usuario = await exigirDono();
-  const relatorio = await calcularRelatorio(usuario.estabelecimentoId, usuario.estabelecimento.fuso);
-  const [, mesStr] = relatorio.mesReferencia.split("-");
-  const nomeMes = NOMES_MES[Number(mesStr) - 1];
+  const fuso = usuario.estabelecimento.fuso;
+  const { mes: mesPedido } = await searchParams;
+  const atual = mesDoInstante(new Date(), fuso);
+  const { mes, anterior, proximo } = escolherMesRelatorio(
+    lerParametroMes(mesPedido),
+    atual,
+    await primeiroMesDoNegocio(usuario.estabelecimento, fuso),
+  );
+  const relatorio = await calcularRelatorio(usuario.estabelecimentoId, fuso, mes);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:py-8">
-      <header className="mb-6">
+      <header className="mb-4">
         <h1 className="font-heading text-2xl font-extrabold text-text">Relatório</h1>
-        <p className="text-sm text-text-muted capitalize">{nomeMes}</p>
+        <p className="text-sm text-text-muted">
+          {nomeDoMes(mes)} de {mes.ano}
+        </p>
       </header>
+
+      {(anterior || proximo) && (
+        <nav aria-label="Escolher o mês do relatório" className="mb-6 flex items-center justify-between gap-2">
+          {anterior ? (
+            <Link href={hrefMes(anterior, atual)} className={CLASSE_BOTAO_MES}>
+              <ChevronLeft size={16} aria-hidden />
+              {nomeDoMes(anterior)}
+            </Link>
+          ) : (
+            <span />
+          )}
+          {proximo && (
+            <Link href={hrefMes(proximo, atual)} className={CLASSE_BOTAO_MES}>
+              {nomeDoMes(proximo)}
+              <ChevronRight size={16} aria-hidden />
+            </Link>
+          )}
+        </nav>
+      )}
 
       <div className="mb-4 grid grid-cols-2 gap-3">
         <Card>
           <CardBody>
             <p className="text-xs text-text-faint">Faturamento do mês</p>
             <p className="font-heading text-xl font-bold text-text">{formatarCentavos(relatorio.faturamentoMesAtualCentavos)}</p>
-            <VariacaoIndicador variacaoPercentual={relatorio.variacaoPercentual} />
+            <VariacaoIndicador
+              variacaoPercentual={relatorio.variacaoPercentual}
+              nomeMesAnterior={nomeDoMes(somarMeses(mes, -1)).toLowerCase()}
+            />
           </CardBody>
         </Card>
         <Card>
@@ -114,9 +159,15 @@ export default async function PaginaRelatorio() {
   );
 }
 
-function VariacaoIndicador({ variacaoPercentual }: { variacaoPercentual: number | null }) {
+function VariacaoIndicador({
+  variacaoPercentual,
+  nomeMesAnterior,
+}: {
+  variacaoPercentual: number | null;
+  nomeMesAnterior: string;
+}) {
   if (variacaoPercentual === null) {
-    return <p className="text-xs text-text-faint">Sem comparação (mês anterior sem dados)</p>;
+    return <p className="text-xs text-text-faint">Sem comparação ({nomeMesAnterior} sem dados)</p>;
   }
   const positivo = variacaoPercentual > 0.5;
   const negativo = variacaoPercentual < -0.5;
@@ -126,7 +177,7 @@ function VariacaoIndicador({ variacaoPercentual }: { variacaoPercentual: number 
     <p className={`flex items-center gap-1 text-xs ${cor}`}>
       <Icone size={13} />
       {variacaoPercentual > 0 ? "+" : ""}
-      {variacaoPercentual.toFixed(0)}% vs. mês anterior
+      {variacaoPercentual.toFixed(0)}% vs. {nomeMesAnterior}
     </p>
   );
 }

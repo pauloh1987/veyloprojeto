@@ -1,8 +1,9 @@
 import { formatInTimeZone } from "date-fns-tz";
 import { db } from "@/lib/db";
-import { paraDataYMD, limitesDoDia } from "@/lib/tz";
+import { limitesDoDia } from "@/lib/tz";
+import { mesDoInstante, somarMeses, type MesAno } from "@/lib/mesRelatorio";
 
-function primeiroDiaMes(ano: number, mes: number): string {
+function primeiroDiaMes({ ano, mes }: MesAno): string {
   return `${ano}-${String(mes).padStart(2, "0")}-01`;
 }
 
@@ -20,23 +21,30 @@ export interface RelatorioMensal {
     faturamentoCentavos: number;
     comissao: { percentual: number; centavos: number } | null;
   }[];
-  mesReferencia: string;
 }
 
-export async function calcularRelatorio(estabelecimentoId: string, fuso: string): Promise<RelatorioMensal> {
-  const hojeYMD = paraDataYMD(new Date(), fuso);
-  const [anoStr, mesStr] = hojeYMD.split("-");
-  const ano = Number(anoStr);
-  const mes = Number(mesStr);
+/** Primeiro mês que o Relatório deixa ver: o do cadastro ou, se houver agendamento mais
+ * antigo que isso, o desse agendamento. */
+export async function primeiroMesDoNegocio(
+  estabelecimento: { id: string; criadoEm: Date },
+  fuso: string,
+): Promise<MesAno> {
+  const maisAntigo = await db.agendamento.findFirst({
+    where: { estabelecimentoId: estabelecimento.id },
+    orderBy: { inicio: "asc" },
+    select: { inicio: true },
+  });
+  const desde =
+    maisAntigo && maisAntigo.inicio < estabelecimento.criadoEm ? maisAntigo.inicio : estabelecimento.criadoEm;
+  return mesDoInstante(desde, fuso);
+}
 
-  const anoPrev = mes === 1 ? ano - 1 : ano;
-  const mesPrev = mes === 1 ? 12 : mes - 1;
-  const anoNext = mes === 12 ? ano + 1 : ano;
-  const mesNext = mes === 12 ? 1 : mes + 1;
-
-  const inicioMesAtual = limitesDoDia(primeiroDiaMes(ano, mes), fuso).inicio;
-  const inicioMesAnterior = limitesDoDia(primeiroDiaMes(anoPrev, mesPrev), fuso).inicio;
-  const fimMesAtualExclusivo = limitesDoDia(primeiroDiaMes(anoNext, mesNext), fuso).inicio;
+/** Números do mês `mesRef` (no fuso do estabelecimento), comparados com o mês anterior a ele. */
+export async function calcularRelatorio(estabelecimentoId: string, fuso: string, mesRef: MesAno): Promise<RelatorioMensal> {
+  const { ano, mes } = mesRef;
+  const inicioMesAtual = limitesDoDia(primeiroDiaMes(mesRef), fuso).inicio;
+  const inicioMesAnterior = limitesDoDia(primeiroDiaMes(somarMeses(mesRef, -1)), fuso).inicio;
+  const fimMesAtualExclusivo = limitesDoDia(primeiroDiaMes(somarMeses(mesRef, 1)), fuso).inicio;
 
   const [agendamentosMesAtual, agendamentosMesAnterior] = await Promise.all([
     db.agendamento.findMany({
@@ -125,6 +133,5 @@ export async function calcularRelatorio(estabelecimentoId: string, fuso: string)
     horariosMaisProcurados,
     faturamentoPorDiaCentavos,
     comissoesPorProfissional,
-    mesReferencia: hojeYMD,
   };
 }
