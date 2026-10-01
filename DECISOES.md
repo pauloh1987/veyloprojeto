@@ -320,3 +320,16 @@ especificação não determinava um caminho exato. Organizado por área.
   passa para "Em teste"; marcar o salão como parceira ou assinante o leva para "Fechado". LGPD: o
   admin mostra os dados da dona e números de uso, nunca dados das clientes dos salões. O funil
   entra no backup diário.
+- **Financeiro e contas de teste no admin (01/10/2026)**: os custos ficam numa tabela (`Custo`)
+  editável pela tela, e não fixos no código, porque mudam (plano, cotação, ferramenta nova) e
+  quem atualiza é a equipe. Cada custo tem moeda (real ou dólar) e cobrança (por mês, por ano ou
+  por mensagem de WhatsApp); o custo por mensagem multiplica as mensagens enviadas nos últimos
+  30 dias por todas as contas, inclusive as de teste, porque a Twilio cobra todas. O dólar vem da
+  AwesomeAPI (gratuita, sem chave), guardado em memória por 6 horas, com um valor de reserva se a
+  busca falhar. A migração já cria os custos que a equipe informou (Claude, Netlify, domínio,
+  WhatsApp, Neon e Resend). Receita = assinantes × preço do plano; parceiras não entram.
+  Conta de teste (`contaDeTeste`) fica separada no admin e fora de todos os números; o admin
+  aponta as que parecem teste pelo nome, endereço ou e-mail. Excluir de vez só vale para conta
+  marcada como teste e pede o nome digitado; apaga primeiro os agendamentos (eles travam a
+  exclusão de clientes, equipe e serviços) e depois o salão, que leva o resto pelas regras do
+  banco. O backup diário guarda os últimos 30 dias.

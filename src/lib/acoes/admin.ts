@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { exigirAdmin } from "@/lib/admin/auth";
 import { IDS_ETAPAS, type EtapaFunil } from "@/lib/admin/funil";
 import { testeEstendido } from "@/lib/assinatura";
-import { leadSchema } from "@/lib/validacao";
+import { custoSchema, leadSchema } from "@/lib/validacao";
 import { FUSO_PADRAO, limitesDoDia } from "@/lib/tz";
 import { mensagemSeguraDeErro, NaoEncontradoError, ValidacaoError } from "@/lib/erros";
 import type { EstadoAcao } from "./agendamentos";
@@ -31,7 +31,9 @@ async function fecharLeadDoSalao(estabelecimentoId: string): Promise<void> {
 
 function atualizarTelas(): void {
   revalidatePath("/admin");
+  revalidatePath("/admin/saloes");
   revalidatePath("/admin/funil");
+  revalidatePath("/admin/financeiro");
 }
 
 export async function estenderTesteSalao(estabelecimentoId: string): Promise<EstadoAcao> {
@@ -149,6 +151,88 @@ export async function excluirLead(leadId: string): Promise<EstadoAcao> {
   try {
     await db.lead.delete({ where: { id: leadId } });
     atualizarTelas();
+    return { sucesso: true };
+  } catch (erro) {
+    return { erro: mensagemSeguraDeErro(erro) };
+  }
+}
+
+/** Conta de teste fica separada no admin e fora de todos os números. */
+export async function definirContaDeTeste(estabelecimentoId: string, contaDeTeste: boolean): Promise<EstadoAcao> {
+  await exigirAdmin();
+  try {
+    const salao = await buscarSalao(estabelecimentoId);
+    await db.estabelecimento.update({ where: { id: salao.id }, data: { contaDeTeste } });
+    atualizarTelas();
+    return { sucesso: true };
+  } catch (erro) {
+    return { erro: mensagemSeguraDeErro(erro) };
+  }
+}
+
+/** Apaga de vez uma conta marcada como teste, com tudo dela (equipe, serviços, clientes,
+ * agendamentos, mensagens e logins). Só vale para conta de teste e pede o nome digitado, para
+ * não apagar um salão de verdade por engano. O backup diário guarda os últimos 30 dias. */
+export async function excluirSalaoDeTeste(estabelecimentoId: string, nomeDigitado: string): Promise<EstadoAcao> {
+  await exigirAdmin();
+  try {
+    const salao = await db.estabelecimento.findUnique({
+      where: { id: estabelecimentoId },
+      select: { id: true, nome: true, contaDeTeste: true },
+    });
+    if (!salao) throw new NaoEncontradoError("Salão");
+    if (!salao.contaDeTeste) throw new ValidacaoError("Só dá para excluir contas marcadas como teste.");
+    const normalizar = (texto: string) => texto.trim().replace(/\s+/g, " ").toLowerCase();
+    if (normalizar(nomeDigitado) !== normalizar(salao.nome)) throw new ValidacaoError("O nome digitado não confere.");
+
+    // Os agendamentos travam a exclusão de clientes, equipe e serviços: saem primeiro. O resto
+    // (e as mensagens dos agendamentos) sai junto com o salão pelas regras do banco.
+    await db.$transaction([
+      db.agendamento.deleteMany({ where: { estabelecimentoId: salao.id } }),
+      db.estabelecimento.delete({ where: { id: salao.id } }),
+    ]);
+    atualizarTelas();
+    return { sucesso: true };
+  } catch (erro) {
+    return { erro: mensagemSeguraDeErro(erro) };
+  }
+}
+
+export async function salvarCusto(_estadoAnterior: EstadoAcao, formData: FormData): Promise<EstadoAcao> {
+  await exigirAdmin();
+  try {
+    const campo = (nome: string) => String(formData.get(nome) ?? "");
+    const resultado = custoSchema.safeParse({
+      id: campo("id"),
+      nome: campo("nome"),
+      categoria: campo("categoria"),
+      valor: campo("valor"),
+      moeda: campo("moeda"),
+      frequencia: campo("frequencia"),
+      observacao: campo("observacao"),
+      ativo: formData.get("ativo") === "on",
+    });
+    if (!resultado.success) return { erro: resultado.error.issues[0]?.message ?? "Dados inválidos." };
+    const { id, ...dados } = resultado.data;
+    if (id) {
+      await db.custo.update({ where: { id }, data: dados });
+    } else {
+      await db.custo.create({ data: dados });
+    }
+    revalidatePath("/admin/financeiro");
+    revalidatePath("/admin");
+    return { sucesso: true };
+  } catch (erro) {
+    return { erro: mensagemSeguraDeErro(erro) };
+  }
+}
+
+export async function excluirCusto(custoId: string): Promise<EstadoAcao> {
+  await exigirAdmin();
+  try {
+    await db.custo.delete({ where: { id: custoId } });
+    revalidatePath("/admin/financeiro");
+    revalidatePath("/admin");
     return { sucesso: true };
   } catch (erro) {
     return { erro: mensagemSeguraDeErro(erro) };

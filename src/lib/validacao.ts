@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { telefoneValido, somenteDigitos } from "@/lib/formatadores";
 import { IDS_ETAPAS, normalizarInstagram } from "@/lib/admin/funil";
+import { lerValorDigitado } from "@/lib/admin/financeiro";
 
 const REGEX_HORA = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;
@@ -242,4 +243,19 @@ export const leadSchema = z.object({
     .refine((valor) => valor === "" || REGEX_DATA.test(valor), "Data do próximo contato inválida."),
   anotacoes: z.string().trim().max(4000, "Anotações muito longas."),
   estabelecimentoId: z.string().trim().max(40),
+});
+
+/** Custo da tela Financeiro do admin. O valor chega como texto ("110,00", "0,013"). */
+export const custoSchema = z.object({
+  id: z.string().trim().max(40),
+  nome: z.string().trim().min(2, "Informe o nome do custo.").max(80, "Nome muito longo."),
+  categoria: z.string().trim().max(40),
+  valor: z
+    .string()
+    .transform((texto) => lerValorDigitado(texto))
+    .refine((valor): valor is number => valor !== null && valor >= 0 && valor <= 1_000_000, "Valor inválido."),
+  moeda: z.enum(["BRL", "USD"], { message: "Moeda inválida." }),
+  frequencia: z.enum(["MENSAL", "ANUAL", "POR_MENSAGEM"], { message: "Frequência inválida." }),
+  observacao: z.string().trim().max(300, "Observação muito longa."),
+  ativo: z.boolean(),
 });

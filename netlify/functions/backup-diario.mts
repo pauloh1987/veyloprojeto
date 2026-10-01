@@ -17,7 +17,7 @@ const NOME_STORE = "backups-diarios";
  * restaurar de propósito (é uma operação rara e perigosa demais pra deixar self-service).
  * `Sessao` fica de fora de propósito (são tokens de login, regeneram sozinhos e não têm valor
  * nenhum guardados por 30 dias), assim como as sessões e os links de acesso do admin. O funil
- * comercial do admin (`leads`) entra.
+ * comercial e os custos do admin (`leads`, `custos`) entram.
  */
 export default async () => {
   const [
@@ -34,6 +34,7 @@ export default async () => {
     mensagens,
     relogioSimulado,
     leads,
+    custos,
   ] = await Promise.all([
     db.estabelecimento.findMany(),
     db.usuario.findMany(),
@@ -48,6 +49,7 @@ export default async () => {
     db.mensagem.findMany(),
     db.relogioSimulado.findMany(),
     db.lead.findMany(),
+    db.custo.findMany(),
   ]);
 
   const backup = {
@@ -65,6 +67,7 @@ export default async () => {
     mensagens,
     relogioSimulado,
     leads,
+    custos,
   };
 
   const store = getStore(NOME_STORE);

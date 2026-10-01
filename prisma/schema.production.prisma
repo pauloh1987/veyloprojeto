@@ -75,6 +75,8 @@ model Estabelecimento {
   parceira           Boolean  @default(false)
   /** Fim do teste grátis quando o admin estende o prazo; nulo = 14 dias após o cadastro. */
   testeAte           DateTime?
+  /** Conta criada só para testar o sistema: fica separada no admin e fora dos números. */
+  contaDeTeste       Boolean  @default(false)
   /** Guia "Comece por aqui" (tela Hoje): passos marcados à mão ou ao salvar uma tela, ids
    * separados por vírgula. Os outros passos se completam sozinhos (ver src/lib/guia). */
   guiaPassos         String   @default("")
@@ -354,4 +356,30 @@ model SessaoAdmin {
   email    String
   criadaEm DateTime @default(now())
   expiraEm DateTime
+}
+
+/** Custo para manter a Veylo no ar (tela Financeiro do admin). Valores em dólar são convertidos
+ * pela cotação do dia; POR_MENSAGEM multiplica pelas mensagens de WhatsApp dos últimos 30 dias. */
+model Custo {
+  id           String          @id @default(cuid())
+  nome         String
+  categoria    String          @default("")
+  valor        Float
+  moeda        MoedaCusto      @default(BRL)
+  frequencia   FrequenciaCusto @default(MENSAL)
+  observacao   String          @default("")
+  ativo        Boolean         @default(true)
+  criadoEm     DateTime        @default(now())
+  atualizadoEm DateTime        @updatedAt
+}
+
+enum MoedaCusto {
+  BRL
+  USD
+}
+
+enum FrequenciaCusto {
+  MENSAL
+  ANUAL
+  POR_MENSAGEM
 }

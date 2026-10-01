@@ -20,11 +20,14 @@ de verdade e a produção roda na Netlify + Neon, como descrito abaixo.
 - Teste grátis de 14 dias: quando acaba, só aparece um aviso no painel (`src/lib/assinatura.ts`).
   Ainda não existe cobrança automática. Conta paga = `Estabelecimento.assinanteDesde` preenchido;
   `parceira` = piloto sem cobrança; `testeAte` = teste estendido. Os três se mudam no admin.
-- Admin interno da equipe em `/admin` (sem link no site, fora do Google): visão geral com os
-  números e os salões (botões "+7 dias de teste", "Marcar como parceira" e "Marcar como
-  assinante") e o funil comercial (`Lead`). Entra quem está em `ADMIN_EMAILS`, por um link enviado
-  ao e-mail (`src/lib/admin/`). Quando um salão do funil cria a conta com o mesmo telefone ou
-  e-mail, o contato passa sozinho para "Em teste".
+- Admin interno da equipe em `/admin` (sem link no site, fora do Google; código em
+  `src/lib/admin/` e `src/app/admin/`). Entra quem está em `ADMIN_EMAILS`, por um link enviado ao
+  e-mail. Telas: Visão geral (financeiro do mês, números, gráficos e "Precisa de atenção"),
+  Salões (botões "+7 dias de teste", parceira, assinante e "Marcar como teste"; conta de teste
+  sai dos números e só ela pode ser excluída de vez), Funil (`Lead`; o cadastro com o mesmo
+  telefone ou e-mail passa o contato para "Em teste") e Financeiro (custos editáveis na tabela
+  `Custo`, em real ou dólar, por mês, por ano ou por mensagem de WhatsApp; dólar do dia pela
+  AwesomeAPI).
 - Fase atual (fim de setembro/2026): piloto com 3 esmalterias, ainda sem cobrança. Time: Paulo
   (produto e tecnologia), Biel (implantação nas esmalterias) e Dudu (Instagram).
 
