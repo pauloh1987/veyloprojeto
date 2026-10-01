@@ -1,19 +1,32 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { db } from "@/lib/db";
 import { exigirSessao } from "@/lib/auth";
-import { simularPassagemDoTempo, processarFilaMensagens } from "@/lib/mensagens/fila";
+import { mensagemSeguraDeErro, NaoAutorizadoError } from "@/lib/erros";
+import { explicarErroParaSalao } from "@/lib/mensagens/erros";
+import { reenviarMensagem } from "@/lib/mensagens/fila";
+import type { EstadoAcao } from "./agendamentos";
 
-export async function acaoSimularPassagemDoTempo(): Promise<{ processadas: number; agoraEfetivo: string }> {
-  await exigirSessao();
-  const resultado = await simularPassagemDoTempo();
-  revalidatePath("/painel/mensagens");
-  return { processadas: resultado.processadas, agoraEfetivo: resultado.agoraEfetivo.toISOString() };
-}
-
-export async function acaoProcessarFilaAgora(): Promise<{ processadas: number; agoraEfetivo: string }> {
-  await exigirSessao();
-  const resultado = await processarFilaMensagens();
-  revalidatePath("/painel/mensagens");
-  return { processadas: resultado.processadas, agoraEfetivo: resultado.agoraEfetivo.toISOString() };
+/** "Tentar de novo" numa mensagem que deu erro (tela Mensagens do painel). */
+export async function tentarReenviarMensagem(mensagemId: string): Promise<EstadoAcao> {
+  try {
+    const usuario = await exigirSessao();
+    const mensagem = await db.mensagem.findFirst({
+      where: {
+        id: mensagemId,
+        OR: [
+          { agendamento: { estabelecimentoId: usuario.estabelecimentoId } },
+          { cliente: { estabelecimentoId: usuario.estabelecimentoId } },
+        ],
+      },
+      select: { id: true },
+    });
+    if (!mensagem) throw new NaoAutorizadoError();
+    const resultado = await reenviarMensagem(mensagem.id);
+    revalidatePath("/painel/mensagens");
+    return resultado.sucesso ? { sucesso: true } : { erro: explicarErroParaSalao(resultado.erro ?? null) };
+  } catch (erro) {
+    return { erro: mensagemSeguraDeErro(erro) };
+  }
 }

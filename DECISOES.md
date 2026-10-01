@@ -333,3 +333,11 @@ especificação não determinava um caminho exato. Organizado por área.
   marcada como teste e pede o nome digitado; apaga primeiro os agendamentos (eles travam a
   exclusão de clientes, equipe e serviços) e depois o salão, que leva o resto pelas regras do
   banco. O backup diário guarda os últimos 30 dias.
+- **Motivo das falhas de envio e fim do relógio simulado (01/10/2026)**: a primeira mensagem
+  real pelo WhatsApp (salão da Hulyanne) ficou com "Erro" e o sistema não guardava o motivo que
+  a Twilio devolve. Agora o código e a mensagem da Twilio ficam em `Mensagem.erro`, vão para o
+  log do servidor e aparecem explicados no admin; a dona vê uma versão sem detalhe técnico e o
+  botão "Tentar de novo" (só para horário futuro e não cancelado). Na mesma tela havia o botão
+  "Simular passagem do tempo", da demonstração da primeira versão: ele adiantava um relógio
+  único, de todos os salões, e um clique em produção faria os lembretes de todo mundo saírem um
+  dia antes. Foi removido; a tabela `RelogioSimulado` ficou sem uso (sai numa limpeza futura).

@@ -6,7 +6,8 @@ import { exigirSessao } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Badge } from "@/components/ui/Badge";
 import { EstadoVazio } from "@/components/ui/EstadoVazio";
-import { BotaoSimularTempo } from "./BotaoSimularTempo";
+import { explicarErroParaSalao } from "@/lib/mensagens/erros";
+import { BotaoReenviar } from "./BotaoReenviar";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Mensagens" };
@@ -28,6 +29,7 @@ export default async function PaginaMensagens() {
   const usuario = await exigirSessao();
   const fuso = usuario.estabelecimento.fuso;
 
+  const agora = new Date();
   const mensagens = await db.mensagem.findMany({
     where: {
       OR: [
@@ -53,10 +55,6 @@ export default async function PaginaMensagens() {
         <h1 className="font-heading text-2xl font-extrabold text-text">Mensagens</h1>
         <p className="text-sm text-text-muted">Fila de confirmações e lembretes enviados aos clientes.</p>
       </header>
-
-      <div className="mb-6">
-        <BotaoSimularTempo fuso={fuso} />
-      </div>
 
       {mensagens.length === 0 ? (
         <EstadoVazio
@@ -84,6 +82,14 @@ export default async function PaginaMensagens() {
                   Para <span className="font-medium text-text">{cliente?.nome ?? "—"}</span> · {m.canal}
                 </p>
                 <p className="mt-1.5 text-sm text-text">{m.texto}</p>
+                {m.status === "ERRO" && (
+                  <div className="mt-3 space-y-2 rounded-xl bg-danger-bg px-3 py-2.5">
+                    <p className="text-xs text-danger">{explicarErroParaSalao(m.erro)}</p>
+                    {(!m.agendamento || (m.agendamento.status !== "CANCELADO" && m.agendamento.inicio > agora)) && (
+                      <BotaoReenviar mensagemId={m.id} />
+                    )}
+                  </div>
+                )}
               </li>
             );
           })}

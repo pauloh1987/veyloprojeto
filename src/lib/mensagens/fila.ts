@@ -10,8 +10,6 @@ import {
 } from "./textos";
 
 const MINUTOS_LEMBRETE_ANTES = 24 * 60;
-const AVANCO_SIMULACAO_MIN = 25 * 60;
-const RELOGIO_ID = 1;
 
 /** Cria a mensagem de confirmação (enviada de imediato, só se a dona não tiver desligado isso
  * em Configurações) e o lembrete (agendado para 24h antes do horário, sempre criado — o
@@ -42,7 +40,7 @@ export async function criarMensagensParaAgendamento(agendamentoId: string): Prom
       variaveis,
     });
 
-    await db.mensagem.create({
+    const confirmacao = await db.mensagem.create({
       data: {
         agendamentoId,
         tipo: "CONFIRMACAO",
@@ -53,8 +51,10 @@ export async function criarMensagensParaAgendamento(agendamentoId: string): Prom
         agendadaPara: new Date(),
         enviadaEm: resultadoConf.sucesso ? new Date() : null,
         sidProvedor: resultadoConf.idProvedor ?? null,
+        erro: resultadoConf.sucesso ? null : (resultadoConf.erro ?? "Falha sem detalhe."),
       },
     });
+    if (!resultadoConf.sucesso) registrarFalha(confirmacao.id, "CONFIRMACAO", resultadoConf.erro);
   }
 
   await db.mensagem.create({
@@ -70,24 +70,17 @@ export async function criarMensagensParaAgendamento(agendamentoId: string): Prom
   });
 }
 
-/** "Agora" efetivo para fins de processamento da fila: horário real mais o deslocamento
- * acumulado pelo botão "Simular passagem do tempo" (0 até o primeiro clique). */
-export async function obterAgoraEfetivo(): Promise<Date> {
-  const relogio = await db.relogioSimulado.findUnique({ where: { id: RELOGIO_ID } });
-  return new Date(Date.now() + (relogio?.offsetMin ?? 0) * 60_000);
-}
-
 /** Processa a fila: envia (via Notificador) toda mensagem pendente cujo horário programado já
- * chegou, considerando o "agora" efetivo. Mensagens ligadas a um agendamento cancelado são
+ * chegou. Mensagens ligadas a um agendamento cancelado são
  * canceladas sem enviar; mensagens ligadas direto a um cliente (lembrete de retorno, sem
  * agendamento nenhum por trás) não têm esse conceito de cancelamento — só saem quando chega a
  * hora, a menos que o cliente tenha sido excluído nesse meio tempo (aí a linha nem existe mais,
  * por causa do onDelete: Cascade). */
-export async function processarFilaMensagens(): Promise<{ processadas: number; agoraEfetivo: Date }> {
-  const agoraEfetivo = await obterAgoraEfetivo();
+export async function processarFilaMensagens(): Promise<{ processadas: number; agora: Date }> {
+  const agora = new Date();
 
   const pendentes = await db.mensagem.findMany({
-    where: { status: "PENDENTE", agendadaPara: { lte: agoraEfetivo } },
+    where: { status: "PENDENTE", agendadaPara: { lte: agora } },
     include: { agendamento: { include: { cliente: true } }, cliente: true },
   });
 
@@ -99,36 +92,15 @@ export async function processarFilaMensagens(): Promise<{ processadas: number; a
 
     // A fila roda só em alguns horários do dia (ver netlify/functions/cron-mensagens.mts). Se
     // por algum motivo ela ficar sem rodar, um lembrete nunca pode sair depois do horário.
-    if (mensagem.tipo === "LEMBRETE" && mensagem.agendamento && mensagem.agendamento.inicio <= agoraEfetivo) {
+    if (mensagem.tipo === "LEMBRETE" && mensagem.agendamento && mensagem.agendamento.inicio <= agora) {
       await db.mensagem.update({ where: { id: mensagem.id }, data: { status: "CANCELADA" } });
       continue;
     }
 
-    const cliente = mensagem.cliente ?? mensagem.agendamento?.cliente;
-    if (!cliente) {
-      await db.mensagem.update({ where: { id: mensagem.id }, data: { status: "ERRO" } });
-      continue;
-    }
-
-    const resultado = await notificadorPadrao.enviar({
-      canal: mensagem.canal,
-      destinatario: cliente.telefone,
-      texto: mensagem.texto,
-      tipo: mensagem.tipo,
-      variaveis: mensagem.variaveisTemplate ? JSON.parse(mensagem.variaveisTemplate) : [],
-    });
-
-    await db.mensagem.update({
-      where: { id: mensagem.id },
-      data: {
-        status: resultado.sucesso ? "ENVIADA" : "ERRO",
-        enviadaEm: resultado.sucesso ? agoraEfetivo : null,
-        sidProvedor: resultado.idProvedor ?? null,
-      },
-    });
+    await enviarMensagemGuardada(mensagem, agora);
   }
 
-  return { processadas: pendentes.length, agoraEfetivo };
+  return { processadas: pendentes.length, agora };
 }
 
 /** Agenda um lembrete de retorno (ex. manutenção) pra daqui X dias, direto pro cliente — sem
@@ -161,16 +133,59 @@ export async function criarLembreteRetorno(clienteId: string, servicoNome: strin
   });
 }
 
-/** Avança o relógio simulado e processa a fila em seguida. Usado pelo botão de demonstração
- * "Simular passagem do tempo" — não afeta o motor de disponibilidade, só o envio de mensagens. */
-export async function simularPassagemDoTempo(): Promise<{ processadas: number; agoraEfetivo: Date }> {
-  await db.relogioSimulado.upsert({
-    where: { id: RELOGIO_ID },
-    update: { offsetMin: { increment: AVANCO_SIMULACAO_MIN } },
-    create: { id: RELOGIO_ID, offsetMin: AVANCO_SIMULACAO_MIN },
-  });
+function registrarFalha(mensagemId: string, tipo: string, erro: string | undefined): void {
+  console.error(`[mensagens] ${tipo} ${mensagemId} não enviada: ${erro ?? "sem detalhe"}`);
+}
 
-  return processarFilaMensagens();
+type MensagemComCliente = Awaited<ReturnType<typeof buscarMensagemComCliente>>;
+
+function buscarMensagemComCliente(mensagemId: string) {
+  return db.mensagem.findUniqueOrThrow({
+    where: { id: mensagemId },
+    include: { agendamento: { include: { cliente: true } }, cliente: true },
+  });
+}
+
+/** Envia uma mensagem já gravada (da fila ou um reenvio) e guarda o resultado, inclusive o
+ * motivo da falha. */
+async function enviarMensagemGuardada(
+  mensagem: NonNullable<MensagemComCliente>,
+  agora: Date,
+): Promise<{ sucesso: boolean; erro?: string }> {
+  const cliente = mensagem.cliente ?? mensagem.agendamento?.cliente;
+  const resultado = cliente
+    ? await notificadorPadrao.enviar({
+        canal: mensagem.canal,
+        destinatario: cliente.telefone,
+        texto: mensagem.texto,
+        tipo: mensagem.tipo,
+        variaveis: mensagem.variaveisTemplate ? JSON.parse(mensagem.variaveisTemplate) : [],
+      })
+    : { sucesso: false, erro: "Cliente não encontrada." };
+
+  await db.mensagem.update({
+    where: { id: mensagem.id },
+    data: {
+      status: resultado.sucesso ? "ENVIADA" : "ERRO",
+      enviadaEm: resultado.sucesso ? agora : null,
+      sidProvedor: resultado.sucesso ? (resultado.idProvedor ?? null) : null,
+      erro: resultado.sucesso ? null : (resultado.erro ?? "Falha sem detalhe."),
+    },
+  });
+  if (!resultado.sucesso) registrarFalha(mensagem.id, mensagem.tipo, resultado.erro);
+  return { sucesso: resultado.sucesso, erro: resultado.erro };
+}
+
+/** "Tentar de novo" numa mensagem que deu erro. Confirmação e lembrete só fazem sentido para
+ * um horário que ainda vai acontecer e não foi cancelado. */
+export async function reenviarMensagem(mensagemId: string): Promise<{ sucesso: boolean; erro?: string }> {
+  const mensagem = await buscarMensagemComCliente(mensagemId);
+  if (mensagem.status !== "ERRO") return { sucesso: false, erro: "Só dá para reenviar mensagens que deram erro." };
+  if (mensagem.agendamento) {
+    if (mensagem.agendamento.status === "CANCELADO") return { sucesso: false, erro: "Esse horário foi cancelado." };
+    if (mensagem.agendamento.inicio <= new Date()) return { sucesso: false, erro: "Esse horário já passou." };
+  }
+  return enviarMensagemGuardada(mensagem, new Date());
 }
 
 /** Cancela (sem enviar) qualquer lembrete ainda pendente de um agendamento cancelado. */

@@ -146,11 +146,11 @@ mesmo chamando a rota da API diretamente, sem passar pela interface.
 real de SMS/WhatsApp depois sem tocar no resto do código. Ao criar um agendamento, o sistema
 gera a mensagem de confirmação (enviada na hora) e o lembrete (agendado para 24h antes).
 
-Como não dá pra esperar 24h de verdade numa demonstração, a tela **Mensagens** tem um botão
-"Simular passagem do tempo": cada clique avança um relógio simulado (guardado no banco) em
-~25h e processa a fila com esse relógio, mostrando lembretes sendo "enviados" na hora. A rota
-`/api/cron/mensagens` processa a mesma fila usando o horário real — é o que um cron job de
-verdade chamaria em produção.
+A primeira versão tinha na tela **Mensagens** um botão "Simular passagem do tempo", que
+adiantava um relógio guardado no banco. Ele foi removido em 01/10/2026: o relógio valia para
+todos os salões, então um clique em produção faria os lembretes de todo mundo saírem um dia
+antes. A fila usa sempre o horário real (função agendada `netlify/functions/cron-mensagens.mts`;
+a rota `/api/cron/mensagens` faz o mesmo sob demanda, protegida por `CRON_SECRET`).
 
 ## Isolamento e segurança
 

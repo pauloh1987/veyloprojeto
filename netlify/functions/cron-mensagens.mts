@@ -16,7 +16,7 @@ import { processarFilaMensagens } from "../../src/lib/mensagens/fila";
 export default async () => {
   const resultado = await processarFilaMensagens();
   console.log(
-    `[cron-mensagens] processadas=${resultado.processadas} agoraEfetivo=${resultado.agoraEfetivo.toISOString()}`,
+    `[cron-mensagens] processadas=${resultado.processadas} agora=${resultado.agora.toISOString()}`,
   );
 };
 

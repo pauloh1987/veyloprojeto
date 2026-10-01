@@ -5,12 +5,19 @@ import { ptBR } from "date-fns/locale";
 import { ArrowRight, CircleCheck, TriangleAlert } from "lucide-react";
 import { exigirAdmin } from "@/lib/admin/auth";
 import { carregarVisaoGeral, type SalaoAdmin } from "@/lib/admin/dados";
+import { explicarErroEnvio } from "@/lib/mensagens/erros";
 import { cn } from "@/lib/cn";
 import { FUSO_PADRAO } from "@/lib/tz";
 import { GraficoBarras } from "@/components/admin/GraficoBarras";
 import { ResumoFinanceiroCartoes } from "@/components/admin/ResumoFinanceiroCartoes";
 
 export const dynamic = "force-dynamic";
+
+const ROTULO_TIPO_MENSAGEM: Record<string, string> = {
+  CONFIRMACAO: "Confirmação",
+  LEMBRETE: "Lembrete",
+  CONVITE_RETORNO: "Convite de retorno",
+};
 export const metadata: Metadata = { title: "Visão geral" };
 
 export default async function PaginaVisaoGeral() {
@@ -151,7 +158,26 @@ export default async function PaginaVisaoGeral() {
                 tom="danger"
                 texto={`${atencao.mensagensComErro7d} mensage${atencao.mensagensComErro7d > 1 ? "ns" : "m"} de WhatsApp com erro nos últimos 7 dias`}
               >
-                <span className="text-text-muted">Confira os modelos aprovados e o saldo na Twilio.</span>
+                <span className="block text-text-muted">As mais recentes (detalhes também em Monitor › Logs, na Twilio):</span>
+                <span className="mt-1.5 block space-y-1.5">
+                  {atencao.errosRecentes.map((erro) => (
+                    <span key={erro.id} className="block rounded-lg bg-surface-2 px-2.5 py-1.5 text-xs">
+                      <span className="font-semibold text-text">
+                        {erro.salao}
+                        {erro.contaDeTeste && " (teste)"}
+                      </span>
+                      <span className="text-text-faint">
+                        {" "}
+                        · {ROTULO_TIPO_MENSAGEM[erro.tipo] ?? erro.tipo} ·{" "}
+                        {formatInTimeZone(erro.quando, FUSO_PADRAO, "dd/MM HH:mm")}
+                      </span>
+                      <span className="block text-text">
+                        {erro.erro ? explicarErroEnvio(erro.erro) : "Motivo não registrado (falha anterior a 01/10, quando o sistema ainda não guardava o motivo)."}
+                      </span>
+                      {erro.erro && <span className="block break-all font-mono text-[11px] text-text-faint">{erro.erro}</span>}
+                    </span>
+                  ))}
+                </span>
               </ItemAtencao>
             )}
             {pendencias.map((item) => (

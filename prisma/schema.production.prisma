@@ -300,6 +300,8 @@ model Mensagem {
   /** SID da mensagem na Twilio — é por ele que uma resposta da cliente (toque em
    * "Confirmar"/"Cancelar") é ligada de volta ao agendamento certo. */
   sidProvedor   String?
+  /** Motivo da falha devolvido pelo provedor (ex.: código e mensagem da Twilio), para diagnóstico. */
+  erro          String?
 
   @@index([status, agendadaPara])
   @@index([clienteId])

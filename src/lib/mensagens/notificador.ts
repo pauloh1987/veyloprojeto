@@ -1,4 +1,5 @@
 import type { CanalMensagem, TipoMensagem } from "@prisma/client";
+import { descreverErroTwilio } from "./erros";
 
 export interface EnvioMensagem {
   canal: CanalMensagem;
@@ -86,8 +87,7 @@ export class NotificadorTwilio implements Notificador {
       });
 
       if (!resposta.ok) {
-        const detalhe = await resposta.text();
-        return { sucesso: false, erro: `Twilio ${resposta.status}: ${detalhe.slice(0, 300)}` };
+        return { sucesso: false, erro: descreverErroTwilio(resposta.status, await resposta.text()) };
       }
       const json = (await resposta.json().catch(() => ({}))) as { sid?: string };
       return { sucesso: true, idProvedor: json.sid };
@@ -162,8 +162,7 @@ export class NotificadorTwilioWhatsApp implements Notificador {
       });
 
       if (!resposta.ok) {
-        const detalhe = await resposta.text();
-        return { sucesso: false, erro: `Twilio ${resposta.status}: ${detalhe.slice(0, 300)}` };
+        return { sucesso: false, erro: descreverErroTwilio(resposta.status, await resposta.text()) };
       }
       const json = (await resposta.json().catch(() => ({}))) as { sid?: string };
       return { sucesso: true, idProvedor: json.sid };

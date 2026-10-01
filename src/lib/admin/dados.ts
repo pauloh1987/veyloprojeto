@@ -245,6 +245,8 @@ export interface VisaoGeral {
     parados: SalaoAdmin[];
     pareceTeste: SalaoAdmin[];
     mensagensComErro7d: number;
+    /** As mais recentes, de todas as contas (inclusive teste), para diagnosticar o envio. */
+    errosRecentes: { id: string; salao: string; contaDeTeste: boolean; tipo: string; quando: Date; erro: string | null }[];
   };
   funil: { porEtapa: Record<EtapaFunil, number>; emNegociacao: number; paraHoje: number; fechados30d: number };
 }
@@ -260,17 +262,25 @@ export async function carregarVisaoGeral(agora: Date = new Date()): Promise<Visa
   const desdeSemanas = new Date(agora.getTime() - SEMANAS_NO_GRAFICO * 7 * UM_DIA_MS);
   const fimDeHoje = limitesDoDia(somarDias(paraDataYMD(agora, FUSO_PADRAO), 1), FUSO_PADRAO).inicio;
 
-  const [financeiro, agendamentosRecentes, mensagensComErro7d, leadsPorEtapa, paraHoje, fechados30d] = await Promise.all([
+  const desde7d = new Date(agora.getTime() - 7 * UM_DIA_MS);
+  const [financeiro, agendamentosRecentes, mensagensComErro7d, errosRecentes, leadsPorEtapa, paraHoje, fechados30d] = await Promise.all([
     carregarFinanceiro(reais, agora),
     db.agendamento.findMany({
       where: { criadoEm: { gte: desdeSemanas }, estabelecimentoId: { notIn: idsDeTeste } },
       select: { criadoEm: true, origem: true },
     }),
-    db.mensagem.count({
-      where: {
-        status: "ERRO",
-        agendadaPara: { gte: new Date(agora.getTime() - 7 * UM_DIA_MS) },
-        OR: [{ agendamento: { estabelecimentoId: { notIn: idsDeTeste } } }, { cliente: { estabelecimentoId: { notIn: idsDeTeste } } }],
+    db.mensagem.count({ where: { status: "ERRO", agendadaPara: { gte: desde7d } } }),
+    db.mensagem.findMany({
+      where: { status: "ERRO", agendadaPara: { gte: desde7d } },
+      orderBy: { agendadaPara: "desc" },
+      take: 8,
+      select: {
+        id: true,
+        tipo: true,
+        agendadaPara: true,
+        erro: true,
+        agendamento: { select: { estabelecimento: { select: { nome: true, contaDeTeste: true } } } },
+        cliente: { select: { estabelecimento: { select: { nome: true, contaDeTeste: true } } } },
       },
     }),
     db.lead.groupBy({ by: ["etapa"], _count: { _all: true } }),
@@ -334,6 +344,17 @@ export async function carregarVisaoGeral(agora: Date = new Date()): Promise<Visa
       ),
       pareceTeste: reais.filter((s) => s.pareceTeste),
       mensagensComErro7d,
+      errosRecentes: errosRecentes.map((mensagem) => {
+        const salao = mensagem.agendamento?.estabelecimento ?? mensagem.cliente?.estabelecimento;
+        return {
+          id: mensagem.id,
+          salao: salao?.nome ?? "Salão excluído",
+          contaDeTeste: salao?.contaDeTeste ?? false,
+          tipo: mensagem.tipo,
+          quando: mensagem.agendadaPara,
+          erro: mensagem.erro,
+        };
+      }),
     },
     funil: {
       porEtapa,

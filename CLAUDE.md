@@ -94,6 +94,9 @@ Netlify; o Claude não digita senhas nem chaves.
 - Mensagens de WhatsApp/SMS passam por `src/lib/mensagens/`: `notificador.ts` escolhe o provedor
   pelas variáveis de ambiente, `fila.ts` agenda e envia, `textos.ts` monta o texto e as 4
   variáveis dos modelos. Mudar o texto de uma mensagem exige mudar e reaprovar o modelo na Meta.
+  Quando a Twilio recusa um envio, o motivo fica em `Mensagem.erro` (código e mensagem): o admin
+  mostra os erros recentes explicados (`src/lib/mensagens/erros.ts`) e a tela Mensagens do painel
+  tem "Tentar de novo". A fila usa sempre o horário real (o relógio simulado foi removido).
 
 ## Pendências (01/10/2026)
 

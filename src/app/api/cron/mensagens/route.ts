@@ -19,7 +19,7 @@ async function processar(request: Request) {
   const resultado = await processarFilaMensagens();
   return Response.json({
     processadas: resultado.processadas,
-    agoraEfetivo: resultado.agoraEfetivo.toISOString(),
+    agora: resultado.agora.toISOString(),
   });
 }
 
