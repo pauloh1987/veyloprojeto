@@ -95,10 +95,11 @@ Netlify; o Claude não digita senhas nem chaves.
   pelas variáveis de ambiente, `fila.ts` agenda e envia, `textos.ts` monta o texto e as 4
   variáveis dos modelos. Mudar o texto de uma mensagem exige mudar e reaprovar o modelo na Meta.
 
-## Pendências (30/09/2026)
+## Pendências (01/10/2026)
 
-- Meta aprovar os 3 modelos de WhatsApp e testar de ponta a ponta: agendar → confirmação →
-  tocar em Confirmar → aparecer em Hoje, em "Respostas das clientes".
+- A Meta aprovou os 3 modelos de WhatsApp (01/10/2026) e os SIDs na Netlify conferem. Falta o
+  teste de ponta a ponta: agendar → confirmação → tocar em Confirmar → aparecer em Hoje, em
+  "Respostas das clientes"; e o lembrete, que sai na rodada seguinte da fila (08h, 12h ou 18h).
 - Marcar as esmalterias do piloto como parceiras no `/admin` antes dos 14 dias de teste.
 - Atualizar `/privacidade` para citar Neon, WhatsApp (Meta) e Resend.
 - Definir como cobrar (Pix manual no começo, cobrança automática depois), CNPJ/MEI, termos de
