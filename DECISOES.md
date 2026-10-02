@@ -351,3 +351,16 @@ especificação não determinava um caminho exato. Organizado por área.
   com as letras usadas (parâmetro `text=`); se a busca falhar, a imagem sai com a fonte padrão.
   No peso 800 ele deixa um espaço antes do ponto final, por isso os títulos da imagem não têm
   ponto. `metadataBase` usa a variável `URL` da Netlify para o endereço da imagem sair completo.
+- **Novo visual do link de agendamento (02/10/2026)**: o link público virou dois cartões, no
+  formato das páginas de agendamento que as clientes já conhecem. O topo tem capa na cor do
+  salão, logo, nome, apresentação, atalhos de WhatsApp, Instagram e "Como chegar" (busca do
+  endereço no Google Maps), o aviso para as clientes e o botão "Agendar horário". O agendamento
+  mostra as 6 telas como 3 passos numerados (serviço, horário, seus dados), um resumo do que já
+  foi escolhido (com "Trocar"), serviços em cartões com duração e preço, filtro por categoria (a
+  partir de 2 categorias), busca (a partir de 7 serviços) e horários separados por manhã, tarde e
+  noite. Com uma profissional só, a tela de escolher profissional é pulada. Instagram,
+  apresentação (até 160 caracteres) e aviso (até 500) são campos opcionais em Configurações.
+  O link fica sempre no tema claro (`.tema-claro` repete as cores claras), mesmo com o celular da
+  cliente no modo escuro, porque a marca do salão foi pensada para fundo claro. A cor do texto
+  sobre a cor do salão é calculada (`src/lib/cores.ts`): cores claras, como amarelo, ganham texto
+  escuro e destaques escurecidos.

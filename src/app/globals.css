@@ -4,7 +4,10 @@
    a preferência do sistema — necessário para o botão de tema claro/escuro. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-:root {
+/* `.tema-claro` repete as cores claras dentro de uma página mesmo com o aparelho no modo escuro:
+   o link público do salão é sempre claro, como a marca do salão foi pensada. */
+:root,
+.tema-claro {
   color-scheme: light;
 
   --veylo-teal: #22d6b0;
@@ -108,6 +111,11 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
+}
+
+/* Fundo claro também na rolagem além do fim da página (o --bg do <body> segue o tema). */
+body:has(.tema-claro) {
+  background: #f6f7fa;
 }
 
 * {

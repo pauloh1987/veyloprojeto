@@ -23,6 +23,9 @@ export async function salvarConfiguracoes(_estadoAnterior: EstadoAcao, formData:
       foto: formData.get("foto") ?? "",
       logoFundo: formData.get("logoFundo"),
       confirmacaoAutomatica: formData.get("confirmacaoAutomatica") === "on",
+      instagram: formData.get("instagram") ?? "",
+      apresentacao: formData.get("apresentacao") ?? "",
+      avisoAgendamento: formData.get("avisoAgendamento") ?? "",
     });
     if (!resultado.success) {
       return { erro: resultado.error.issues[0]?.message ?? "Dados inválidos." };
@@ -41,6 +44,9 @@ export async function salvarConfiguracoes(_estadoAnterior: EstadoAcao, formData:
         foto: dados.foto,
         logoFundo: dados.logoFundo,
         confirmacaoAutomatica: dados.confirmacaoAutomatica,
+        instagram: dados.instagram,
+        apresentacao: dados.apresentacao,
+        avisoAgendamento: dados.avisoAgendamento,
       },
     });
 

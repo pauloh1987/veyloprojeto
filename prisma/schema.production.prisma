@@ -64,6 +64,12 @@ model Estabelecimento {
   corDestaque        String   @default("#0EA5A0")
   foto               String?
   logoFundo          String   @default("#FFFFFF")
+  /** Perfil do Instagram (sem @), mostrado como botão no link público. */
+  instagram          String   @default("")
+  /** Apresentação curta no topo do link público. */
+  apresentacao       String   @default("")
+  /** Aviso para as clientes no link público (sinal, atraso, cancelamento). */
+  avisoAgendamento   String   @default("")
   plano              Plano    @default(EQUIPE)
   antecedenciaMinMin Int      @default(120)
   /** Até quantas semanas à frente a cliente pode marcar pelo link público. */

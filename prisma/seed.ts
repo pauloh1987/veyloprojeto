@@ -146,6 +146,10 @@ async function main() {
       corDestaque: "#D94E7F",
       plano: "SOLO",
       antecedenciaMinMin: 120,
+      instagram: "studioananails",
+      apresentacao: "Unhas naturais e bem cuidadas no coração de Olinda. Alongamento, esmaltação em gel e spa dos pés.",
+      avisoAgendamento:
+        "Tolerância de 10 minutos de atraso.\nPara desmarcar ou remarcar, avise com 24 horas de antecedência pelo WhatsApp.",
     },
   });
 

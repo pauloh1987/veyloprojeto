@@ -1,11 +1,11 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
-import { Check, Copy, ImageOff } from "lucide-react";
+import { Check, Copy, ExternalLink, ImageOff } from "lucide-react";
 import { salvarConfiguracoes } from "@/lib/acoes/configuracoes";
 import type { EstadoAcao } from "@/lib/acoes/agendamentos";
 import { Button } from "@/components/ui/Button";
-import { Campo, Input, Rotulo, Select } from "@/components/ui/Campo";
+import { Campo, Input, Rotulo, Select, Textarea } from "@/components/ui/Campo";
 import { OPCOES_JANELA_SEMANAS } from "@/lib/agenda/janelaAgendamento";
 import { iniciais } from "@/lib/formatadores";
 import { MostrarGuiaDeNovo } from "@/components/painel/MostrarGuiaDeNovo";
@@ -111,6 +111,9 @@ export function ConfiguracoesClient({
     foto: string | null;
     logoFundo: string;
     confirmacaoAutomatica: boolean;
+    instagram: string;
+    apresentacao: string;
+    avisoAgendamento: string;
   };
   linkPublico: string;
   guiaEscondido: boolean;
@@ -119,6 +122,8 @@ export function ConfiguracoesClient({
   const [copiado, setCopiado] = useState(false);
   const [foto, setFoto] = useState<string | null>(estabelecimento.foto);
   const [logoFundo, setLogoFundo] = useState(estabelecimento.logoFundo);
+  const [apresentacao, setApresentacao] = useState(estabelecimento.apresentacao);
+  const [aviso, setAviso] = useState(estabelecimento.avisoAgendamento);
   const [erroLogo, setErroLogo] = useState<string | null>(null);
   const inputArquivoRef = useRef<HTMLInputElement>(null);
 
@@ -168,7 +173,17 @@ export function ConfiguracoesClient({
             {copiado ? "Copiado" : "Copiar"}
           </Button>
         </div>
-        <p className="mt-2 text-xs text-text-faint">Compartilhe esse link no Instagram, WhatsApp ou onde preferir.</p>
+        <p className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-text-faint">
+          Compartilhe esse link no Instagram, WhatsApp ou onde preferir.
+          <a
+            href={linkPublico}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 font-semibold text-accent hover:underline"
+          >
+            Ver minha página <ExternalLink size={12} aria-hidden />
+          </a>
+        </p>
       </div>
 
       <form action={acao} className="space-y-4 rounded-2xl border border-border bg-surface p-4">
@@ -242,6 +257,59 @@ export function ConfiguracoesClient({
         <Campo rotulo="Endereço" htmlFor="endereco">
           <Input id="endereco" name="endereco" required defaultValue={estabelecimento.endereco} />
         </Campo>
+
+        <div className="space-y-4 rounded-2xl bg-surface-2 p-4">
+          <div>
+            <p className="font-heading text-sm font-bold text-text">Página de agendamento</p>
+            <p className="text-xs text-text-faint">
+              Aparece no topo do seu link, junto com os botões de WhatsApp e &quot;Como chegar&quot;.
+            </p>
+          </div>
+          <Campo rotulo="Instagram" htmlFor="instagram">
+            <div className="relative">
+              <span className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-[15px] text-text-faint">@</span>
+              <Input
+                id="instagram"
+                name="instagram"
+                defaultValue={estabelecimento.instagram}
+                placeholder="seusalao"
+                autoCapitalize="none"
+                autoCorrect="off"
+                className="pl-8"
+              />
+            </div>
+          </Campo>
+          <div>
+            <Rotulo htmlFor="apresentacao">Apresentação</Rotulo>
+            <Textarea
+              id="apresentacao"
+              name="apresentacao"
+              value={apresentacao}
+              onChange={(e) => setApresentacao(e.target.value)}
+              maxLength={160}
+              rows={2}
+              className="min-h-0"
+              placeholder="Ex.: Especialista em alongamento natural. Unhas bonitas e resistentes, sem exagero."
+            />
+            <p className="mt-1 text-right text-xs text-text-faint">{apresentacao.length}/160</p>
+          </div>
+          <div>
+            <Rotulo htmlFor="avisoAgendamento">Aviso para as clientes</Rotulo>
+            <Textarea
+              id="avisoAgendamento"
+              name="avisoAgendamento"
+              value={aviso}
+              onChange={(e) => setAviso(e.target.value)}
+              maxLength={500}
+              rows={4}
+              placeholder="Ex.: Tolerância de 10 minutos de atraso. Para desmarcar, avise com 24 horas de antecedência."
+            />
+            <p className="mt-1 flex justify-between gap-3 text-xs text-text-faint">
+              <span>Regras de atraso, sinal ou cancelamento. A cliente lê antes de agendar.</span>
+              <span className="shrink-0">{aviso.length}/500</span>
+            </p>
+          </div>
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>

@@ -120,6 +120,13 @@ export const configuracoesSchema = z.object({
   foto: fotoDataUrlSchema("png"),
   logoFundo: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Cor inválida."),
   confirmacaoAutomatica: z.boolean(),
+  instagram: z
+    .string()
+    .max(120)
+    .transform(normalizarInstagram)
+    .refine((valor) => valor === "" || /^[a-z0-9._]{1,30}$/i.test(valor), "Instagram inválido. Use só o @ do perfil."),
+  apresentacao: z.string().trim().max(160, "A apresentação pode ter até 160 caracteres."),
+  avisoAgendamento: z.string().trim().max(500, "O aviso pode ter até 500 caracteres."),
 });
 export type ConfiguracoesInput = z.infer<typeof configuracoesSchema>;
 
