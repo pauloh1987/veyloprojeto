@@ -16,7 +16,6 @@ import {
   Sparkles,
   Sun,
   Sunset,
-  User,
 } from "lucide-react";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { corParaNome } from "@/components/ui/Avatar";
@@ -503,7 +502,14 @@ function ResumoEscolha({
         detalhe={`${formatarDuracao(servico.duracaoMin)} · ${formatarCentavos(servico.precoCentavos)}`}
         aoTrocar={aoTrocarServico}
       />
-      {profissional && <LinhaResumo icone={<User size={16} />} titulo={profissional.nome} detalhe="Profissional" aoTrocar={aoTrocarProfissional} />}
+      {profissional && (
+        <LinhaResumo
+          foto={<FotoProfissional profissional={profissional} />}
+          titulo={profissional.nome}
+          detalhe="Quem vai te atender"
+          aoTrocar={aoTrocarProfissional}
+        />
+      )}
       {horarioIso && (
         <LinhaResumo
           icone={<CalendarDays size={16} />}
@@ -516,22 +522,43 @@ function ResumoEscolha({
   );
 }
 
+/** Foto de quem vai atender (ou as iniciais), no resumo e na confirmação: com uma profissional
+ * só, a tela de escolher profissional é pulada, e é aqui que a cliente vê quem vai atender. */
+function FotoProfissional({ profissional }: { profissional: ProfissionalPublico }) {
+  return profissional.foto ? (
+    <img src={profissional.foto} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover shadow-sm ring-2 ring-surface" />
+  ) : (
+    <span
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-heading text-sm font-bold text-white shadow-sm ring-2 ring-surface"
+      style={{ backgroundColor: corParaNome(profissional.nome) }}
+      aria-hidden
+    >
+      {iniciais(profissional.nome)}
+    </span>
+  );
+}
+
 function LinhaResumo({
   icone,
+  foto,
   titulo,
   detalhe,
   aoTrocar,
 }: {
-  icone: React.ReactNode;
+  icone?: React.ReactNode;
+  /** Foto (ou iniciais) da profissional, no lugar do ícone. */
+  foto?: React.ReactNode;
   titulo: string;
   detalhe: string;
   aoTrocar: (() => void) | null;
 }) {
   return (
     <div className="flex items-center gap-3 px-3.5 py-2.5">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface text-[color:var(--destaque-texto)] shadow-sm" aria-hidden>
-        {icone}
-      </span>
+      {foto ?? (
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface text-[color:var(--destaque-texto)] shadow-sm" aria-hidden>
+          {icone}
+        </span>
+      )}
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-semibold text-text">{titulo}</span>
         <span className="block text-xs text-text-muted">{detalhe}</span>
@@ -787,7 +814,12 @@ function TelaConfirmacao({
           detalhe={`${formatarDuracao(servico.duracaoMin)} · ${formatarCentavos(servico.precoCentavos)}`}
           aoTrocar={null}
         />
-        <LinhaResumo icone={<User size={16} />} titulo={profissional.nome} detalhe="Profissional" aoTrocar={null} />
+        <LinhaResumo
+          foto={<FotoProfissional profissional={profissional} />}
+          titulo={profissional.nome}
+          detalhe="Quem vai te atender"
+          aoTrocar={null}
+        />
         <LinhaResumo
           icone={<CalendarDays size={16} />}
           titulo={primeiraMaiuscula(formatInTimeZone(inicio, estabelecimento.fuso, "EEEE, d 'de' MMMM", { locale: ptBR }))}
