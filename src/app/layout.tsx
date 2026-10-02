@@ -14,12 +14,20 @@ const jakarta = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700"],
 });
 
+const DESCRICAO =
+  "Agenda online para salões, barbearias, esmalterias e estética: a cliente agenda sozinha pelo link e recebe a confirmação no WhatsApp.";
+
 export const metadata: Metadata = {
+  // Endereço do site para as imagens de prévia (Open Graph) saírem com URL completa. Na Netlify,
+  // URL é o domínio principal.
+  metadataBase: new URL(process.env.URL ?? "http://localhost:3000"),
   title: {
     default: "Veylo Agenda",
     template: "%s · Veylo Agenda",
   },
-  description: "Agenda online para manicures, barbeiros e profissionais de beleza.",
+  description: DESCRICAO,
+  openGraph: { siteName: "Veylo Agenda", locale: "pt_BR", type: "website", description: DESCRICAO },
+  twitter: { card: "summary_large_image" },
 };
 
 const SCRIPT_TEMA = `

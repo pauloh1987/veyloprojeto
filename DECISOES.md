@@ -341,3 +341,13 @@ especificação não determinava um caminho exato. Organizado por área.
   "Simular passagem do tempo", da demonstração da primeira versão: ele adiantava um relógio
   único, de todos os salões, e um clique em produção faria os lembretes de todo mundo saírem um
   dia antes. Foi removido; a tabela `RelogioSimulado` ficou sem uso (sai numa limpeza futura).
+- **Imagem de prévia do link (02/10/2026)**: quando alguém mandava o site ou o link de um salão
+  no WhatsApp, a prévia saía com a logo pequena e borrada, porque as páginas não tinham imagem
+  própria de prévia (Open Graph). Agora o site e cada `/[slug]` têm uma imagem de 1200×630 gerada
+  na hora pelo `next/og` (`opengraph-image.tsx`): a do site com a marca e a chamada, a do salão
+  com a logo (ou as iniciais na cor do salão) e o nome em tamanho grande. O link de confirmação
+  (`/[slug]/agendamento/[token]`) herda a imagem do salão. O gerador só entende flexbox, não
+  aplica filtro de CSS e precisa de fonte TTF/OTF: a Plus Jakarta Sans vem do Google Fonts só
+  com as letras usadas (parâmetro `text=`); se a busca falhar, a imagem sai com a fonte padrão.
+  No peso 800 ele deixa um espaço antes do ponto final, por isso os títulos da imagem não têm
+  ponto. `metadataBase` usa a variável `URL` da Netlify para o endereço da imagem sair completo.

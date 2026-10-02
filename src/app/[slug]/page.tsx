@@ -13,7 +13,19 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: PageProps<"/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const estabelecimento = await obterEstabelecimentoPorSlug(slug);
-  return { title: estabelecimento ? `Agendar · ${estabelecimento.nome}` : "Não encontrado" };
+  if (!estabelecimento) return { title: "Não encontrado" };
+  const descricao = `Agende seu horário com ${estabelecimento.nome} pelo celular, em poucos toques.`;
+  return {
+    title: `Agendar · ${estabelecimento.nome}`,
+    description: descricao,
+    openGraph: {
+      title: `Agende com ${estabelecimento.nome}`,
+      description: descricao,
+      siteName: "Veylo Agenda",
+      locale: "pt_BR",
+      type: "website",
+    },
+  };
 }
 
 export default async function PaginaPublicaEstabelecimento({ params }: PageProps<"/[slug]">) {
