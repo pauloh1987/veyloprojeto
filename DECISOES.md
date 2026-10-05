@@ -364,3 +364,16 @@ especificação não determinava um caminho exato. Organizado por área.
   cliente no modo escuro, porque a marca do salão foi pensada para fundo claro. A cor do texto
   sobre a cor do salão é calculada (`src/lib/cores.ts`): cores claras, como amarelo, ganham texto
   escuro e destaques escurecidos.
+- **Selo "sem resposta" e topo da Agenda (05/10/2026)**: a cliente que recebeu um aviso com os
+  botões Confirmar e Cancelar (confirmação ou lembrete com status ENVIADA) e não tocou em nenhum
+  aparece com o selo "sem resposta" na tela Hoje, na Agenda (ícone de relógio no horário) e na
+  janela do agendamento, até o fim do horário (`src/lib/agenda/situacaoResposta.ts`). É só um
+  aviso: o agendamento continua na agenda e nada é cancelado sozinho, porque muita cliente só não
+  viu a mensagem. Junto vem o atalho "Chamar no WhatsApp", que abre o WhatsApp da própria dona com
+  a mensagem de confirmação já escrita (sem custo e sem modelo da Meta). Sem aviso enviado (por
+  exemplo, agendamento manual ainda longe do lembrete), não aparece selo. No topo da Agenda, o
+  botão "Hoje" sempre visível dava a entender que o dia aberto era hoje: agora o topo mostra o dia
+  (ou a semana) por extenso, com "Hoje", "Amanhã" ou "Ontem", "Voltar para hoje" só quando o dia
+  aberto não é hoje, e, na visão por dia, uma faixa com os 7 dias da semana para trocar de dia
+  com um toque. O painel passou a calcular a cor do texto sobre a cor do salão (`variaveisDaMarca`),
+  como o link público, para os botões continuarem legíveis com cor clara ou no modo escuro.

@@ -16,11 +16,14 @@ function dataHoraFormatada(inicio: Date, fuso: string): string {
   });
 }
 
-/** Link de conversa com o WhatsApp do próprio salão. As mensagens saem de um número único da
- * Veylo (que só envia avisos) — qualquer conversa de verdade precisa ir pro número do salão. */
-export function linkWhatsAppEstabelecimento(telefone: string): string {
+/** Link de conversa no WhatsApp com um telefone brasileiro, opcionalmente com o texto já escrito.
+ * Serve para o número do salão (as mensagens saem de um número único da Veylo, que só envia
+ * avisos, então qualquer conversa de verdade vai pro número do salão) e para a dona chamar uma
+ * cliente pelo WhatsApp dela. */
+export function linkWhatsApp(telefone: string, texto?: string): string {
   const digitos = somenteDigitos(telefone);
-  return `https://wa.me/${digitos.startsWith("55") && digitos.length > 11 ? digitos : `55${digitos}`}`;
+  const numero = digitos.startsWith("55") && digitos.length > 11 ? digitos : `55${digitos}`;
+  return `https://wa.me/${numero}${texto ? `?text=${encodeURIComponent(texto)}` : ""}`;
 }
 
 /** Base pública do site pra links montados fora de uma requisição (fila, cron). A Netlify
@@ -41,7 +44,7 @@ export function variaveisMensagem(dados: DadosMensagem): string[] {
     dados.nomeEstabelecimento,
     dados.nomeServico,
     dataHoraFormatada(dados.inicio, dados.fuso),
-    linkWhatsAppEstabelecimento(dados.telefoneEstabelecimento),
+    linkWhatsApp(dados.telefoneEstabelecimento),
   ];
 }
 
@@ -61,7 +64,7 @@ export function variaveisConviteRetorno(dados: Omit<DadosMensagem, "inicio" | "f
     dados.nomeEstabelecimento,
     dados.nomeServico,
     linkAgendar,
-    linkWhatsAppEstabelecimento(dados.telefoneEstabelecimento),
+    linkWhatsApp(dados.telefoneEstabelecimento),
   ];
 }
 

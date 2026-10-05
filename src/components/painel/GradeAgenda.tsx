@@ -1,6 +1,8 @@
 "use client";
 
 import type { StatusAgendamento } from "@prisma/client";
+import { CheckCircle2, Clock3 } from "lucide-react";
+import type { SituacaoResposta } from "@/lib/agenda/situacaoResposta";
 import { cn } from "@/lib/cn";
 
 export interface EventoGrade {
@@ -11,11 +13,15 @@ export interface EventoGrade {
   subtitulo: string;
   cor: string;
   status: StatusAgendamento;
+  /** Resposta da cliente aos avisos do WhatsApp: ícone no canto do horário. */
+  resposta?: SituacaoResposta;
 }
 export interface ColunaGrade {
   chave: string;
   titulo: string;
   subtitulo?: string;
+  /** Coluna de hoje (visão por semana). */
+  destaque?: boolean;
   eventos: EventoGrade[];
 }
 
@@ -60,9 +66,11 @@ export function GradeAgenda({
 
         {colunas.map((coluna) => (
           <div key={coluna.chave} className="w-[150px] shrink-0 border-r border-border last:border-r-0">
-            <div className="h-8 border-b border-border px-2 pt-1">
+            <div className={cn("h-8 border-b border-border px-2 pt-1", coluna.destaque && "bg-surface-2")}>
               <p className="truncate text-xs font-semibold text-text">{coluna.titulo}</p>
-              {coluna.subtitulo && <p className="truncate text-[10px] text-text-faint">{coluna.subtitulo}</p>}
+              {coluna.subtitulo && (
+                <p className={cn("truncate text-[10px]", coluna.destaque ? "font-bold text-text" : "text-text-faint")}>{coluna.subtitulo}</p>
+              )}
             </div>
             <div
               className="relative cursor-pointer"
@@ -95,8 +103,14 @@ export function GradeAgenda({
                     borderLeftColor: evento.cor,
                   }}
                 >
-                  <p className="truncate text-[11px] font-semibold text-text">{evento.titulo}</p>
+                  <p className={cn("truncate text-[11px] font-semibold text-text", evento.resposta && "pr-3.5")}>{evento.titulo}</p>
                   <p className="truncate text-[10px] text-text-muted">{evento.subtitulo}</p>
+                  {evento.resposta === "confirmou" && (
+                    <CheckCircle2 size={12} className="absolute top-1 right-1 text-success" aria-label="Cliente confirmou" />
+                  )}
+                  {evento.resposta === "semResposta" && (
+                    <Clock3 size={12} className="absolute top-1 right-1 text-warning" aria-label="Sem resposta da cliente" />
+                  )}
                 </button>
               ))}
             </div>

@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import { formatInTimeZone } from "date-fns-tz";
 import { subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarCheck, CheckCircle2, MessageCircle, XCircle } from "lucide-react";
+import { CalendarCheck, CheckCircle2, Clock3, MessageCircle, XCircle } from "lucide-react";
 import { exigirSessao } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { limitesDoDia, paraDataYMD } from "@/lib/tz";
 import { aplicarMascaraTelefone, formatarCentavos } from "@/lib/formatadores";
 import { carregarPassosFeitos } from "@/lib/guia/progresso";
+import { AVISO_COM_BOTOES_ENVIADO, situacaoResposta, textoParaConfirmarHorario } from "@/lib/agenda/situacaoResposta";
+import { linkWhatsApp } from "@/lib/mensagens/textos";
 import { obterUrlBase } from "@/lib/url";
 import { Avatar } from "@/components/ui/Avatar";
 import { EstadoVazio } from "@/components/ui/EstadoVazio";
@@ -24,7 +26,8 @@ const DIAS_RESPOSTAS_RECENTES = 3;
 export default async function PaginaHoje() {
   const usuario = await exigirSessao();
   const fuso = usuario.estabelecimento.fuso;
-  const hojeYMD = paraDataYMD(new Date(), fuso);
+  const agora = new Date();
+  const hojeYMD = paraDataYMD(agora, fuso);
   const { inicio, fimExclusivo } = limitesDoDia(hojeYMD, fuso);
 
   const filtroProfissional = usuario.papel === "PROFISSIONAL" ? { profissionalId: usuario.profissionalId ?? "" } : {};
@@ -38,7 +41,7 @@ export default async function PaginaHoje() {
         ...filtroProfissional,
         inicio: { gte: inicio, lt: fimExclusivo },
       },
-      include: { cliente: true, servico: true, profissional: true },
+      include: { cliente: true, servico: true, profissional: true, mensagens: AVISO_COM_BOTOES_ENVIADO },
       orderBy: { inicio: "asc" },
     }),
     db.agendamento.findMany({
@@ -59,7 +62,8 @@ export default async function PaginaHoje() {
     .filter((a) => a.status !== "CANCELADO")
     .reduce((soma, a) => soma + a.servico.precoCentavos, 0);
 
-  const tituloData = formatInTimeZone(new Date(), fuso, "EEEE, d 'de' MMMM", { locale: ptBR });
+  const diaPorExtenso = formatInTimeZone(agora, fuso, "EEEE, d 'de' MMMM", { locale: ptBR });
+  const tituloData = diaPorExtenso.charAt(0).toUpperCase() + diaPorExtenso.slice(1);
   const ehEquipe = usuario.estabelecimento.plano === "EQUIPE";
   const linkPublico = guiaFeitos ? `${await obterUrlBase()}/${usuario.estabelecimento.slug}` : "";
 
@@ -68,7 +72,7 @@ export default async function PaginaHoje() {
       <header className="mb-6 flex items-end justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-extrabold text-text">Hoje</h1>
-          <p className="text-sm text-text-muted capitalize">{tituloData}</p>
+          <p className="text-sm text-text-muted">{tituloData}</p>
         </div>
         <div className="text-right">
           <p className="text-xs text-text-faint">Total do dia</p>
@@ -138,10 +142,28 @@ export default async function PaginaHoje() {
                   <p className="font-semibold text-text">{formatarCentavos(a.servico.precoCentavos)}</p>
                   <div className="mt-1 flex flex-col items-end gap-1">
                     <StatusBadge status={a.status} />
-                    {a.presencaConfirmadaEm && a.status !== "CANCELADO" && (
+                    {situacaoResposta(a, agora) === "confirmou" && (
                       <Badge tom="success">
                         <CheckCircle2 size={11} /> cliente confirmou
                       </Badge>
+                    )}
+                    {situacaoResposta(a, agora) === "semResposta" && (
+                      <>
+                        <Badge tom="warning">
+                          <Clock3 size={11} /> sem resposta
+                        </Badge>
+                        <a
+                          href={linkWhatsApp(
+                            a.cliente.telefone,
+                            textoParaConfirmarHorario({ nomeCliente: a.cliente.nome, servico: a.servico.nome, inicio: a.inicio, fuso }, agora),
+                          )}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-text hover:underline"
+                        >
+                          <MessageCircle size={12} /> Chamar no WhatsApp
+                        </a>
+                      </>
                     )}
                   </div>
                 </div>

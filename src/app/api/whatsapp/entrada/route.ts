@@ -3,7 +3,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { ptBR } from "date-fns/locale";
 import { db } from "@/lib/db";
 import { cancelarPelaCliente, confirmarPresencaPelaCliente } from "@/lib/agenda/respostaCliente";
-import { linkWhatsAppEstabelecimento, urlBaseSite } from "@/lib/mensagens/textos";
+import { linkWhatsApp, urlBaseSite } from "@/lib/mensagens/textos";
 
 /**
  * Webhook de mensagens recebidas no número de WhatsApp da Veylo (configurado na Twilio como
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     return twiml("Oi! Este número só envia avisos automáticos de agendamento e não recebe mensagens.");
   }
 
-  const contatoSalao = linkWhatsAppEstabelecimento(estabelecimento.telefone);
+  const contatoSalao = linkWhatsApp(estabelecimento.telefone);
   const linkAgendar = `${urlBaseSite()}/${estabelecimento.slug}`;
   const acao = identificarAcao(params.get("ButtonPayload") || params.get("ButtonText") || params.get("Body") || "");
   const agendamento = mensagem.agendamento;

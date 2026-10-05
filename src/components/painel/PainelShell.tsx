@@ -12,6 +12,7 @@ import { sair } from "@/lib/acoes/auth";
 import { testeGratisExpirado } from "@/lib/assinatura";
 import { Avatar } from "@/components/ui/Avatar";
 import { AlternadorTema } from "@/components/ui/AlternadorTema";
+import { variaveisDaMarca } from "@/lib/cores";
 import { cn } from "@/lib/cn";
 
 const EMAIL_CONTATO = "contato@veyloagenda.com.br";
@@ -56,7 +57,8 @@ export function PainelShell({ usuario, children }: { usuario: SessaoUsuario; chi
   return (
     <div
       className="flex h-dvh overflow-hidden bg-bg"
-      style={{ ["--accent" as string]: usuario.estabelecimento.corDestaque }}
+      // Texto sobre a cor do salão calculado pela cor (claro ou escuro), também no modo escuro.
+      style={variaveisDaMarca(usuario.estabelecimento.corDestaque)}
     >
       {/* Sidebar (tablet/desktop) */}
       <aside className="hidden md:flex md:h-dvh md:w-64 md:shrink-0 md:flex-col md:overflow-y-auto md:border-r md:border-border md:bg-surface">

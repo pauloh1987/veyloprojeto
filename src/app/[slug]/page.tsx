@@ -6,7 +6,7 @@ import { obterEstabelecimentoPorSlug } from "@/lib/estabelecimentoPublico";
 import { db } from "@/lib/db";
 import { iniciais } from "@/lib/formatadores";
 import { variaveisDaMarca } from "@/lib/cores";
-import { linkWhatsAppEstabelecimento } from "@/lib/mensagens/textos";
+import { linkWhatsApp } from "@/lib/mensagens/textos";
 import { cn } from "@/lib/cn";
 import { AgendamentoPublicoFlow } from "./AgendamentoPublicoFlow";
 
@@ -104,7 +104,7 @@ export default async function PaginaPublicaEstabelecimento({ params }: PageProps
             )}
 
             <div className={cn("mt-5 grid gap-2", linkInstagram ? "grid-cols-3" : "grid-cols-2")}>
-              <AtalhoTopo href={linkWhatsAppEstabelecimento(estabelecimento.telefone)} rotulo="WhatsApp">
+              <AtalhoTopo href={linkWhatsApp(estabelecimento.telefone)} rotulo="WhatsApp">
                 <MessageCircle size={19} />
               </AtalhoTopo>
               {linkInstagram && (

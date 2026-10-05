@@ -8,7 +8,7 @@ import { db } from "@/lib/db";
 import { obterEstabelecimentoPorSlug } from "@/lib/estabelecimentoPublico";
 import { formatarCentavos, iniciais } from "@/lib/formatadores";
 import { variaveisDaMarca } from "@/lib/cores";
-import { linkWhatsAppEstabelecimento } from "@/lib/mensagens/textos";
+import { linkWhatsApp } from "@/lib/mensagens/textos";
 import { StatusBadge } from "@/components/painel/StatusBadge";
 import { BotaoCancelar } from "./BotaoCancelar";
 
@@ -86,7 +86,7 @@ export default async function PaginaAgendamentoPublico({
 
         <div className="mt-3 grid grid-cols-2 gap-2">
           <a
-            href={linkWhatsAppEstabelecimento(estabelecimento.telefone)}
+            href={linkWhatsApp(estabelecimento.telefone)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-surface py-3 text-sm font-semibold text-text transition hover:bg-surface-2"
