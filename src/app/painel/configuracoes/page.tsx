@@ -15,6 +15,7 @@ export default async function PaginaConfiguracoes() {
     <ConfiguracoesClient
       estabelecimento={usuario.estabelecimento}
       linkPublico={linkPublico}
+      emailDona={usuario.email}
       guiaEscondido={Boolean(usuario.estabelecimento.guiaEscondidoEm)}
     />
   );

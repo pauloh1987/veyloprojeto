@@ -2,6 +2,7 @@ import type { OrigemAgendamento, StatusAgendamento } from "@prisma/client";
 import { db } from "@/lib/db";
 import { paraDataYMD } from "@/lib/tz";
 import { criarMensagensParaAgendamento } from "@/lib/mensagens/fila";
+import { avisarDona } from "@/lib/email/avisoDona";
 import { ultimoDiaAgendavelYMD } from "./janelaAgendamento";
 import { ConflitoDeHorarioError, NaoEncontradoError, ValidacaoError } from "@/lib/erros";
 import { calcularHorariosDisponiveisNoBanco } from "./consultarDisponibilidade";
@@ -93,6 +94,8 @@ export async function criarAgendamento(input: CriarAgendamentoInput) {
   });
 
   await criarMensagensParaAgendamento(agendamento.id);
+  // Só o que a cliente marcou sozinha pelo link vira aviso: o agendamento manual quem fez foi a dona.
+  if (input.origem === "LINK") await avisarDona(agendamento.id, "novo");
   return agendamento;
 }
 

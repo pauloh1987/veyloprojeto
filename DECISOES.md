@@ -377,3 +377,21 @@ especificação não determinava um caminho exato. Organizado por área.
   aberto não é hoje, e, na visão por dia, uma faixa com os 7 dias da semana para trocar de dia
   com um toque. O painel passou a calcular a cor do texto sobre a cor do salão (`variaveisDaMarca`),
   como o link público, para os botões continuarem legíveis com cor clara ou no modo escuro.
+- **Aviso para a dona (06/10/2026)**: quando uma cliente agenda pelo link ou cancela (pelo botão do
+  WhatsApp ou pela página do agendamento), a dona recebe um e-mail com a cliente, o serviço, a
+  profissional (quando há equipe), o dia e a hora, o WhatsApp da cliente e o botão "Ver na agenda"
+  (`src/lib/email/avisoDona.ts`). Começou por e-mail porque o Resend já funciona, é grátis até 3.000
+  por mês e não depende de modelo aprovado pela Meta; o aviso por WhatsApp para a dona fica para
+  depois (precisa de modelo próprio e custa por mensagem). Os dois avisos vêm ligados e se desligam
+  em Configurações ("Avisos para você"); vão para todas as contas de papel Dono do salão.
+  Agendamento manual não gera aviso, porque quem marcou foi a própria dona. O envio nunca derruba
+  o agendamento nem o cancelamento: uma falha fica só no log do servidor.
+- **Troca do e-mail de acesso (06/10/2026)**: em Configurações, o card "E-mail de acesso" deixa a
+  pessoa logada trocar o próprio e-mail informando a senha atual (`src/lib/acoes/conta.ts`). Veio
+  de uma conta criada para teste que passou a ser usada por um salão do piloto: o login e os avisos
+  de agendamento iam para o endereço errado. A troca vale na hora (a confirmação do e-mail continua
+  sendo só um selo, não trava o login); o endereço novo recebe um link de confirmação e o antigo,
+  um aviso da troca, para a dona perceber se não foi ela. Links ainda não usados que foram para o
+  endereço antigo (confirmar e-mail, nova senha) deixam de valer, para quem só tem a caixa antiga
+  não conseguir trocar a senha. As sessões abertas continuam valendo, porque a sessão é ligada à
+  conta, não ao e-mail.

@@ -120,6 +120,8 @@ export const configuracoesSchema = z.object({
   foto: fotoDataUrlSchema("png"),
   logoFundo: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Cor inválida."),
   confirmacaoAutomatica: z.boolean(),
+  avisoNovoAgendamento: z.boolean(),
+  avisoCancelamento: z.boolean(),
   instagram: z
     .string()
     .max(120)
@@ -129,6 +131,12 @@ export const configuracoesSchema = z.object({
   avisoAgendamento: z.string().trim().max(500, "O aviso pode ter até 500 caracteres."),
 });
 export type ConfiguracoesInput = z.infer<typeof configuracoesSchema>;
+
+/** Troca do e-mail de acesso pela própria pessoa, confirmada com a senha atual. */
+export const alterarEmailSchema = z.object({
+  email: z.string().trim().toLowerCase().min(1, "Informe o novo e-mail.").email("E-mail inválido."),
+  senhaAtual: z.string().min(1, "Informe sua senha atual."),
+});
 
 export const novoAgendamentoPublicoSchema = z.object({
   profissionalId: z.string().min(1, "Selecione a profissional."),

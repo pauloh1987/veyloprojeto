@@ -9,6 +9,7 @@ import { Campo, Input, Rotulo, Select, Textarea } from "@/components/ui/Campo";
 import { OPCOES_JANELA_SEMANAS } from "@/lib/agenda/janelaAgendamento";
 import { iniciais } from "@/lib/formatadores";
 import { MostrarGuiaDeNovo } from "@/components/painel/MostrarGuiaDeNovo";
+import { TrocarEmailForm } from "./TrocarEmailForm";
 
 const ESTADO_INICIAL: EstadoAcao = {};
 // 480px (não 320) porque logo com traço fino (script, contorno) perde legibilidade se exportado
@@ -99,6 +100,7 @@ function redimensionarLogo(arquivo: File): Promise<string> {
 export function ConfiguracoesClient({
   estabelecimento,
   linkPublico,
+  emailDona,
   guiaEscondido,
 }: {
   estabelecimento: {
@@ -111,11 +113,14 @@ export function ConfiguracoesClient({
     foto: string | null;
     logoFundo: string;
     confirmacaoAutomatica: boolean;
+    avisoNovoAgendamento: boolean;
+    avisoCancelamento: boolean;
     instagram: string;
     apresentacao: string;
     avisoAgendamento: string;
   };
   linkPublico: string;
+  emailDona: string;
   guiaEscondido: boolean;
 }) {
   const [estado, acao] = useActionState(salvarConfiguracoes, ESTADO_INICIAL);
@@ -367,11 +372,40 @@ export function ConfiguracoesClient({
           </span>
         </label>
 
+        <div className="space-y-3 rounded-2xl bg-surface-2 p-4">
+          <div>
+            <p className="font-heading text-sm font-bold text-text">Avisos para você</p>
+            <p className="text-xs text-text-faint">
+              Por e-mail, para <span className="break-all">{emailDona}</span>. Para trocar o endereço, use &quot;E-mail de acesso&quot;, mais abaixo.
+            </p>
+          </div>
+          <label className="flex items-start gap-2.5 text-sm text-text">
+            <input
+              type="checkbox"
+              name="avisoNovoAgendamento"
+              defaultChecked={estabelecimento.avisoNovoAgendamento}
+              className="mt-0.5 h-4 w-4 rounded"
+            />
+            <span>Quando uma cliente agendar pelo link</span>
+          </label>
+          <label className="flex items-start gap-2.5 text-sm text-text">
+            <input
+              type="checkbox"
+              name="avisoCancelamento"
+              defaultChecked={estabelecimento.avisoCancelamento}
+              className="mt-0.5 h-4 w-4 rounded"
+            />
+            <span>Quando uma cliente cancelar</span>
+          </label>
+        </div>
+
         {estado?.erro && <p className="text-sm text-danger">{estado.erro}</p>}
         {estado?.sucesso && <p className="text-sm text-success">Configurações salvas.</p>}
 
         <Button type="submit">Salvar alterações</Button>
       </form>
+
+      <TrocarEmailForm emailAtual={emailDona} />
 
       {guiaEscondido && <MostrarGuiaDeNovo />}
     </div>

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { cancelarMensagensPendentes } from "@/lib/mensagens/fila";
+import { avisarDona } from "@/lib/email/avisoDona";
 
 export type ResultadoResposta =
   | { tipo: "ok" }
@@ -7,8 +8,8 @@ export type ResultadoResposta =
   | { tipo: "ja_concluido" };
 
 /** A própria cliente cancelou (botão "Cancelar" no WhatsApp ou página do agendamento): libera
- * o horário, cancela os lembretes pendentes e marca `canceladoPelaClienteEm` pra dona ver o
- * aviso no painel. */
+ * o horário, cancela os lembretes pendentes, marca `canceladoPelaClienteEm` pra dona ver o
+ * aviso no painel e manda o e-mail de cancelamento para ela, se estiver ligado. */
 export async function cancelarPelaCliente(agendamentoId: string): Promise<ResultadoResposta> {
   const agendamento = await db.agendamento.findUniqueOrThrow({ where: { id: agendamentoId } });
   if (agendamento.status === "CANCELADO") return { tipo: "ja_cancelado" };
@@ -19,6 +20,7 @@ export async function cancelarPelaCliente(agendamentoId: string): Promise<Result
     data: { status: "CANCELADO", canceladoPelaClienteEm: new Date() },
   });
   await cancelarMensagensPendentes(agendamentoId);
+  await avisarDona(agendamentoId, "cancelado");
   return { tipo: "ok" };
 }
 

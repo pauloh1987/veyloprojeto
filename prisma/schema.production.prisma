@@ -75,6 +75,9 @@ model Estabelecimento {
   /** Até quantas semanas à frente a cliente pode marcar pelo link público. */
   janelaAgendamentoSemanas Int @default(8)
   confirmacaoAutomatica Boolean @default(true)
+  /** Avisos por e-mail para a dona: uma cliente agendou pelo link / uma cliente cancelou. */
+  avisoNovoAgendamento Boolean @default(true)
+  avisoCancelamento    Boolean @default(true)
   criadoEm           DateTime @default(now())
   assinanteDesde     DateTime?
   /** Conta parceira (piloto): usa sem cobrança e sem prazo de teste. Marcada no admin. */
