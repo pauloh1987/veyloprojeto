@@ -28,7 +28,12 @@ de verdade e a produção roda na Netlify + Neon, como descrito abaixo.
   telefone ou e-mail passa o contato para "Em teste") e Financeiro (custos editáveis na tabela
   `Custo`, em real ou dólar, por mês, por ano ou por mensagem de WhatsApp; dólar do dia pela
   AwesomeAPI).
-- Fase atual (fim de setembro/2026): piloto com 3 esmalterias, ainda sem cobrança. Time: Paulo
+- Link público: o agendamento só vale quando a cliente toca em Confirmar no WhatsApp (pré-reserva
+  de 30 minutos). A dona recebe e-mail a cada agendamento e cancelamento feitos pela cliente.
+- Ao finalizar um atendimento, a janela de pagamento registra o valor cobrado, os adicionais e a
+  forma (Pix, dinheiro, crédito, débito ou fiado); a tela Financeiro mostra o fiado a receber e o
+  que entrou no mês por forma. Cada conta troca o próprio e-mail de acesso em Configurações.
+- Fase atual (outubro/2026): piloto com 3 esmalterias, ainda sem cobrança. Time: Paulo
   (produto e tecnologia), Biel (implantação nas esmalterias) e Dudu (Instagram).
 
 ## Como rodar local
@@ -43,6 +48,12 @@ de verdade e a produção roda na Netlify + Neon, como descrito abaixo.
   "Simular o toque em Confirmar" (o webhook aceita requisição sem assinatura). Sem a variável, o
   link agenda direto.
 - Verificações: `npm test` (vitest), `npx tsc --noEmit -p .` e `npx eslint <arquivos>`.
+- Testar no navegador embutido do app Claude: com a janela do Claude escondida a página não termina
+  de carregar (o React espera um requestAnimationFrame que não chega). Rode no console
+  `window.$RV(window.$RB)`, chame `_reactRetry()` nos comentários do DOM que tiverem essa função,
+  troque `window.requestAnimationFrame` por um `setTimeout` e daí navegue com
+  `window.next.router.push(url)`. Clique pelo JavaScript (`elemento.click()`); formulário de server
+  action envia com `form.submit()`. Contas de teste locais: ver `prisma/seed.ts`.
 - Windows/OneDrive: pare o `next dev` antes de `rm -rf .next && npm run build`; com o servidor
   rodando, o cache do Turbopack trava ou corrompe.
 
@@ -118,15 +129,44 @@ Netlify; o Claude não digita senhas nem chaves.
   Financeiro). Faturamento sempre por `valorDoAtendimento` (`src/lib/financeiro/fechamento.ts`), que
   cai no preço do serviço nos atendimentos antigos.
 
-## Pendências (01/10/2026)
+## Estado atual e pendências (07/10/2026)
 
+- No ar desde 07/10/2026: confirmação pelo WhatsApp no link, aviso por e-mail para a dona, troca
+  do e-mail de acesso e a janela de pagamento com a tela Financeiro (fiado). O trabalho do dia a
+  dia é na branch `teste`; publicar é fazer merge dela na `main` (ver "Publicar custa créditos").
+- Site de teste ainda não ligado. Falta o Paulo fazer, nesta ordem: (1) no Neon, criar a branch
+  `teste` a partir da `main`, com os dados atuais, e copiar o endereço de conexão (pooled);
+  (2) na Netlify, criar a variável `POSTGRES_URL_TESTE` (marcar "Contains secret values") com esse
+  endereço; (3) na Netlify, em Build & deploy → Branches and deploy contexts → Branch deploys,
+  adicionar a branch `teste`. Depois, um push na `teste` publica o site de teste.
 - WhatsApp funcionando de ponta a ponta desde 01/10/2026: modelos aprovados pela Meta e perfil
   principal de conformidade (KYC) aprovado no Trust Hub da Twilio, como pessoa física (Individual);
   sem esse perfil a Twilio recusa os envios com o código 20003. Com o MEI: converter o perfil para
   comercial e pedir a verificação do negócio na Meta (selo verificado, para o nome "Veylo Agenda"
   aparecer no lugar do número para quem não salvou o contato).
+- Custo do WhatsApp: cada agendamento manda confirmação e lembrete (modelos de utilidade: taxa da
+  Meta mais US$ 0,005 da Twilio por mensagem). Trocar a Twilio pela API oficial da Meta direto
+  corta mais da metade desse custo; vale fazer antes de crescer.
+- Preço: a decisão é um plano só para a equipe inteira (R$ 89/mês) e um preço de fundadora para os
+  primeiros salões (valor e prazo a confirmar; a ideia discutida foi R$ 59 travado por 12 meses).
+  Ainda não existe no sistema: hoje teste grátis, parceira e assinante são marcados à mão no admin.
+- Uma conta do piloto ainda usa o e-mail de teste no login (ver no admin): trocar em Configurações
+  → "E-mail de acesso" para os avisos chegarem na dona.
+- Investigar o selo "Powered by Netlify" que aparece no canto do link público (visto em 07/10).
 - Marcar as esmalterias do piloto como parceiras no `/admin` antes dos 14 dias de teste.
 - Atualizar `/privacidade` para citar Neon, WhatsApp (Meta) e Resend.
-- Definir como cobrar (Pix manual no começo, cobrança automática depois), CNPJ/MEI, termos de
-  uso, a caixa contato@veyloagenda.com.br e o limite de mensagens de WhatsApp por plano.
-- Ligar a recarga automática da Netlify e acompanhar as horas-CU do Neon (grátis até 100/mês).
+- Definir como cobrar (Pix manual no começo, cobrança automática depois), CNPJ/MEI (confirmar com
+  contador se atividade de software pode ser MEI), termos de uso, a caixa
+  contato@veyloagenda.com.br e o limite de mensagens de WhatsApp por plano.
+- Ligar a recarga automática da Netlify e acompanhar as horas-CU do Neon (grátis até 100/mês). O
+  Resend grátis manda até 100 e-mails por dia: com uns 12 salões, passar para o plano pago.
+
+## Fora do repositório
+
+- Instagram (@useveylo): pasta "Veylo Instagram" na Área de Trabalho do OneDrive do Paulo, com
+  `01 - Apresentacao` (carrossel), `02 - Destaques` (stories dos destaques, capas e "Como
+  postar.txt") e `03 - Parceria Studio Hulyanne` (carrossel e legenda). Cada pasta tem `fonte/` com
+  o HTML: as imagens saem renderizando o HTML no Chrome sem janela (`--headless=new --screenshot`,
+  1080×1440 no feed e 1080×1920 no story). Roteiros de abordagem em `Prospeccao/`.
+- No claude.ai (mesma conta do Paulo): o roadmap da equipe e o Design System da Veylo, como
+  artifacts. Os leads da prospecção ficam no admin (Funil), nunca no repositório (ele é público).
