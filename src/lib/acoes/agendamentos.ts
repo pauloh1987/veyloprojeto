@@ -7,23 +7,12 @@ import { exigirSessao } from "@/lib/auth";
 import { atualizarStatusAgendamentoSchema, novoAgendamentoManualSchema } from "@/lib/validacao";
 import { criarAgendamento } from "@/lib/agenda/criarAgendamento";
 import { cancelarMensagensPendentes } from "@/lib/mensagens/fila";
+import { carregarAgendamentoDoUsuario } from "@/lib/agenda/agendamentoDoUsuario";
 import { mensagemSeguraDeErro, NaoAutorizadoError, ValidacaoError } from "@/lib/erros";
 
 export interface EstadoAcao {
   erro?: string;
   sucesso?: boolean;
-}
-
-async function carregarAgendamentoDoUsuario(agendamentoId: string) {
-  const usuario = await exigirSessao();
-  const agendamento = await db.agendamento.findUnique({ where: { id: agendamentoId } });
-  if (!agendamento || agendamento.estabelecimentoId !== usuario.estabelecimentoId) {
-    throw new NaoAutorizadoError();
-  }
-  if (usuario.papel === "PROFISSIONAL" && agendamento.profissionalId !== usuario.profissionalId) {
-    throw new NaoAutorizadoError();
-  }
-  return { usuario, agendamento };
 }
 
 export async function atualizarStatusAgendamento(

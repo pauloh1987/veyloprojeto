@@ -158,11 +158,42 @@ export const novoAgendamentoManualSchema = z.object({
 });
 export type NovoAgendamentoManualInput = z.infer<typeof novoAgendamentoManualSchema>;
 
+// ATENDIDO não entra aqui: finalizar passa pela janela de pagamento (finalizarAtendimentoSchema).
 export const atualizarStatusAgendamentoSchema = z.object({
   agendamentoId: z.string().min(1),
-  status: z.enum(["PENDENTE", "CONFIRMADO", "ATENDIDO", "FALTOU", "CANCELADO"]),
+  status: z.enum(["PENDENTE", "CONFIRMADO", "FALTOU", "CANCELADO"]),
 });
 export type AtualizarStatusAgendamentoInput = z.infer<typeof atualizarStatusAgendamentoSchema>;
+
+const MAXIMO_CENTAVOS = 10_000_000;
+const formaPagamentoSchema = z.enum(["PIX", "DINHEIRO", "CREDITO", "DEBITO", "FIADO"]);
+
+/** Janela "Finalizar atendimento": valor do serviço, adicionais e formas de pagamento (as regras de
+ * soma ficam em src/lib/financeiro/fechamento.ts). */
+export const finalizarAtendimentoSchema = z.object({
+  agendamentoId: z.string().min(1),
+  valorServicoCentavos: z.number().int().min(0).max(MAXIMO_CENTAVOS),
+  adicionais: z
+    .array(
+      z.object({
+        descricao: z.string().trim().min(1, "Dê um nome a cada adicional.").max(80),
+        valorCentavos: z.number().int().min(0).max(MAXIMO_CENTAVOS),
+      }),
+    )
+    .max(20),
+  pagamentos: z
+    .array(z.object({ forma: formaPagamentoSchema, valorCentavos: z.number().int().min(0).max(MAXIMO_CENTAVOS) }))
+    .max(5),
+});
+export type FinalizarAtendimentoInput = z.infer<typeof finalizarAtendimentoSchema>;
+
+/** Receber um fiado (tudo ou uma parte), na forma em que o dinheiro entrou. */
+export const registrarRecebimentoSchema = z.object({
+  pagamentoId: z.string().min(1),
+  forma: z.enum(["PIX", "DINHEIRO", "CREDITO", "DEBITO"]),
+  valorCentavos: z.number().int().min(1, "Coloque o valor recebido.").max(MAXIMO_CENTAVOS),
+});
+export type RegistrarRecebimentoInput = z.infer<typeof registrarRecebimentoSchema>;
 
 export const alternarArquivadoServicoSchema = z.object({
   servicoId: z.string().min(1),

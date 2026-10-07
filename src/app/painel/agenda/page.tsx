@@ -10,6 +10,9 @@ import { linkWhatsApp } from "@/lib/mensagens/textos";
 import type { ColunaGrade, EventoGrade } from "@/components/painel/GradeAgenda";
 import { AgendaClient, type AgendamentoDetalhe, type DiaDaFaixa } from "./AgendaClient";
 import { filtroClienteVisivel } from "@/lib/agenda/preReserva";
+import { INCLUIR_FECHAMENTO, carregarCatalogo, montarFechamento } from "@/lib/financeiro/dadosFechamento";
+import { valorDoAtendimento } from "@/lib/financeiro/fechamento";
+import type { FormaPagamento } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Agenda" };
@@ -36,6 +39,10 @@ type AgendamentoDaGrade = {
   cliente: { nome: string; telefone: string };
   servico: { nome: string; cor: string; precoCentavos: number };
   mensagens: { id: string }[];
+  valorServicoCentavos: number | null;
+  valorTotalCentavos: number | null;
+  adicionais: { descricao: string; valorCentavos: number }[];
+  pagamentos: { forma: FormaPagamento; valorCentavos: number; recebidoEm: Date | null }[];
 };
 
 export default async function PaginaAgenda({ searchParams }: PageProps<"/painel/agenda">) {
@@ -102,7 +109,7 @@ export default async function PaginaAgenda({ searchParams }: PageProps<"/painel/
         inicio: { gte: inicio, lt: fimExclusivo },
         status: { notIn: ["CANCELADO", "AGUARDANDO_CLIENTE"] },
       },
-      include: { cliente: true, servico: true, mensagens: AVISO_COM_BOTOES_ENVIADO },
+      include: { cliente: true, servico: true, mensagens: AVISO_COM_BOTOES_ENVIADO, ...INCLUIR_FECHAMENTO },
     });
 
     colunas = todosProfissionais.map((prof) => ({
@@ -140,7 +147,7 @@ export default async function PaginaAgenda({ searchParams }: PageProps<"/painel/
             inicio: { gte: inicioSemana, lt: fimSemana },
             status: { notIn: ["CANCELADO", "AGUARDANDO_CLIENTE"] },
           },
-          include: { cliente: true, servico: true, mensagens: AVISO_COM_BOTOES_ENVIADO },
+          include: { cliente: true, servico: true, mensagens: AVISO_COM_BOTOES_ENVIADO, ...INCLUIR_FECHAMENTO },
         })
       : [];
 
@@ -166,6 +173,7 @@ export default async function PaginaAgenda({ searchParams }: PageProps<"/painel/
   return (
     <AgendaClient
       colunas={colunas}
+      servicos={await carregarCatalogo(usuario.estabelecimentoId)}
       detalhes={Object.fromEntries(detalhes)}
       profissionais={profissionaisParaModal}
       clientes={clientes}
@@ -192,8 +200,9 @@ function paraDetalhe(a: AgendamentoDaGrade, fuso: string, agora: Date): Agendame
     clienteNome: a.cliente.nome,
     clienteTelefone: a.cliente.telefone,
     servicoNome: a.servico.nome,
-    precoCentavos: a.servico.precoCentavos,
+    precoCentavos: valorDoAtendimento(a),
     status: a.status,
+    fechamento: montarFechamento(a),
     observacao: a.observacao,
     horarioFormatado: `${formatInTimeZone(a.inicio, fuso, "HH:mm")}–${formatInTimeZone(a.fim, fuso, "HH:mm")}`,
     resposta,

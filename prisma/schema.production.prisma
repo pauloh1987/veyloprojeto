@@ -33,6 +33,16 @@ enum StatusAgendamento {
   AGUARDANDO_CLIENTE
 }
 
+/** Como o atendimento foi pago. FIADO = a cliente ficou devendo: o valor fica "a receber" em
+ * Financeiro até a dona marcar como pago. */
+enum FormaPagamento {
+  PIX
+  DINHEIRO
+  CREDITO
+  DEBITO
+  FIADO
+}
+
 enum OrigemAgendamento {
   LINK
   MANUAL
@@ -101,6 +111,7 @@ model Estabelecimento {
   categoriasServico CategoriaServico[]
   clientes          Cliente[]
   agendamentos      Agendamento[]
+  pagamentos        Pagamento[]
   lead              Lead?
 }
 
@@ -284,7 +295,15 @@ model Agendamento {
   criadoEm          DateTime          @default(now())
   atualizadoEm      DateTime          @updatedAt
 
-  mensagens Mensagem[]
+  /** Fechamento (janela "Finalizar atendimento"): valor cobrado pelo serviço, que pode ter desconto
+   * sobre o preço da tabela, e o total com os adicionais. Vazios em atendimento finalizado antes do
+   * fechamento existir (07/10/2026): aí vale o preço do serviço. */
+  valorServicoCentavos Int?
+  valorTotalCentavos   Int?
+
+  mensagens  Mensagem[]
+  adicionais AdicionalAtendimento[]
+  pagamentos Pagamento[]
 
   @@index([profissionalId, inicio])
   @@index([estabelecimentoId, inicio])
@@ -399,4 +418,36 @@ enum FrequenciaCusto {
   MENSAL
   ANUAL
   POR_MENSAGEM
+}
+
+/** Serviço ou item cobrado a mais no fim do atendimento (decoração, reparo de unha...). */
+model AdicionalAtendimento {
+  id            String      @id @default(cuid())
+  agendamentoId String
+  agendamento   Agendamento @relation(fields: [agendamentoId], references: [id], onDelete: Cascade)
+  descricao     String
+  valorCentavos Int
+
+  @@index([agendamentoId])
+}
+
+/** Como o atendimento foi pago. Pode ter mais de um por atendimento (parte no Pix, parte fiado).
+ * Fiado fica a receber (`recebidoEm` vazio) até a dona marcar como pago: aí ganha `recebidoEm` e
+ * a forma em que o dinheiro entrou. Recebimento em partes divide a linha em duas. */
+model Pagamento {
+  id                String          @id @default(cuid())
+  estabelecimentoId String
+  estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  agendamentoId     String
+  agendamento       Agendamento     @relation(fields: [agendamentoId], references: [id], onDelete: Cascade)
+  valorCentavos     Int
+  forma             FormaPagamento
+  /** Quando o dinheiro entrou. Vazio = fiado ainda a receber. */
+  recebidoEm        DateTime?
+  /** Fiado recebido: em que forma o dinheiro entrou. */
+  formaRecebimento  FormaPagamento?
+  criadoEm          DateTime        @default(now())
+
+  @@index([estabelecimentoId, recebidoEm])
+  @@index([agendamentoId])
 }

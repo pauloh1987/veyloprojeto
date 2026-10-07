@@ -112,6 +112,11 @@ Netlify; o Claude não digita senhas nem chaves.
   e só vale quando a cliente toca em Confirmar no WhatsApp (`src/lib/agenda/confirmacaoPeloWhatsApp.ts`).
   Toda consulta de agendamentos para a equipe (painel, relatório, admin) filtra `confirmarAte: null`,
   e a disponibilidade usa `filtroOcupaHorario` (`src/lib/agenda/preReserva.ts`).
+- Finalizar um atendimento passa pela janela de pagamento (`FinalizarAtendimentoModal`,
+  `src/lib/acoes/financeiro.ts`): valor cobrado em `Agendamento.valorTotalCentavos`, adicionais em
+  `AdicionalAtendimento` e formas em `Pagamento` (fiado = `recebidoEm` vazio, a receber na tela
+  Financeiro). Faturamento sempre por `valorDoAtendimento` (`src/lib/financeiro/fechamento.ts`), que
+  cai no preço do serviço nos atendimentos antigos.
 
 ## Pendências (01/10/2026)
 

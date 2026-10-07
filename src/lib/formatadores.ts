@@ -7,6 +7,23 @@ export function formatarCentavos(centavos: number): string {
   return formatadorMoeda.format(centavos / 100);
 }
 
+/** Valor digitado em reais ("130", "130,5", "1.300,50", "R$ 130,00", "130.50") em centavos.
+ * Vazio ou fora do formato devolve null. */
+export function reaisParaCentavos(texto: string): number | null {
+  const limpo = texto.replace(/R\$|\s/g, "");
+  if (!limpo) return null;
+  let normalizado = limpo;
+  if (limpo.includes(",")) normalizado = limpo.replace(/\./g, "").replace(",", ".");
+  else if (/^\d{1,3}(\.\d{3})+$/.test(limpo)) normalizado = limpo.replace(/\./g, "");
+  if (!/^\d+(\.\d{1,2})?$/.test(normalizado)) return null;
+  return Math.round(Number(normalizado) * 100);
+}
+
+/** Centavos no formato de campo de valor: 13050 → "130,50". */
+export function centavosParaCampo(centavos: number): string {
+  return (centavos / 100).toFixed(2).replace(".", ",");
+}
+
 export function formatarDuracao(minutos: number): string {
   if (minutos < 60) return `${minutos} min`;
   const horas = Math.floor(minutos / 60);

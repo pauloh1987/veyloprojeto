@@ -424,3 +424,16 @@ especificação não determinava um caminho exato. Organizado por área.
   verdade só sai para a equipe (ADMIN_EMAILS), porque a cópia tem os e-mails das donas. As tarefas
   agendadas (lembretes e backup) não rodam em branch deploy, segundo a documentação da Netlify.
   Uma faixa amarela avisa que é teste, e o site fica fora do Google.
+- **Pagamento ao finalizar e fiado (07/10/2026)**: o botão "Atendido" virou "Finalizar", que abre a
+  janela "Finalizar atendimento": valor do serviço (dá para dar desconto sobre a tabela),
+  adicionais (da tabela de serviços ou digitados), total e a forma de pagamento (Pix, Dinheiro,
+  Crédito, Débito ou Fiado), com até 3 formas no mesmo atendimento (a última fica com o que falta).
+  Fiado fica a receber (`Pagamento.recebidoEm` vazio) na tela Financeiro até a dona marcar como
+  pago, em qualquer forma e também em partes (a linha se divide); "Desfazer" corrige recebimento
+  marcado por engano. O pagamento feito na hora entra na data do fim do atendimento, para quem
+  finaliza no dia seguinte não jogar o dinheiro para o outro dia. O status ATENDIDO só se dá pela
+  janela (saiu de `atualizarStatusAgendamentoSchema`), e dá para corrigir o pagamento depois
+  ("Editar pagamento"), menos quando parte do fiado já foi recebida. O Relatório passou a usar o
+  valor cobrado (`valorTotalCentavos`) e, nos atendimentos antigos, o preço do serviço; Financeiro
+  mostra o dinheiro que entrou (caixa), e Relatório o que foi atendido. "Cobrar no WhatsApp" abre
+  o WhatsApp da dona com a cobrança já escrita (sem custo, sem modelo da Meta).

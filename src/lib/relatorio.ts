@@ -2,6 +2,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { db } from "@/lib/db";
 import { limitesDoDia } from "@/lib/tz";
 import { mesDoInstante, periodoDeComparacao, somarMeses, type MesAno } from "@/lib/mesRelatorio";
+import { valorDoAtendimento } from "@/lib/financeiro/fechamento";
 
 function primeiroDiaMes({ ano, mes }: MesAno): string {
   return `${ano}-${String(mes).padStart(2, "0")}-01`;
@@ -67,8 +68,8 @@ export async function calcularRelatorio(estabelecimentoId: string, fuso: string,
   ]);
 
   const atendidosMesAtual = agendamentosMesAtual.filter((a) => a.status === "ATENDIDO");
-  const faturamentoMesAtualCentavos = atendidosMesAtual.reduce((soma, a) => soma + a.servico.precoCentavos, 0);
-  const faturamentoComparacaoCentavos = agendamentosComparacao.reduce((soma, a) => soma + a.servico.precoCentavos, 0);
+  const faturamentoMesAtualCentavos = atendidosMesAtual.reduce((soma, a) => soma + valorDoAtendimento(a), 0);
+  const faturamentoComparacaoCentavos = agendamentosComparacao.reduce((soma, a) => soma + valorDoAtendimento(a), 0);
   const variacaoPercentual =
     faturamentoComparacaoCentavos === 0
       ? null
@@ -107,7 +108,7 @@ export async function calcularRelatorio(estabelecimentoId: string, fuso: string,
       comissaoPercentual: a.profissional.comissaoPercentual,
       faturamentoCentavos: 0,
     };
-    atual.faturamentoCentavos += a.servico.precoCentavos;
+    atual.faturamentoCentavos += valorDoAtendimento(a);
     porProfissional.set(a.profissionalId, atual);
   }
   const comissoesPorProfissional = [...porProfissional.entries()]
@@ -126,7 +127,7 @@ export async function calcularRelatorio(estabelecimentoId: string, fuso: string,
   const faturamentoPorDiaCentavos = Array.from({ length: diasNoMes }, () => 0);
   for (const a of atendidosMesAtual) {
     const dia = Number(formatInTimeZone(a.inicio, fuso, "d"));
-    faturamentoPorDiaCentavos[dia - 1] += a.servico.precoCentavos;
+    faturamentoPorDiaCentavos[dia - 1] += valorDoAtendimento(a);
   }
 
   return {

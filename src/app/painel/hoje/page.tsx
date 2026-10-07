@@ -17,6 +17,8 @@ import { Badge } from "@/components/ui/Badge";
 import { StatusBadge } from "@/components/painel/StatusBadge";
 import { BotoesStatusAgendamento } from "@/components/painel/BotoesStatusAgendamento";
 import { GuiaComecePorAqui } from "@/components/painel/GuiaComecePorAqui";
+import { INCLUIR_FECHAMENTO, carregarCatalogo, montarFechamento } from "@/lib/financeiro/dadosFechamento";
+import { valorDoAtendimento } from "@/lib/financeiro/fechamento";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Hoje" };
@@ -34,7 +36,7 @@ export default async function PaginaHoje() {
   const desde = subDays(new Date(), DIAS_RESPOSTAS_RECENTES);
   const mostrarGuia = usuario.papel === "DONO" && !usuario.estabelecimento.guiaEscondidoEm;
 
-  const [agendamentos, respostas, guiaFeitos] = await Promise.all([
+  const [agendamentos, respostas, guiaFeitos, catalogo] = await Promise.all([
     db.agendamento.findMany({
       where: {
         estabelecimentoId: usuario.estabelecimentoId,
@@ -42,7 +44,7 @@ export default async function PaginaHoje() {
         inicio: { gte: inicio, lt: fimExclusivo },
         confirmarAte: null,
       },
-      include: { cliente: true, servico: true, profissional: true, mensagens: AVISO_COM_BOTOES_ENVIADO },
+      include: { cliente: true, servico: true, profissional: true, mensagens: AVISO_COM_BOTOES_ENVIADO, ...INCLUIR_FECHAMENTO },
       orderBy: { inicio: "asc" },
     }),
     db.agendamento.findMany({
@@ -58,11 +60,12 @@ export default async function PaginaHoje() {
       take: 10,
     }),
     mostrarGuia ? carregarPassosFeitos(usuario.estabelecimento) : null,
+    carregarCatalogo(usuario.estabelecimentoId),
   ]);
 
   const totalCentavos = agendamentos
     .filter((a) => a.status !== "CANCELADO")
-    .reduce((soma, a) => soma + a.servico.precoCentavos, 0);
+    .reduce((soma, a) => soma + valorDoAtendimento(a), 0);
 
   const diaPorExtenso = formatInTimeZone(agora, fuso, "EEEE, d 'de' MMMM", { locale: ptBR });
   const tituloData = diaPorExtenso.charAt(0).toUpperCase() + diaPorExtenso.slice(1);
@@ -141,7 +144,7 @@ export default async function PaginaHoje() {
                   </div>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="font-semibold text-text">{formatarCentavos(a.servico.precoCentavos)}</p>
+                  <p className="font-semibold text-text">{formatarCentavos(valorDoAtendimento(a))}</p>
                   <div className="mt-1 flex flex-col items-end gap-1">
                     <StatusBadge status={a.status} />
                     {situacaoResposta(a, agora) === "confirmou" && (
@@ -171,7 +174,7 @@ export default async function PaginaHoje() {
                 </div>
               </div>
               <div className="mt-3 border-t border-border pt-3">
-                <BotoesStatusAgendamento agendamentoId={a.id} status={a.status} />
+                <BotoesStatusAgendamento agendamento={montarFechamento(a)} servicos={catalogo} />
               </div>
             </li>
           ))}

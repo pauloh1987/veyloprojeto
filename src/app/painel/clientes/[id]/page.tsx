@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatInTimeZone } from "date-fns-tz";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, Phone, Mail, StickyNote } from "lucide-react";
+import { ArrowLeft, Phone, Mail, StickyNote, Wallet } from "lucide-react";
 import { exigirSessao } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatarCentavos } from "@/lib/formatadores";
@@ -12,6 +12,8 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/painel/StatusBadge";
 import { FormularioClienteModal } from "../FormularioClienteModal";
 import { LembreteRetornoForm } from "../LembreteRetornoForm";
+import { Badge } from "@/components/ui/Badge";
+import { valorDoAtendimento } from "@/lib/financeiro/fechamento";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Cliente" };
@@ -28,7 +30,7 @@ export default async function PaginaFichaCliente({ params }: PageProps<"/painel/
   const [agendamentos, servicos] = await Promise.all([
     db.agendamento.findMany({
       where: { clienteId: cliente.id, confirmarAte: null },
-      include: { servico: true, profissional: true },
+      include: { servico: true, profissional: true, pagamentos: { select: { forma: true, valorCentavos: true, recebidoEm: true } } },
       orderBy: { inicio: "desc" },
     }),
     db.servico.findMany({
@@ -38,7 +40,10 @@ export default async function PaginaFichaCliente({ params }: PageProps<"/painel/
   ]);
 
   const atendidos = agendamentos.filter((a) => a.status === "ATENDIDO");
-  const totalGastoCentavos = atendidos.reduce((soma, a) => soma + a.servico.precoCentavos, 0);
+  const totalGastoCentavos = atendidos.reduce((soma, a) => soma + valorDoAtendimento(a), 0);
+  const fiadoPendente = (a: (typeof agendamentos)[number]) =>
+    a.pagamentos.filter((p) => p.forma === "FIADO" && !p.recebidoEm).reduce((soma, p) => soma + p.valorCentavos, 0);
+  const aReceberCentavos = agendamentos.reduce((soma, a) => soma + fiadoPendente(a), 0);
   const faltas = agendamentos.filter((a) => a.status === "FALTOU").length;
   const ultimoAtendimento = atendidos[0]?.inicio ?? null;
   const fuso = usuario.estabelecimento.fuso;
@@ -66,6 +71,19 @@ export default async function PaginaFichaCliente({ params }: PageProps<"/painel/
         </div>
         <FormularioClienteModal cliente={cliente} />
       </div>
+
+      {usuario.papel === "DONO" && aReceberCentavos > 0 && (
+        <Link
+          href="/painel/financeiro"
+          className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-warning/40 bg-warning-bg px-4 py-3 text-sm text-text hover:brightness-[0.98]"
+        >
+          <span className="flex items-center gap-2">
+            <Wallet size={16} className="text-warning" />
+            Fiado a receber: <strong>{formatarCentavos(aReceberCentavos)}</strong>
+          </span>
+          <span className="text-xs font-semibold text-text-muted">Ver em Financeiro</span>
+        </Link>
+      )}
 
       {cliente.observacoes && (
         <Card className="mb-5">
@@ -122,7 +140,8 @@ export default async function PaginaFichaCliente({ params }: PageProps<"/painel/
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <span className="text-sm text-text-muted">{formatarCentavos(a.servico.precoCentavos)}</span>
+                {fiadoPendente(a) > 0 && <Badge tom="warning">fiado</Badge>}
+                <span className="text-sm text-text-muted">{formatarCentavos(valorDoAtendimento(a))}</span>
                 <StatusBadge status={a.status} />
               </div>
             </li>

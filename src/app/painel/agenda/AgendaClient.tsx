@@ -14,6 +14,7 @@ import { BotoesStatusAgendamento } from "@/components/painel/BotoesStatusAgendam
 import { EstadoVazio } from "@/components/ui/EstadoVazio";
 import { formatarCentavos } from "@/lib/formatadores";
 import type { SituacaoResposta } from "@/lib/agenda/situacaoResposta";
+import type { FechamentoAgendamento, ServicoDoCatalogo } from "@/lib/financeiro/dadosFechamento";
 import { cn } from "@/lib/cn";
 
 export interface AgendamentoDetalhe {
@@ -28,6 +29,7 @@ export interface AgendamentoDetalhe {
   resposta: SituacaoResposta;
   /** WhatsApp da cliente com a mensagem de confirmação já escrita (só para quem não respondeu). */
   linkChamarCliente: string | null;
+  fechamento: FechamentoAgendamento;
 }
 
 /** Um dia da faixa de dias da semana (visão por dia, da equipe). */
@@ -43,6 +45,7 @@ const BOTAO_SETA =
 
 export function AgendaClient({
   colunas,
+  servicos,
   detalhes,
   profissionais,
   clientes,
@@ -60,6 +63,8 @@ export function AgendaClient({
   prefillPadrao,
 }: {
   colunas: ColunaGrade[];
+  /** Tabela de serviços, para lançar adicionais ao finalizar. */
+  servicos: ServicoDoCatalogo[];
   detalhes: Record<string, AgendamentoDetalhe>;
   profissionais: ProfissionalOpcaoModal[];
   clientes: ClienteOpcaoModal[];
@@ -232,7 +237,7 @@ export function AgendaClient({
                 </a>
               </div>
             )}
-            <BotoesStatusAgendamento agendamentoId={detalheAtual.id} status={detalheAtual.status} />
+            <BotoesStatusAgendamento agendamento={detalheAtual.fechamento} servicos={servicos} />
           </div>
         )}
       </Modal>
