@@ -47,6 +47,13 @@ export function explicarErroEnvio(erro: string | null): string | null {
 /** Códigos que dizem respeito ao número da cliente: a dona do salão consegue agir sobre eles. */
 const CODIGOS_DO_NUMERO_DA_CLIENTE = [21211, 21610, 21614, 63024];
 
+/** A falha foi por causa do número da cliente (inválido, fixo, sem WhatsApp, descadastrado),
+ * e não da configuração da Veylo ou de instabilidade da Twilio. */
+export function ehErroDoNumeroDaCliente(erro: string | null | undefined): boolean {
+  if (!erro) return false;
+  return CODIGOS_DO_NUMERO_DA_CLIENTE.includes(Number(/código (\d+)/.exec(erro)?.[1]));
+}
+
 /** Versão para a dona do salão (tela Mensagens): fala do número da cliente quando for o caso e
  * não mostra detalhe técnico de configuração, que fica no admin da Veylo. */
 export function explicarErroParaSalao(erro: string | null): string {

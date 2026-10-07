@@ -1,6 +1,6 @@
 [build]
-  # aplicar-migracoes.mjs aplica no Neon (POSTGRES_URL, só em produção) as migrações de
-  # prisma/migracoes-producao que faltam; sem POSTGRES_URL não faz nada.
+  # aplicar-migracoes.mjs aplica no Neon as migrações de prisma/migracoes-producao que faltam:
+  # em produção no POSTGRES_URL; no site de teste (branch `teste`) só no POSTGRES_URL_TESTE.
   command = "npx prisma generate && npx prisma generate --config=prisma.production.config.ts && node scripts/aplicar-migracoes.mjs && npm run build"
   publish = ".next"
 

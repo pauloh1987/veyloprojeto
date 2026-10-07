@@ -9,6 +9,7 @@ import { AVISO_COM_BOTOES_ENVIADO, situacaoResposta, textoParaConfirmarHorario }
 import { linkWhatsApp } from "@/lib/mensagens/textos";
 import type { ColunaGrade, EventoGrade } from "@/components/painel/GradeAgenda";
 import { AgendaClient, type AgendamentoDetalhe, type DiaDaFaixa } from "./AgendaClient";
+import { filtroClienteVisivel } from "@/lib/agenda/preReserva";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Agenda" };
@@ -58,7 +59,7 @@ export default async function PaginaAgenda({ searchParams }: PageProps<"/painel/
   });
 
   const clientes = await db.cliente.findMany({
-    where: { estabelecimentoId: usuario.estabelecimentoId },
+    where: { estabelecimentoId: usuario.estabelecimentoId, ...filtroClienteVisivel },
     orderBy: { nome: "asc" },
     select: { id: true, nome: true, telefone: true },
   });
@@ -99,7 +100,7 @@ export default async function PaginaAgenda({ searchParams }: PageProps<"/painel/
       where: {
         estabelecimentoId: usuario.estabelecimentoId,
         inicio: { gte: inicio, lt: fimExclusivo },
-        status: { not: "CANCELADO" },
+        status: { notIn: ["CANCELADO", "AGUARDANDO_CLIENTE"] },
       },
       include: { cliente: true, servico: true, mensagens: AVISO_COM_BOTOES_ENVIADO },
     });
@@ -137,7 +138,7 @@ export default async function PaginaAgenda({ searchParams }: PageProps<"/painel/
           where: {
             profissionalId: profissional.id,
             inicio: { gte: inicioSemana, lt: fimSemana },
-            status: { not: "CANCELADO" },
+            status: { notIn: ["CANCELADO", "AGUARDANDO_CLIENTE"] },
           },
           include: { cliente: true, servico: true, mensagens: AVISO_COM_BOTOES_ENVIADO },
         })

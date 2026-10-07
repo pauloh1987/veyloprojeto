@@ -28,6 +28,9 @@ enum StatusAgendamento {
   ATENDIDO
   FALTOU
   CANCELADO
+  /** Pré-reserva do link: o horário fica guardado até `confirmarAte` e só vira agendamento
+   * quando a cliente toca em Confirmar no WhatsApp. Não aparece no painel. */
+  AGUARDANDO_CLIENTE
 }
 
 enum OrigemAgendamento {
@@ -275,6 +278,9 @@ model Agendamento {
    * agendamento) — usados pra avisar a dona no painel. */
   presencaConfirmadaEm   DateTime?
   canceladoPelaClienteEm DateTime?
+  /** Até quando uma pré-reserva (AGUARDANDO_CLIENTE) segura o horário; depois disso ele volta
+   * a aparecer livre no link. */
+  confirmarAte           DateTime?
   criadoEm          DateTime          @default(now())
   atualizadoEm      DateTime          @updatedAt
 

@@ -9,6 +9,7 @@ import { obterEstabelecimentoPorSlug } from "@/lib/estabelecimentoPublico";
 import { formatarCentavos, iniciais } from "@/lib/formatadores";
 import { variaveisDaMarca } from "@/lib/cores";
 import { linkWhatsApp } from "@/lib/mensagens/textos";
+import { preReservaNoPrazo } from "@/lib/agenda/preReserva";
 import { StatusBadge } from "@/components/painel/StatusBadge";
 import { BotaoCancelar } from "./BotaoCancelar";
 
@@ -74,7 +75,13 @@ export default async function PaginaAgendamentoPublico({
           </ul>
 
           <div className="mt-5 border-t border-border pt-5">
-            {podeCancelar ? (
+            {agendamento.status === "AGUARDANDO_CLIENTE" ? (
+              <p className="text-center text-sm text-text-muted">
+                {preReservaNoPrazo(agendamento.confirmarAte)
+                  ? "Falta confirmar: toque em Confirmar na mensagem que mandamos no seu WhatsApp."
+                  : "O tempo para confirmar acabou e este horário não foi marcado."}
+              </p>
+            ) : podeCancelar ? (
               <BotaoCancelar token={token} />
             ) : agendamento.status === "CANCELADO" ? (
               <p className="text-center text-sm text-text-muted">Este agendamento foi cancelado.</p>

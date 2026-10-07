@@ -24,12 +24,12 @@ export async function POST(
     let cliente = await db.cliente.findFirst({
       where: { estabelecimentoId: estabelecimento.id, telefone: dados.telefone },
     });
+    // Cliente que já existe fica com o nome que o salão conhece: pelo link, qualquer um pode digitar
+    // o telefone de outra pessoa.
     if (!cliente) {
       cliente = await db.cliente.create({
         data: { nome: dados.nome, telefone: dados.telefone, estabelecimentoId: estabelecimento.id },
       });
-    } else if (cliente.nome !== dados.nome) {
-      cliente = await db.cliente.update({ where: { id: cliente.id }, data: { nome: dados.nome } });
     }
 
     const agendamento = await criarAgendamento({
@@ -41,7 +41,15 @@ export async function POST(
       origem: "LINK",
     });
 
-    return Response.json({ id: agendamento.id, tokenPublico: agendamento.tokenPublico }, { status: 201 });
+    return Response.json(
+      {
+        id: agendamento.id,
+        tokenPublico: agendamento.tokenPublico,
+        aguardandoConfirmacao: agendamento.status === "AGUARDANDO_CLIENTE",
+        confirmarAte: agendamento.confirmarAte,
+      },
+      { status: 201 },
+    );
   } catch (erro) {
     const status = erro instanceof ErroDeAplicacao ? 409 : 500;
     return Response.json({ erro: mensagemSeguraDeErro(erro) }, { status });

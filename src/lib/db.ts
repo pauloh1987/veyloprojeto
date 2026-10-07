@@ -21,8 +21,19 @@ function resolverUrlBancoSqlite(): string {
   return process.env.DATABASE_URL ?? "file:./prisma/dev.db";
 }
 
+/** No site de teste (src/lib/ambiente.ts) só vale o banco de teste, uma branch do Neon: nunca cai no
+ * de produção, nem se a configuração da Netlify estiver errada. */
+function resolverUrlPostgres(): string | undefined {
+  if (process.env.VEYLO_AMBIENTE === "teste") {
+    const url = process.env.POSTGRES_URL_TESTE;
+    if (!url) throw new Error("Site de teste sem banco: cadastre POSTGRES_URL_TESTE na Netlify (ver CLAUDE.md).");
+    return url;
+  }
+  return process.env.POSTGRES_URL ?? process.env.NETLIFY_DB_URL;
+}
+
 function criarPrismaClient(): PrismaClient {
-  const urlPostgres = process.env.POSTGRES_URL ?? process.env.NETLIFY_DB_URL;
+  const urlPostgres = resolverUrlPostgres();
   if (urlPostgres) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { PrismaClient: PrismaClientPg } = require("../generated/prisma-pg");

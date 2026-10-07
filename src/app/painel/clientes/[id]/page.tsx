@@ -27,7 +27,7 @@ export default async function PaginaFichaCliente({ params }: PageProps<"/painel/
 
   const [agendamentos, servicos] = await Promise.all([
     db.agendamento.findMany({
-      where: { clienteId: cliente.id },
+      where: { clienteId: cliente.id, confirmarAte: null },
       include: { servico: true, profissional: true },
       orderBy: { inicio: "desc" },
     }),

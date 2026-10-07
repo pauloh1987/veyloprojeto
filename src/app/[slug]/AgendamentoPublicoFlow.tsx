@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { formatInTimeZone } from "date-fns-tz";
 import { ptBR } from "date-fns/locale";
 import {
@@ -11,6 +11,7 @@ import {
   Check,
   Clock,
   Loader2,
+  MessageCircle,
   Moon,
   Search,
   Sparkles,
@@ -52,7 +53,7 @@ export interface EstabelecimentoPublico {
   fuso: string;
 }
 
-type Etapa = "servico" | "profissional" | "data" | "horario" | "dados" | "confirmacao";
+type Etapa = "servico" | "profissional" | "data" | "horario" | "dados" | "aguardando" | "confirmacao";
 
 /** As 6 telas do fluxo aparecem para a cliente como 3 passos. */
 const PASSOS = [
@@ -64,7 +65,7 @@ const PASSOS = [
 function passoDaEtapa(etapa: Etapa): number {
   if (etapa === "servico") return 0;
   if (etapa === "dados") return 2;
-  if (etapa === "confirmacao") return PASSOS.length;
+  if (etapa === "confirmacao" || etapa === "aguardando") return PASSOS.length;
   return 1;
 }
 
@@ -83,11 +84,18 @@ export function AgendamentoPublicoFlow({
   servicos,
   profissionais,
   categorias = [],
+  numeroWhatsAppVeylo = null,
+  simularConfirmacao = false,
 }: {
   estabelecimento: EstabelecimentoPublico;
   servicos: ServicoPublico[];
   profissionais: ProfissionalPublico[];
   categorias?: CategoriaServicoPublica[];
+  /** Só dígitos; com ele a tela de espera mostra "Abrir o WhatsApp" direto na conversa da Veylo. */
+  numeroWhatsAppVeylo?: string | null;
+  /** WhatsApp simulado (site de teste, ou local com VEYLO_SIMULAR_WHATSAPP=1): a tela de espera
+   * ganha um botão que faz o papel do toque em Confirmar. */
+  simularConfirmacao?: boolean;
 }) {
   const [etapa, setEtapa] = useState<Etapa>("servico");
   const [servicoId, setServicoId] = useState<string | null>(null);
@@ -99,7 +107,8 @@ export function AgendamentoPublicoFlow({
   const [telefone, setTelefone] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const [resultado, setResultado] = useState<{ tokenPublico: string } | null>(null);
+  const [resultado, setResultado] = useState<{ tokenPublico: string; confirmarAte: string | null } | null>(null);
+  const [confirmouPeloWhatsApp, setConfirmouPeloWhatsApp] = useState(false);
   const [busca, setBusca] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
 
@@ -201,8 +210,8 @@ export function AgendamentoPublicoFlow({
       if (!resposta.ok) {
         throw new Error(json.erro ?? "Não foi possível concluir o agendamento.");
       }
-      setResultado({ tokenPublico: json.tokenPublico });
-      setEtapa("confirmacao");
+      setResultado({ tokenPublico: json.tokenPublico, confirmarAte: json.confirmarAte ?? null });
+      setEtapa(json.aguardandoConfirmacao ? "aguardando" : "confirmacao");
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Não foi possível concluir o agendamento.");
     } finally {
@@ -222,6 +231,30 @@ export function AgendamentoPublicoFlow({
     else if (etapa === "dados") irPara("horario");
   }
 
+  if (etapa === "aguardando" && resultado && servico && profissional && horarioIso) {
+    return (
+      <TelaAguardandoConfirmacao
+        estabelecimento={estabelecimento}
+        servico={servico}
+        profissional={profissional}
+        horarioIso={horarioIso}
+        telefone={telefone}
+        tokenPublico={resultado.tokenPublico}
+        confirmarAte={resultado.confirmarAte}
+        numeroWhatsAppVeylo={numeroWhatsAppVeylo}
+        simularConfirmacao={simularConfirmacao}
+        aoConfirmar={() => {
+          setConfirmouPeloWhatsApp(true);
+          setEtapa("confirmacao");
+        }}
+        aoDesistir={(destino) => {
+          setResultado(null);
+          irPara(destino);
+        }}
+      />
+    );
+  }
+
   if (etapa === "confirmacao" && resultado && servico && profissional && horarioIso) {
     return (
       <TelaConfirmacao
@@ -230,6 +263,7 @@ export function AgendamentoPublicoFlow({
         profissional={profissional}
         horarioIso={horarioIso}
         tokenPublico={resultado.tokenPublico}
+        confirmouPeloWhatsApp={confirmouPeloWhatsApp}
       />
     );
   }
@@ -771,18 +805,224 @@ function HorariosPorTurno({
   );
 }
 
+/** Depois de "Confirmar agendamento", com o WhatsApp ligado: o horário fica guardado por alguns
+ * minutos enquanto a cliente toca em Confirmar na mensagem que acabou de chegar. A tela percebe
+ * a confirmação sozinha, consultando de tempos em tempos e quando ela volta do WhatsApp. */
+function TelaAguardandoConfirmacao({
+  estabelecimento,
+  servico,
+  profissional,
+  horarioIso,
+  telefone,
+  tokenPublico,
+  confirmarAte,
+  numeroWhatsAppVeylo,
+  simularConfirmacao,
+  aoConfirmar,
+  aoDesistir,
+}: {
+  estabelecimento: EstabelecimentoPublico;
+  servico: ServicoPublico;
+  profissional: ProfissionalPublico;
+  horarioIso: string;
+  telefone: string;
+  tokenPublico: string;
+  confirmarAte: string | null;
+  numeroWhatsAppVeylo: string | null;
+  simularConfirmacao: boolean;
+  aoConfirmar: () => void;
+  aoDesistir: (destino: "dados" | "data") => void;
+}) {
+  const [situacao, setSituacao] = useState<"aguardando" | "vencida" | "cancelado">("aguardando");
+  const [podeReenviar, setPodeReenviar] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+  const endereco = `/api/public/${estabelecimento.slug}/agendamentos/${tokenPublico}`;
+  const inicio = new Date(horarioIso);
+  const confirmou = useEffectEvent(aoConfirmar);
+
+  useEffect(() => {
+    if (situacao === "cancelado") return;
+    let ativo = true;
+    async function consultar() {
+      try {
+        const resposta = await fetch(endereco, { cache: "no-store" });
+        if (!resposta.ok || !ativo) return;
+        const json: { situacao: "aguardando" | "vencida" | "cancelado" | "confirmado" } = await resposta.json();
+        if (json.situacao === "confirmado") confirmou();
+        else setSituacao(json.situacao);
+      } catch {
+        // Sem internet por um instante: tenta de novo na próxima volta.
+      }
+    }
+    const intervalo = setInterval(consultar, 3000);
+    const aoVoltarParaATela = () => {
+      if (document.visibilityState === "visible") consultar();
+    };
+    document.addEventListener("visibilitychange", aoVoltarParaATela);
+    return () => {
+      ativo = false;
+      clearInterval(intervalo);
+      document.removeEventListener("visibilitychange", aoVoltarParaATela);
+    };
+  }, [endereco, situacao]);
+
+  // "Reenviar" só libera depois de um minuto: a mensagem costuma chegar em segundos.
+  useEffect(() => {
+    if (podeReenviar) return;
+    const espera = setTimeout(() => setPodeReenviar(true), 60_000);
+    return () => clearTimeout(espera);
+  }, [podeReenviar]);
+
+  async function reenviar() {
+    setOcupado(true);
+    setAviso(null);
+    try {
+      const resposta = await fetch(`${endereco}/reenviar`, { method: "POST" });
+      const json = await resposta.json().catch(() => ({}));
+      setAviso(resposta.ok ? "Mandamos de novo. Confira o seu WhatsApp." : (json.erro ?? "Não foi possível reenviar."));
+      if (resposta.ok) setPodeReenviar(false);
+    } catch {
+      setAviso("Não foi possível reenviar. Confira sua internet.");
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  // Faz o papel do toque em Confirmar no WhatsApp quando ele é simulado (a resposta chega no mesmo
+  // webhook que a Twilio chamaria); a confirmação aparece na próxima consulta da tela.
+  async function simularToqueEmConfirmar() {
+    setOcupado(true);
+    const corpo = new URLSearchParams({ From: `whatsapp:+55${telefone.replace(/\D/g, "")}`, ButtonPayload: "CONFIRMAR" });
+    await fetch("/api/whatsapp/entrada", { method: "POST", body: corpo }).catch(() => null);
+    setOcupado(false);
+  }
+
+  async function desistir(destino: "dados" | "data") {
+    setOcupado(true);
+    if (situacao === "aguardando") await fetch(endereco, { method: "DELETE" }).catch(() => null);
+    aoDesistir(destino);
+  }
+
+  const resumo = (
+    <div className="mb-5 w-full divide-y divide-border rounded-2xl border border-border bg-[color:color-mix(in_oklab,var(--accent)_5%,var(--surface))] text-left">
+      <LinhaResumo
+        icone={<Sparkles size={16} />}
+        titulo={servico.nome}
+        detalhe={`${formatarDuracao(servico.duracaoMin)} · ${formatarCentavos(servico.precoCentavos)}`}
+        aoTrocar={null}
+      />
+      <LinhaResumo
+        foto={<FotoProfissional profissional={profissional} />}
+        titulo={profissional.nome}
+        detalhe="Quem vai te atender"
+        aoTrocar={null}
+      />
+      <LinhaResumo
+        icone={<CalendarDays size={16} />}
+        titulo={primeiraMaiuscula(formatInTimeZone(inicio, estabelecimento.fuso, "EEEE, d 'de' MMMM", { locale: ptBR }))}
+        detalhe={`às ${formatInTimeZone(inicio, estabelecimento.fuso, "HH:mm")}`}
+        aoTrocar={null}
+      />
+    </div>
+  );
+
+  if (situacao !== "aguardando") {
+    return (
+      <div className="flex flex-col items-center py-4 text-center">
+        <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-warning-bg text-warning">
+          <Clock size={30} />
+        </span>
+        <h2 className="mb-1 font-heading text-xl font-extrabold text-text">
+          {situacao === "vencida" ? "O tempo para confirmar acabou" : "O horário não foi marcado"}
+        </h2>
+        <p className="mb-6 text-sm text-text-muted">
+          {situacao === "vencida"
+            ? "Sem a confirmação no WhatsApp, o horário voltou a ficar livre e pode ser marcado por outra pessoa."
+            : "A confirmação foi cancelada no WhatsApp."}{" "}
+          Se ainda quiser, é só escolher de novo.
+        </p>
+        {resumo}
+        <Button onClick={() => desistir("data")} disabled={ocupado} className="w-full">
+          Escolher o horário de novo
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center py-4 text-center">
+      <span className="relative mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[color:color-mix(in_oklab,#25d366_14%,var(--surface))] text-[#1a9e4b]">
+        <MessageCircle size={30} />
+        <span className="absolute top-0.5 right-0.5 flex h-3.5 w-3.5">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#25d366] opacity-60" />
+          <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-[#25d366] ring-2 ring-surface" />
+        </span>
+      </span>
+      <h2 className="mb-1 font-heading text-xl font-extrabold text-text">Falta só confirmar no WhatsApp</h2>
+      <p className="mb-5 text-sm text-text-muted">
+        Mandamos uma mensagem para <strong className="whitespace-nowrap text-text">{aplicarMascaraTelefone(telefone)}</strong>.
+        Toque em <strong className="text-text">Confirmar</strong> nela para garantir seu horário.
+      </p>
+
+      {numeroWhatsAppVeylo && (
+        <LinkButton
+          href={`https://wa.me/${numeroWhatsAppVeylo}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mb-5 w-full bg-[#25d366] text-white hover:brightness-105"
+        >
+          <MessageCircle size={17} /> Abrir o WhatsApp
+        </LinkButton>
+      )}
+
+      {simularConfirmacao && (
+        <div className="mb-5 w-full rounded-2xl border border-dashed border-warning bg-warning-bg p-3 text-left text-xs text-text">
+          <p className="font-semibold">Ambiente de teste: a mensagem não sai de verdade.</p>
+          <p className="mt-0.5 text-text-muted">Use o botão abaixo no lugar do toque em Confirmar no WhatsApp.</p>
+          <Button size="sm" variant="secondary" onClick={simularToqueEmConfirmar} disabled={ocupado} className="mt-2 w-full">
+            Simular o toque em Confirmar
+          </Button>
+        </div>
+      )}
+
+      {resumo}
+
+      <p className="mb-5 flex items-center justify-center gap-2 text-xs text-text-muted">
+        <Loader2 size={13} className="animate-spin" />
+        {confirmarAte
+          ? `Guardamos esse horário até as ${formatInTimeZone(new Date(confirmarAte), estabelecimento.fuso, "HH:mm")}.`
+          : "Esperando a sua confirmação."}
+      </p>
+
+      {aviso && <p className="mb-3 text-sm text-text">{aviso}</p>}
+      <div className="grid w-full grid-cols-2 gap-2.5">
+        <Button variant="outline" onClick={reenviar} disabled={!podeReenviar || ocupado}>
+          Reenviar mensagem
+        </Button>
+        <Button variant="outline" onClick={() => desistir("dados")} disabled={ocupado}>
+          Corrigir o número
+        </Button>
+      </div>
+      {!podeReenviar && <p className="mt-2 text-xs text-text-faint">Se não chegar em 1 minuto, dá para pedir de novo.</p>}
+    </div>
+  );
+}
+
 function TelaConfirmacao({
   estabelecimento,
   servico,
   profissional,
   horarioIso,
   tokenPublico,
+  confirmouPeloWhatsApp,
 }: {
   estabelecimento: EstabelecimentoPublico;
   servico: ServicoPublico;
   profissional: ProfissionalPublico;
   horarioIso: string;
   tokenPublico: string;
+  confirmouPeloWhatsApp: boolean;
 }) {
   const inicio = new Date(horarioIso);
   const fim = new Date(inicio.getTime() + servico.duracaoMin * 60_000);
@@ -805,7 +1045,11 @@ function TelaConfirmacao({
         <Check size={32} strokeWidth={3} />
       </span>
       <h2 className="mb-1 font-heading text-xl font-extrabold text-text">Agendamento confirmado!</h2>
-      <p className="mb-6 text-sm text-text-muted">Você vai receber uma mensagem de confirmação.</p>
+      <p className="mb-6 text-sm text-text-muted">
+        {confirmouPeloWhatsApp
+          ? "Você confirmou pelo WhatsApp. Antes do horário, chega um lembrete por lá."
+          : "Você vai receber uma mensagem de confirmação."}
+      </p>
 
       <div className="mb-6 w-full divide-y divide-border rounded-2xl border border-border bg-[color:color-mix(in_oklab,var(--accent)_5%,var(--surface))] text-left">
         <LinhaResumo

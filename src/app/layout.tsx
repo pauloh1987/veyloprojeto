@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import { ehSiteDeTeste } from "@/lib/ambiente";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -28,6 +29,7 @@ export const metadata: Metadata = {
   description: DESCRICAO,
   openGraph: { siteName: "Veylo Agenda", locale: "pt_BR", type: "website", description: DESCRICAO },
   twitter: { card: "summary_large_image" },
+  ...(ehSiteDeTeste() ? { robots: { index: false, follow: false } } : {}),
 };
 
 const SCRIPT_TEMA = `
@@ -52,6 +54,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
       </head>
       <body className="min-h-screen font-body antialiased" suppressHydrationWarning>
+        {ehSiteDeTeste() && (
+          <div className="sticky top-0 z-[100] bg-amber-400 px-3 py-1 text-center text-xs font-bold text-amber-950">
+            Ambiente de teste: dados de cópia, WhatsApp simulado e e-mail só para a equipe.
+          </div>
+        )}
         {children}
       </body>
     </html>

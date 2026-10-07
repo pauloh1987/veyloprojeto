@@ -14,7 +14,7 @@ export async function carregarPassosFeitos(estabelecimento: EstabelecimentoDoGui
   const [servicosAtivos, profissionaisAtivas, agendamentoPeloLink] = await Promise.all([
     db.servico.count({ where: { estabelecimentoId, ativo: true } }),
     db.profissional.count({ where: { estabelecimentoId, ativo: true } }),
-    db.agendamento.findFirst({ where: { estabelecimentoId, origem: "LINK" }, select: { id: true } }),
+    db.agendamento.findFirst({ where: { estabelecimentoId, origem: "LINK", confirmarAte: null }, select: { id: true } }),
   ]);
   return passosFeitos(estabelecimento.guiaPassos, {
     temLogo: Boolean(estabelecimento.foto),

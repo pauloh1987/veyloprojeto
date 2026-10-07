@@ -81,15 +81,15 @@ export async function carregarSaloes(agora: Date = new Date()): Promise<SalaoAdm
         },
       }),
       db.estabelecimento.findMany({ where: { foto: { not: null } }, select: { id: true } }),
-      db.agendamento.groupBy({ by: ["estabelecimentoId"], where: { criadoEm: { gte: desde30d } }, _count: { _all: true } }),
+      db.agendamento.groupBy({ by: ["estabelecimentoId"], where: { criadoEm: { gte: desde30d }, confirmarAte: null }, _count: { _all: true } }),
       db.agendamento.groupBy({
         by: ["estabelecimentoId"],
-        where: { criadoEm: { gte: desde30d }, origem: "LINK" },
+        where: { criadoEm: { gte: desde30d }, origem: "LINK", confirmarAte: null },
         _count: { _all: true },
       }),
-      db.agendamento.groupBy({ by: ["estabelecimentoId"], where: { criadoEm: { gte: desde7d } }, _count: { _all: true } }),
-      db.agendamento.groupBy({ by: ["estabelecimentoId"], where: { origem: "LINK" }, _count: { _all: true } }),
-      db.agendamento.groupBy({ by: ["estabelecimentoId"], _max: { criadoEm: true } }),
+      db.agendamento.groupBy({ by: ["estabelecimentoId"], where: { criadoEm: { gte: desde7d }, confirmarAte: null }, _count: { _all: true } }),
+      db.agendamento.groupBy({ by: ["estabelecimentoId"], where: { origem: "LINK", confirmarAte: null }, _count: { _all: true } }),
+      db.agendamento.groupBy({ by: ["estabelecimentoId"], where: { confirmarAte: null }, _max: { criadoEm: true } }),
       db.mensagem.findMany({
         where: { status: "ENVIADA", enviadaEm: { gte: inicioDoMes(agora) } },
         select: { cliente: { select: { estabelecimentoId: true } }, agendamento: { select: { estabelecimentoId: true } } },
@@ -266,7 +266,7 @@ export async function carregarVisaoGeral(agora: Date = new Date()): Promise<Visa
   const [financeiro, agendamentosRecentes, mensagensComErro7d, errosRecentes, leadsPorEtapa, paraHoje, fechados30d] = await Promise.all([
     carregarFinanceiro(reais, agora),
     db.agendamento.findMany({
-      where: { criadoEm: { gte: desdeSemanas }, estabelecimentoId: { notIn: idsDeTeste } },
+      where: { criadoEm: { gte: desdeSemanas }, estabelecimentoId: { notIn: idsDeTeste }, confirmarAte: null },
       select: { criadoEm: true, origem: true },
     }),
     db.mensagem.count({ where: { status: "ERRO", agendadaPara: { gte: desde7d } } }),

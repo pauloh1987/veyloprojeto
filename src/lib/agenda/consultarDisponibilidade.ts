@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { diaDaSemana, limitesDoDia } from "@/lib/tz";
 import { calcularHorariosDisponiveis, type ConfigDiaTrabalho } from "./disponibilidade";
+import { filtroOcupaHorario } from "./preReserva";
 
 export interface ContextoDisponibilidade {
   profissionalId: string;
@@ -33,7 +34,7 @@ export async function calcularHorariosDisponiveisNoBanco(
     client.agendamento.findMany({
       where: {
         profissionalId: ctx.profissionalId,
-        status: { not: "CANCELADO" },
+        ...filtroOcupaHorario(),
         inicio: { lt: fimDia },
         fim: { gt: inicioDia },
       },

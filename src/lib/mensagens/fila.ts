@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { notificadorPadrao } from "./notificador";
+import { notificadorPadrao, type ResultadoEnvio } from "./notificador";
 import {
   textoConfirmacao,
   textoConviteRetorno,
@@ -11,15 +11,11 @@ import {
 
 const MINUTOS_LEMBRETE_ANTES = 24 * 60;
 
-/** Cria a mensagem de confirmação (enviada de imediato, só se a dona não tiver desligado isso
- * em Configurações) e o lembrete (agendado para 24h antes do horário, sempre criado — o
- * toggle é só sobre a confirmação) de um agendamento recém-criado. */
-export async function criarMensagensParaAgendamento(agendamentoId: string): Promise<void> {
+async function carregarDadosDaMensagem(agendamentoId: string) {
   const agendamento = await db.agendamento.findUniqueOrThrow({
     where: { id: agendamentoId },
     include: { cliente: true, servico: true, estabelecimento: true },
   });
-
   const dadosTexto = {
     nomeEstabelecimento: agendamento.estabelecimento.nome,
     telefoneEstabelecimento: agendamento.estabelecimento.telefone,
@@ -27,36 +23,44 @@ export async function criarMensagensParaAgendamento(agendamentoId: string): Prom
     inicio: agendamento.inicio,
     fuso: agendamento.estabelecimento.fuso,
   };
+  return { agendamento, dadosTexto, variaveis: variaveisMensagem(dadosTexto) };
+}
 
-  const variaveis = variaveisMensagem(dadosTexto);
+/** Manda na hora a mensagem de confirmação (com os botões Confirmar e Cancelar) e guarda o
+ * resultado, inclusive o motivo da falha. Devolve o resultado para quem precisa reagir a uma
+ * falha, como a pré-reserva do link. */
+export async function enviarConfirmacao(agendamentoId: string): Promise<ResultadoEnvio> {
+  const { agendamento, dadosTexto, variaveis } = await carregarDadosDaMensagem(agendamentoId);
+  const texto = textoConfirmacao(dadosTexto);
+  const resultado = await notificadorPadrao.enviar({
+    canal: notificadorPadrao.canal,
+    destinatario: agendamento.cliente.telefone,
+    texto,
+    tipo: "CONFIRMACAO",
+    variaveis,
+  });
 
-  if (agendamento.estabelecimento.confirmacaoAutomatica) {
-    const textoConf = textoConfirmacao(dadosTexto);
-    const resultadoConf = await notificadorPadrao.enviar({
-      canal: notificadorPadrao.canal,
-      destinatario: agendamento.cliente.telefone,
-      texto: textoConf,
+  const confirmacao = await db.mensagem.create({
+    data: {
+      agendamentoId,
       tipo: "CONFIRMACAO",
-      variaveis,
-    });
+      canal: notificadorPadrao.canal,
+      status: resultado.sucesso ? "ENVIADA" : "ERRO",
+      texto,
+      variaveisTemplate: JSON.stringify(variaveis),
+      agendadaPara: new Date(),
+      enviadaEm: resultado.sucesso ? new Date() : null,
+      sidProvedor: resultado.idProvedor ?? null,
+      erro: resultado.sucesso ? null : (resultado.erro ?? "Falha sem detalhe."),
+    },
+  });
+  if (!resultado.sucesso) registrarFalha(confirmacao.id, "CONFIRMACAO", resultado.erro);
+  return resultado;
+}
 
-    const confirmacao = await db.mensagem.create({
-      data: {
-        agendamentoId,
-        tipo: "CONFIRMACAO",
-        canal: notificadorPadrao.canal,
-        status: resultadoConf.sucesso ? "ENVIADA" : "ERRO",
-        texto: textoConf,
-        variaveisTemplate: JSON.stringify(variaveis),
-        agendadaPara: new Date(),
-        enviadaEm: resultadoConf.sucesso ? new Date() : null,
-        sidProvedor: resultadoConf.idProvedor ?? null,
-        erro: resultadoConf.sucesso ? null : (resultadoConf.erro ?? "Falha sem detalhe."),
-      },
-    });
-    if (!resultadoConf.sucesso) registrarFalha(confirmacao.id, "CONFIRMACAO", resultadoConf.erro);
-  }
-
+/** Agenda o lembrete para 24h antes do horário (sai na primeira rodada da fila depois disso). */
+export async function criarLembrete(agendamentoId: string): Promise<void> {
+  const { agendamento, dadosTexto, variaveis } = await carregarDadosDaMensagem(agendamentoId);
   await db.mensagem.create({
     data: {
       agendamentoId,
@@ -68,6 +72,19 @@ export async function criarMensagensParaAgendamento(agendamentoId: string): Prom
       agendadaPara: new Date(agendamento.inicio.getTime() - MINUTOS_LEMBRETE_ANTES * 60_000),
     },
   });
+}
+
+/** Mensagens de um agendamento que já nasce valendo: a confirmação (enviada de imediato, só se
+ * a dona não tiver desligado isso em Configurações) e o lembrete (sempre criado — o toggle é
+ * só sobre a confirmação). A pré-reserva do link segue outro caminho: ver
+ * `src/lib/agenda/confirmacaoPeloWhatsApp.ts`. */
+export async function criarMensagensParaAgendamento(agendamentoId: string): Promise<void> {
+  const agendamento = await db.agendamento.findUniqueOrThrow({
+    where: { id: agendamentoId },
+    select: { estabelecimento: { select: { confirmacaoAutomatica: true } } },
+  });
+  if (agendamento.estabelecimento.confirmacaoAutomatica) await enviarConfirmacao(agendamentoId);
+  await criarLembrete(agendamentoId);
 }
 
 /** Processa a fila: envia (via Notificador) toda mensagem pendente cujo horário programado já

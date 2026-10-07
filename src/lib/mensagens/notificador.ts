@@ -27,7 +27,7 @@ export interface Notificador {
 /** Implementação padrão: grava no banco (feito pelo chamador) e ecoa no console, para que o
  * envio seja visível ao rodar `npm run dev` sem precisar de nenhum provedor externo. */
 export class NotificadorConsole implements Notificador {
-  readonly canal: CanalMensagem = "SMS";
+  constructor(readonly canal: CanalMensagem = "SMS") {}
 
   async enviar(mensagem: EnvioMensagem): Promise<ResultadoEnvio> {
     console.log(
@@ -172,6 +172,14 @@ export class NotificadorTwilioWhatsApp implements Notificador {
   }
 }
 
+/** WhatsApp de mentira: as mensagens só vão para o log, mas o sistema age como se o WhatsApp
+ * estivesse ligado (pré-reserva do link, botões). Vale sempre no site de teste da Netlify, mesmo com
+ * as variáveis da Twilio presentes (lá nunca sai mensagem de verdade), e no local com
+ * VEYLO_SIMULAR_WHATSAPP=1. Nunca em produção. */
+export const whatsAppSimulado =
+  process.env.VEYLO_AMBIENTE === "teste" ||
+  (process.env.NODE_ENV !== "production" && process.env.VEYLO_SIMULAR_WHATSAPP === "1");
+
 /** Usa WhatsApp quando configurado (preferido — mais barato e é o canal que as clientes já
  * usam no dia a dia); senão usa SMS se essas credenciais existirem; senão cai no
  * NotificadorConsole. Isso garante que o ambiente local e qualquer deploy sem nenhuma
@@ -187,6 +195,7 @@ function criarNotificadorPadrao(): Notificador {
     TWILIO_WHATSAPP_CONTENT_SID_CONVITE_RETORNO,
   } = process.env;
 
+  if (whatsAppSimulado) return new NotificadorConsole("WHATSAPP");
   if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_WHATSAPP_FROM) {
     const numeroOrigem = TWILIO_WHATSAPP_FROM.startsWith("whatsapp:") ? TWILIO_WHATSAPP_FROM : `whatsapp:${TWILIO_WHATSAPP_FROM}`;
     return new NotificadorTwilioWhatsApp(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, numeroOrigem, {

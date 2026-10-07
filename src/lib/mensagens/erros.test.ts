@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { descreverErroTwilio, explicarErroEnvio, explicarErroParaSalao } from "./erros";
+import { descreverErroTwilio, ehErroDoNumeroDaCliente, explicarErroEnvio, explicarErroParaSalao } from "./erros";
 
 describe("erros de envio", () => {
   it("guarda o código e a mensagem da Twilio", () => {
@@ -39,5 +39,18 @@ describe("erro mostrado para o salão", () => {
 
   it("mantém os avisos do próprio sistema", () => {
     expect(explicarErroParaSalao("Esse horário já passou.")).toBe("Esse horário já passou.");
+  });
+});
+
+describe("erro do número da cliente", () => {
+  it("reconhece número inválido, fixo ou sem WhatsApp", () => {
+    expect(ehErroDoNumeroDaCliente("Twilio 400, código 21211: The 'To' number is not a valid phone number.")).toBe(true);
+    expect(ehErroDoNumeroDaCliente("Twilio 400, código 63024: Invalid message recipient")).toBe(true);
+  });
+
+  it("não confunde com falha de configuração ou instabilidade da Twilio", () => {
+    expect(ehErroDoNumeroDaCliente("Twilio 401, código 20003: Authenticate")).toBe(false);
+    expect(ehErroDoNumeroDaCliente("Twilio 502: <html>Bad Gateway</html>")).toBe(false);
+    expect(ehErroDoNumeroDaCliente(undefined)).toBe(false);
   });
 });

@@ -7,6 +7,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { EstadoVazio } from "@/components/ui/EstadoVazio";
 import { BuscaClientes } from "./BuscaClientes";
 import { FormularioClienteModal } from "./FormularioClienteModal";
+import { filtroClienteVisivel } from "@/lib/agenda/preReserva";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Clientes" };
@@ -21,9 +22,10 @@ export default async function PaginaClientes({
   const clientes = await db.cliente.findMany({
     where: {
       estabelecimentoId: usuario.estabelecimentoId,
-      ...(busca
-        ? { OR: [{ nome: { contains: busca } }, { telefone: { contains: busca } }] }
-        : {}),
+      AND: [
+        filtroClienteVisivel,
+        busca ? { OR: [{ nome: { contains: busca } }, { telefone: { contains: busca } }] } : {},
+      ],
     },
     orderBy: { nome: "asc" },
   });

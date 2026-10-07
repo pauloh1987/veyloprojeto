@@ -33,7 +33,7 @@ export async function primeiroMesDoNegocio(
   fuso: string,
 ): Promise<MesAno> {
   const maisAntigo = await db.agendamento.findFirst({
-    where: { estabelecimentoId: estabelecimento.id },
+    where: { estabelecimentoId: estabelecimento.id, confirmarAte: null },
     orderBy: { inicio: "asc" },
     select: { inicio: true },
   });
@@ -53,7 +53,7 @@ export async function calcularRelatorio(estabelecimentoId: string, fuso: string,
 
   const [agendamentosMesAtual, agendamentosComparacao] = await Promise.all([
     db.agendamento.findMany({
-      where: { estabelecimentoId, inicio: { gte: inicioMesAtual, lt: fimMesAtualExclusivo } },
+      where: { estabelecimentoId, inicio: { gte: inicioMesAtual, lt: fimMesAtualExclusivo }, confirmarAte: null },
       include: { servico: true, profissional: { select: { id: true, nome: true, comissaoPercentual: true } } },
     }),
     db.agendamento.findMany({

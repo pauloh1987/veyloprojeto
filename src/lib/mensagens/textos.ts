@@ -29,7 +29,9 @@ export function linkWhatsApp(telefone: string, texto?: string): string {
 /** Base pública do site pra links montados fora de uma requisição (fila, cron). A Netlify
  * define `URL` com o domínio principal do site. */
 export function urlBaseSite(): string {
-  return (process.env.URL ?? "http://localhost:3000").replace(/\/$/, "");
+  // No site de teste, URL é o domínio de produção: os links têm de apontar para o próprio teste.
+  const base = process.env.VEYLO_URL_TESTE || process.env.URL || "http://localhost:3000";
+  return base.replace(/\/$/, "");
 }
 
 const RODAPE = "Dúvidas? Fale direto com o salão:";

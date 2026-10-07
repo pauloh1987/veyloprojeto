@@ -365,9 +365,10 @@ export function ConfiguracoesClient({
             className="mt-0.5 h-4 w-4 rounded"
           />
           <span>
-            Enviar confirmação automática por SMS/WhatsApp assim que a cliente agenda
+            Mandar confirmação no WhatsApp quando a equipe marca pelo painel
             <span className="block text-xs text-text-faint">
-              O lembrete do dia anterior continua sendo enviado mesmo com isso desligado.
+              Pelo link, a cliente sempre confirma no WhatsApp para o horário ser marcado. O lembrete do dia
+              anterior sai sempre, com isso ligado ou não.
             </span>
           </span>
         </label>

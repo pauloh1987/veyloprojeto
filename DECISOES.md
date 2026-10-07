@@ -395,3 +395,32 @@ especificação não determinava um caminho exato. Organizado por área.
   endereço antigo (confirmar e-mail, nova senha) deixam de valer, para quem só tem a caixa antiga
   não conseguir trocar a senha. As sessões abertas continuam valendo, porque a sessão é ligada à
   conta, não ao e-mail.
+- **Confirmação pelo WhatsApp no link (06/10/2026)**: para acabar com quem agenda com número
+  inventado só para lotar a agenda, o agendamento feito pelo link (com o WhatsApp ligado) nasce
+  como pré-reserva (`AGUARDANDO_CLIENTE`) e a mensagem de confirmação sai na hora. Ele só vira
+  agendamento quando a cliente toca em Confirmar (ou responde "sim"): aí a dona recebe o e-mail
+  de novo agendamento e o lembrete de 24h é agendado, como antes. A pré-reserva segura o horário
+  por 30 minutos (`confirmarAte`); depois disso o horário volta a aparecer livre, e confirmar
+  tarde ainda vale se ninguém tiver pegado o horário. Ela não aparece no painel, no relatório nem
+  no admin, e a ficha de uma cliente que nunca confirmou fica escondida da lista de Clientes: as
+  telas da equipe filtram `confirmarAte: null` (`src/lib/agenda/preReserva.ts`). A tela do link
+  mostra "Falta só confirmar no WhatsApp", percebe a confirmação sozinha e tem "Reenviar" (até 3
+  envios, 1 minuto entre eles) e "Corrigir o número". Foi pelo botão, e não por código digitado,
+  porque o modelo `veylo_confirmacao` já existe e é um toque só; código exigiria um modelo novo de
+  autenticação aprovado pela Meta. Se a Twilio recusar o número (inválido, fixo, sem WhatsApp), a
+  cliente vê o erro e corrige; se a falha for do nosso lado (Twilio fora do ar, configuração), o
+  agendamento entra direto, para o salão não perder a cliente. Sem WhatsApp (ambiente local, só
+  SMS) o link agenda direto. Junto: no máximo 5 agendamentos pelo link por número por hora (cada
+  tentativa manda mensagem), e o link não troca mais o nome de uma cliente que já existe.
+  A opção "confirmação automática" de Configurações passou a valer só para o agendamento manual.
+- **Site de teste (07/10/2026)**: para juntar várias mudanças num deploy de produção só (cada um
+  custa 15 créditos), a branch `teste` é publicada como branch deploy da Netlify, que não gasta os
+  créditos de deploy, em https://teste--veylo-agenda-286.netlify.app. O banco de lá é a branch
+  `teste` do Neon, uma cópia dos dados de produção em `POSTGRES_URL_TESTE`, e o código nunca cai no
+  banco de produção, nem nas migrações do build: o contexto do deploy (CONTEXT) só existe no build,
+  então o `next.config.ts` grava em `VEYLO_AMBIENTE` (`src/lib/ambiente.ts`). O WhatsApp de lá é
+  sempre simulado, mesmo com as variáveis da Twilio, porque o webhook da Twilio aponta só para
+  produção; a tela de espera do link ganha o botão "Simular o toque em Confirmar". E-mail de
+  verdade só sai para a equipe (ADMIN_EMAILS), porque a cópia tem os e-mails das donas. As tarefas
+  agendadas (lembretes e backup) não rodam em branch deploy, segundo a documentação da Netlify.
+  Uma faixa amarela avisa que é teste, e o site fica fora do Google.

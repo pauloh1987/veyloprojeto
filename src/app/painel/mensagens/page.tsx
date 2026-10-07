@@ -34,8 +34,10 @@ export default async function PaginaMensagens() {
     where: {
       OR: [
         {
+          // Sem as mensagens de pré-reserva que a cliente nunca confirmou (ver confirmacaoPeloWhatsApp.ts).
           agendamento: {
             estabelecimentoId: usuario.estabelecimentoId,
+            confirmarAte: null,
             ...(usuario.papel === "PROFISSIONAL" ? { profissionalId: usuario.profissionalId ?? "" } : {}),
           },
         },

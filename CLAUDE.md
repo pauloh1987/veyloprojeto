@@ -38,6 +38,10 @@ de verdade e a produção roda na Netlify + Neon, como descrito abaixo.
   Twilio e do Resend, mensagens e e-mails só aparecem no console.
 - Admin local: coloque `ADMIN_EMAILS` com e-mails de teste no `.env.local` (fora do git; o `.env`
   vai para o git), peça o link em `/admin/entrar` e copie o link que aparece no console.
+- Confirmação do link pelo WhatsApp no local: com `VEYLO_SIMULAR_WHATSAPP=1` no `.env.local`, o
+  agendamento pelo link vira pré-reserva como em produção e a tela de espera ganha o botão
+  "Simular o toque em Confirmar" (o webhook aceita requisição sem assinatura). Sem a variável, o
+  link agenda direto.
 - Verificações: `npm test` (vitest), `npx tsc --noEmit -p .` e `npx eslint <arquivos>`.
 - Windows/OneDrive: pare o `next dev` antes de `rm -rf .next && npm run build`; com o servidor
   rodando, o cache do Turbopack trava ou corrompe.
@@ -56,7 +60,8 @@ Variáveis de ambiente de produção, cadastradas na Netlify (os valores ficam s
 nem na conversa): `POSTGRES_URL` (segredo, só produção), `TWILIO_ACCOUNT_SID`,
 `TWILIO_AUTH_TOKEN` (segredo), `TWILIO_WHATSAPP_FROM`, `TWILIO_WHATSAPP_CONTENT_SID_CONFIRMACAO`,
 `TWILIO_WHATSAPP_CONTENT_SID_LEMBRETE`, `TWILIO_WHATSAPP_CONTENT_SID_CONVITE_RETORNO`,
-`RESEND_API_KEY` (segredo), `EMAIL_REMETENTE` e `ADMIN_EMAILS` (quem entra no `/admin`, no
+`RESEND_API_KEY` (segredo), `EMAIL_REMETENTE`, `POSTGRES_URL_TESTE` (segredo, banco do site de
+teste) e `ADMIN_EMAILS` (quem entra no `/admin`, no
 formato `Paulo <email>, Biel <email>, Dudu <email>`; sem ela ninguém entra). Opcionais ainda não configuradas:
 `NEXT_PUBLIC_SENTRY_DSN` e `CRON_SECRET`. Quem cadastra segredos é o Paulo, pelo painel da
 Netlify; o Claude não digita senhas nem chaves.
@@ -67,6 +72,12 @@ Netlify; o Claude não digita senhas nem chaves.
   créditos por mês; em setembro/2026 eles acabaram e o site foi pausado. Junte as mudanças e
   publique no máximo uma vez por dia, salvo correção urgente.
 - Commit só de documentação: coloque `[skip netlify]` na mensagem para não gerar deploy.
+- Para testar antes de publicar, use a branch `teste`: cada push nela vira um branch deploy (não
+  gasta os 15 créditos) em https://teste--veylo-agenda-286.netlify.app. Lá o banco é a branch
+  `teste` do Neon (`POSTGRES_URL_TESTE`, cópia dos dados de produção), o WhatsApp é só simulado (a
+  tela de espera do link tem "Simular o toque em Confirmar"), e-mail só sai para a equipe e uma
+  faixa amarela avisa que é teste (`src/lib/ambiente.ts`). Aprovado, faça merge da `teste` na
+  `main` e dê push: aí vai para produção.
 - Depois do push, acompanhe até o fim com
   `netlify api listSiteDeploys --data '{"site_id":"2d7efbcf-7dba-45c9-9c3a-beecb2b8de0b","per_page":1}'`
   (`ready` = no ar; `error` = o build falhou, e deploy com erro não custa crédito).
@@ -97,6 +108,10 @@ Netlify; o Claude não digita senhas nem chaves.
   Quando a Twilio recusa um envio, o motivo fica em `Mensagem.erro` (código e mensagem): o admin
   mostra os erros recentes explicados (`src/lib/mensagens/erros.ts`) e a tela Mensagens do painel
   tem "Tentar de novo". A fila usa sempre o horário real (o relógio simulado foi removido).
+- Agendamento pelo link nasce como pré-reserva (`AGUARDANDO_CLIENTE`, com prazo em `confirmarAte`)
+  e só vale quando a cliente toca em Confirmar no WhatsApp (`src/lib/agenda/confirmacaoPeloWhatsApp.ts`).
+  Toda consulta de agendamentos para a equipe (painel, relatório, admin) filtra `confirmarAte: null`,
+  e a disponibilidade usa `filtroOcupaHorario` (`src/lib/agenda/preReserva.ts`).
 
 ## Pendências (01/10/2026)
 

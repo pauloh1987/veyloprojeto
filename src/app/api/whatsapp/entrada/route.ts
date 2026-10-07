@@ -4,6 +4,7 @@ import { ptBR } from "date-fns/locale";
 import { db } from "@/lib/db";
 import { cancelarPelaCliente, confirmarPresencaPelaCliente } from "@/lib/agenda/respostaCliente";
 import { linkWhatsApp, urlBaseSite } from "@/lib/mensagens/textos";
+import { whatsAppSimulado } from "@/lib/mensagens/notificador";
 
 /**
  * Webhook de mensagens recebidas no número de WhatsApp da Veylo (configurado na Twilio como
@@ -87,7 +88,9 @@ function twiml(texto: string): Response {
 
 export async function POST(request: Request) {
   const params = new URLSearchParams(await request.text());
-  if (!assinaturaValida(request, params)) {
+  // Com o WhatsApp simulado (site de teste, ou local com VEYLO_SIMULAR_WHATSAPP=1) não existe Twilio
+  // para assinar: aceita sem assinatura, para dar para simular o toque em Confirmar.
+  if (!whatsAppSimulado && !assinaturaValida(request, params)) {
     return new Response("Assinatura inválida.", { status: 403 });
   }
 
@@ -108,6 +111,7 @@ export async function POST(request: Request) {
     );
   }
 
+  const eraPreReserva = agendamento.status === "AGUARDANDO_CLIENTE";
   const resultado =
     acao === "CONFIRMAR" ? await confirmarPresencaPelaCliente(agendamento.id) : await cancelarPelaCliente(agendamento.id);
 
@@ -117,9 +121,16 @@ export async function POST(request: Request) {
   if (resultado.tipo === "ja_concluido") {
     return twiml(`Esse atendimento já foi concluído. Para falar com ${estabelecimento.nome}: ${contatoSalao}`);
   }
+  if (resultado.tipo === "horario_ocupado") {
+    return twiml(`O prazo para confirmar passou e esse horário já foi marcado por outra pessoa. Escolha outro pelo link: ${linkAgendar}`);
+  }
   if (acao === "CANCELAR") {
+    if (eraPreReserva) return twiml(`Tudo bem, o horário não foi marcado. Se quiser escolher outro, é só usar o link: ${linkAgendar}`);
     return twiml(`Horário cancelado — o salão já foi avisado. Se quiser marcar outro, é só usar o link: ${linkAgendar}`);
   }
   const quando = formatInTimeZone(agendamento.inicio, estabelecimento.fuso, "EEEE, d 'de' MMMM 'às' HH:mm", { locale: ptBR });
+  if (resultado.tipo === "agendado") {
+    return twiml(`Agendamento confirmado! ${estabelecimento.nome} te espera ${quando}. Você vai receber um lembrete antes do horário.`);
+  }
   return twiml(`Presença confirmada! ${estabelecimento.nome} te espera ${quando}.`);
 }

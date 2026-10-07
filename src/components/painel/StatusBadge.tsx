@@ -7,6 +7,7 @@ const CONFIG: Record<StatusAgendamento, { rotulo: string; tom: "warning" | "info
   ATENDIDO: { rotulo: "Atendido", tom: "success" },
   FALTOU: { rotulo: "Faltou", tom: "danger" },
   CANCELADO: { rotulo: "Cancelado", tom: "neutral" },
+  AGUARDANDO_CLIENTE: { rotulo: "Aguardando confirmação", tom: "warning" },
 };
 
 export function StatusBadge({ status }: { status: StatusAgendamento }) {

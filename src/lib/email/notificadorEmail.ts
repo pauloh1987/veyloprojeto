@@ -1,3 +1,6 @@
+import { ehSiteDeTeste } from "@/lib/ambiente";
+import { lerEquipe } from "@/lib/admin/equipe";
+
 export interface EnvioEmail {
   destinatario: string;
   assunto: string;
@@ -59,12 +62,30 @@ export class NotificadorEmailResend implements NotificadorEmail {
   }
 }
 
+/** Site de teste (src/lib/ambiente.ts): o banco é cópia do de produção, então e-mail de verdade só
+ * sai para a equipe (ADMIN_EMAILS, para dar para entrar no admin); o resto só vai para o log. */
+class NotificadorEmailSoEquipe implements NotificadorEmail {
+  private readonly console = new NotificadorEmailConsole();
+
+  constructor(
+    private readonly real: NotificadorEmail,
+    private readonly equipe: string[],
+  ) {}
+
+  enviar(email: EnvioEmail): Promise<ResultadoEnvioEmail> {
+    const daEquipe = this.equipe.includes(email.destinatario.trim().toLowerCase());
+    return (daEquipe ? this.real : this.console).enviar(email);
+  }
+}
+
 function criarNotificadorEmailPadrao(): NotificadorEmail {
   const { RESEND_API_KEY, EMAIL_REMETENTE } = process.env;
-  if (RESEND_API_KEY && EMAIL_REMETENTE) {
-    return new NotificadorEmailResend(RESEND_API_KEY, EMAIL_REMETENTE);
+  if (!RESEND_API_KEY || !EMAIL_REMETENTE) return new NotificadorEmailConsole();
+  const resend = new NotificadorEmailResend(RESEND_API_KEY, EMAIL_REMETENTE);
+  if (ehSiteDeTeste()) {
+    return new NotificadorEmailSoEquipe(resend, lerEquipe(process.env.ADMIN_EMAILS).map((m) => m.email));
   }
-  return new NotificadorEmailConsole();
+  return resend;
 }
 
 export const notificadorEmailPadrao: NotificadorEmail = criarNotificadorEmailPadrao();

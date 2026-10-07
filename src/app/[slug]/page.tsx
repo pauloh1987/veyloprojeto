@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Bell, CalendarCheck, MapPin, MessageCircle } from "lucide-react";
 import { obterEstabelecimentoPorSlug } from "@/lib/estabelecimentoPublico";
+import { numeroWhatsAppDaVeylo } from "@/lib/agenda/confirmacaoPeloWhatsApp";
+import { whatsAppSimulado } from "@/lib/mensagens/notificador";
 import { db } from "@/lib/db";
 import { iniciais } from "@/lib/formatadores";
 import { variaveisDaMarca } from "@/lib/cores";
@@ -152,6 +154,8 @@ export default async function PaginaPublicaEstabelecimento({ params }: PageProps
             }))}
             profissionais={profissionais.map((p) => ({ id: p.id, nome: p.nome, foto: p.foto }))}
             categorias={categorias.map((c) => ({ id: c.id, nome: c.nome }))}
+            numeroWhatsAppVeylo={numeroWhatsAppDaVeylo()}
+            simularConfirmacao={whatsAppSimulado}
           />
         </section>
 
