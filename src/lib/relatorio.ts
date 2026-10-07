@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { limitesDoDia } from "@/lib/tz";
 import { mesDoInstante, periodoDeComparacao, somarMeses, type MesAno } from "@/lib/mesRelatorio";
 import { valorDoAtendimento } from "@/lib/financeiro/fechamento";
+import { percentualDaComissao, somarComissoes } from "@/lib/financeiro/comissoes";
 
 function primeiroDiaMes({ ano, mes }: MesAno): string {
   return `${ano}-${String(mes).padStart(2, "0")}-01`;
@@ -23,7 +24,8 @@ export interface RelatorioMensal {
     profissionalId: string;
     nome: string;
     faturamentoCentavos: number;
-    comissao: { percentual: number; centavos: number } | null;
+    /** Mesma conta da tela Financeiro (src/lib/financeiro/comissoes.ts); null = sem comissão. */
+    comissao: { percentuais: number[]; centavos: number } | null;
   }[];
 }
 
@@ -100,27 +102,25 @@ export async function calcularRelatorio(estabelecimentoId: string, fuso: string,
 
   const porProfissional = new Map<
     string,
-    { nome: string; comissaoPercentual: number | null; faturamentoCentavos: number }
+    { nome: string; faturamentoCentavos: number; itens: { valorCentavos: number; percentual: number | null }[] }
   >();
   for (const a of atendidosMesAtual) {
-    const atual = porProfissional.get(a.profissionalId) ?? {
-      nome: a.profissional.nome,
-      comissaoPercentual: a.profissional.comissaoPercentual,
-      faturamentoCentavos: 0,
-    };
-    atual.faturamentoCentavos += valorDoAtendimento(a);
+    const atual = porProfissional.get(a.profissionalId) ?? { nome: a.profissional.nome, faturamentoCentavos: 0, itens: [] };
+    const valorCentavos = valorDoAtendimento(a);
+    atual.faturamentoCentavos += valorCentavos;
+    atual.itens.push({ valorCentavos, percentual: percentualDaComissao(a, a.profissional) });
     porProfissional.set(a.profissionalId, atual);
   }
   const comissoesPorProfissional = [...porProfissional.entries()]
-    .map(([profissionalId, dados]) => ({
-      profissionalId,
-      nome: dados.nome,
-      faturamentoCentavos: dados.faturamentoCentavos,
-      comissao:
-        dados.comissaoPercentual === null
-          ? null
-          : { percentual: dados.comissaoPercentual, centavos: Math.round((dados.faturamentoCentavos * dados.comissaoPercentual) / 100) },
-    }))
+    .map(([profissionalId, dados]) => {
+      const soma = somarComissoes(dados.itens);
+      return {
+        profissionalId,
+        nome: dados.nome,
+        faturamentoCentavos: dados.faturamentoCentavos,
+        comissao: soma.temComissao ? { percentuais: soma.percentuais, centavos: soma.centavos } : null,
+      };
+    })
     .sort((a, b) => b.faturamentoCentavos - a.faturamentoCentavos);
 
   const diasNoMes = new Date(ano, mes, 0).getDate();

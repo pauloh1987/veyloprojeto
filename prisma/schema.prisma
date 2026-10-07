@@ -106,6 +106,7 @@ model Estabelecimento {
   clientes          Cliente[]
   agendamentos      Agendamento[]
   pagamentos        Pagamento[]
+  pagamentosComissao PagamentoComissao[]
   lead              Lead?
 }
 
@@ -173,6 +174,7 @@ model Profissional {
   horarios     HorarioFuncionamento[]
   bloqueios    Bloqueio[]
   agendamentos Agendamento[]
+  pagamentosComissao PagamentoComissao[]
 
   @@index([estabelecimentoId])
 }
@@ -297,6 +299,10 @@ model Agendamento {
    * fechamento existir (07/10/2026): aí vale o preço do serviço. */
   valorServicoCentavos Int?
   valorTotalCentavos   Int?
+  /** Comissão da profissional (%) quando o atendimento foi finalizado, para o histórico não mudar
+   * se a comissão dela mudar depois. Vazio = vale a comissão atual dela (atendimento finalizado
+   * antes deste campo existir, ou ela ainda não tinha comissão definida na hora). */
+  comissaoPercentual   Int?
 
   mensagens  Mensagem[]
   adicionais AdicionalAtendimento[]
@@ -447,4 +453,25 @@ model Pagamento {
 
   @@index([estabelecimentoId, recebidoEm])
   @@index([agendamentoId])
+}
+
+/** Acerto de comissão: o que a dona já pagou a uma profissional da comissão de um mês (de uma vez
+ * ou em partes, como os vales). A comissão devida vem dos atendimentos finalizados no mês; o que
+ * falta pagar é ela menos esses pagamentos. */
+model PagamentoComissao {
+  id                String          @id @default(cuid())
+  estabelecimentoId String
+  estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  profissionalId    String
+  profissional      Profissional    @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
+  /** Mês da comissão paga, no formato "2026-10". */
+  mesReferencia     String
+  valorCentavos     Int
+  pagoEm            DateTime
+  /** Anotação curta da dona (ex.: "vale", "Pix"). */
+  observacao        String          @default("")
+  criadoEm          DateTime        @default(now())
+
+  @@index([estabelecimentoId, mesReferencia])
+  @@index([profissionalId])
 }

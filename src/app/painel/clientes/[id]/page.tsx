@@ -74,12 +74,12 @@ export default async function PaginaFichaCliente({ params }: PageProps<"/painel/
 
       {usuario.papel === "DONO" && aReceberCentavos > 0 && (
         <Link
-          href="/painel/financeiro"
+          href={`/painel/financeiro#cliente-${cliente.id}`}
           className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-warning/40 bg-warning-bg px-4 py-3 text-sm text-text hover:brightness-[0.98]"
         >
           <span className="flex items-center gap-2">
             <Wallet size={16} className="text-warning" />
-            Fiado a receber: <strong>{formatarCentavos(aReceberCentavos)}</strong>
+            A receber: <strong>{formatarCentavos(aReceberCentavos)}</strong>
           </span>
           <span className="text-xs font-semibold text-text-muted">Ver em Financeiro</span>
         </Link>
@@ -140,7 +140,7 @@ export default async function PaginaFichaCliente({ params }: PageProps<"/painel/
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                {fiadoPendente(a) > 0 && <Badge tom="warning">fiado</Badge>}
+                {fiadoPendente(a) > 0 && <Badge tom="warning">a receber</Badge>}
                 <span className="text-sm text-text-muted">{formatarCentavos(valorDoAtendimento(a))}</span>
                 <StatusBadge status={a.status} />
               </div>

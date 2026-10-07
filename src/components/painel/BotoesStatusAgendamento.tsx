@@ -82,7 +82,7 @@ export function BotoesStatusAgendamento({
   );
 }
 
-/** Como o atendimento foi pago, em selos: "Pix R$ 60,00", "Fiado: R$ 80,00 a receber". */
+/** Como o atendimento foi pago, em selos: "Pix R$ 60,00", "Pagar depois: R$ 80,00 a receber". */
 export function ResumoPagamento({ fechamento }: { fechamento: Pick<FechamentoAgendamento, "valorTotalCentavos" | "pagamentos"> }) {
   if (fechamento.valorTotalCentavos === null) {
     return <span className="text-xs text-text-faint">Pagamento não registrado</span>;
@@ -102,7 +102,7 @@ export function ResumoPagamento({ fechamento }: { fechamento: Pick<FechamentoAge
       {[...porForma].map(([forma, valores]) =>
         forma === "FIADO" ? (
           <Badge key={forma} tom={valores.aReceber > 0 ? "warning" : "success"}>
-            {valores.aReceber > 0 ? `Fiado: ${formatarCentavos(valores.aReceber)} a receber` : `Fiado recebido ${formatarCentavos(valores.total)}`}
+            {valores.aReceber > 0 ? `Pagar depois: ${formatarCentavos(valores.aReceber)} a receber` : `Recebido depois ${formatarCentavos(valores.total)}`}
           </Badge>
         ) : (
           <Badge key={forma} tom="success">

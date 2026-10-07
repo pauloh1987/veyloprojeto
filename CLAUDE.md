@@ -31,8 +31,10 @@ de verdade e a produção roda na Netlify + Neon, como descrito abaixo.
 - Link público: o agendamento só vale quando a cliente toca em Confirmar no WhatsApp (pré-reserva
   de 30 minutos). A dona recebe e-mail a cada agendamento e cancelamento feitos pela cliente.
 - Ao finalizar um atendimento, a janela de pagamento registra o valor cobrado, os adicionais e a
-  forma (Pix, dinheiro, crédito, débito ou fiado); a tela Financeiro mostra o fiado a receber e o
-  que entrou no mês por forma. Cada conta troca o próprio e-mail de acesso em Configurações.
+  forma (Pix, dinheiro, crédito, débito ou "Pagar depois", que no código é `FIADO`). A tela Financeiro mostra o que entrou no mês
+  (por dia e por forma, com o caixa de cada dia), o fiado a receber por cliente, a comissão de cada
+  profissional com os acertos já pagos (vales) e o que fica com o salão. Cada conta troca o próprio
+  e-mail de acesso em Configurações.
 - Fase atual (outubro/2026): piloto com 3 esmalterias, ainda sem cobrança. Time: Paulo
   (produto e tecnologia), Biel (implantação nas esmalterias) e Dudu (Instagram).
 
@@ -128,12 +130,20 @@ Netlify; o Claude não digita senhas nem chaves.
   `AdicionalAtendimento` e formas em `Pagamento` (fiado = `recebidoEm` vazio, a receber na tela
   Financeiro). Faturamento sempre por `valorDoAtendimento` (`src/lib/financeiro/fechamento.ts`), que
   cai no preço do serviço nos atendimentos antigos.
+- Comissão sempre por `src/lib/financeiro/comissoes.ts` (Financeiro e Relatório). O percentual da
+  profissional fica guardado no atendimento ao finalizar (`Agendamento.comissaoPercentual`; vazio =
+  vale o atual dela) e o que já foi pago fica em `PagamentoComissao`, por mês de referência.
+- Gráficos do painel usam a cor de dado `--grafico-1` (`globals.css`), não a cor do salão.
 
 ## Estado atual e pendências (07/10/2026)
 
 - No ar desde 07/10/2026: confirmação pelo WhatsApp no link, aviso por e-mail para a dona, troca
   do e-mail de acesso e a janela de pagamento com a tela Financeiro (fiado). O trabalho do dia a
   dia é na branch `teste`; publicar é fazer merge dela na `main` (ver "Publicar custa créditos").
+- Publicado em 07/10/2026: o Financeiro novo (comissões com acertos e
+  vales, caixa por dia, fiado por cliente e "fica com o salão"), com a migração
+  `prisma/migracoes-producao/20261007220000_comissoes`, e o backup diário guardando pagamentos,
+  adicionais e acertos de comissão.
 - Site de teste ainda não ligado. Falta o Paulo fazer, nesta ordem: (1) no Neon, criar a branch
   `teste` a partir da `main`, com os dados atuais, e copiar o endereço de conexão (pooled);
   (2) na Netlify, criar a variável `POSTGRES_URL_TESTE` (marcar "Contains secret values") com esse

@@ -7,6 +7,18 @@ export function formatarCentavos(centavos: number): string {
   return formatadorMoeda.format(centavos / 100);
 }
 
+const formatadorMoedaCompacto = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+/** Valor curto, para o eixo de um gráfico: "R$ 500", "R$ 1 mil", "R$ 2,5 mil". */
+export function formatarCentavosCompacto(centavos: number): string {
+  return formatadorMoedaCompacto.format(centavos / 100);
+}
+
 /** Valor digitado em reais ("130", "130,5", "1.300,50", "R$ 130,00", "130.50") em centavos.
  * Vazio ou fora do formato devolve null. */
 export function reaisParaCentavos(texto: string): number | null {

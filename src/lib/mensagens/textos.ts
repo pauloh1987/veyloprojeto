@@ -26,6 +26,11 @@ export function linkWhatsApp(telefone: string, texto?: string): string {
   return `https://wa.me/${numero}${texto ? `?text=${encodeURIComponent(texto)}` : ""}`;
 }
 
+/** Abre o WhatsApp com o texto pronto para a pessoa escolher o contato (sem número definido). */
+export function linkCompartilharWhatsApp(texto: string): string {
+  return `https://wa.me/?text=${encodeURIComponent(texto)}`;
+}
+
 /** Base pública do site pra links montados fora de uma requisição (fila, cron). A Netlify
  * define `URL` com o domínio principal do site. */
 export function urlBaseSite(): string {

@@ -197,7 +197,7 @@ function EditorComissao({ id, comissaoPercentual }: { id: string; comissaoPercen
   const alterado = valor !== (comissaoPercentual === null ? "" : String(comissaoPercentual));
 
   return (
-    <form action={acao} className="mt-3 flex items-center gap-2 border-t border-border pt-3">
+    <form action={acao} className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
       <input type="hidden" name="profissionalId" value={id} />
       <Percent size={14} className="shrink-0 text-text-faint" />
       <label htmlFor={`comissao-${id}`} className="text-xs text-text-muted">
@@ -219,6 +219,11 @@ function EditorComissao({ id, comissaoPercentual }: { id: string; comissaoPercen
         <Button type="submit" size="sm" className="ml-auto">
           Salvar
         </Button>
+      )}
+      {alterado && (
+        <p className="basis-full text-xs text-text-faint">
+          Vale para os atendimentos finalizados daqui em diante; os já finalizados mantêm a comissão de quando foram fechados.
+        </p>
       )}
       {estado?.erro && <p className="text-xs text-danger">{estado.erro}</p>}
     </form>

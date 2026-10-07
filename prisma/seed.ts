@@ -1,11 +1,14 @@
 import "dotenv/config";
-import type { StatusAgendamento, OrigemAgendamento } from "@prisma/client";
+import type { FormaPagamento, StatusAgendamento, OrigemAgendamento } from "@prisma/client";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { db as prisma } from "../src/lib/db";
 import { hashSenha } from "../src/lib/senha";
 import { calcularHorariosDisponiveis, type ConfigDiaTrabalho, type FaixaHoraria } from "../src/lib/agenda/disponibilidade";
-import { paraDataYMD, somarDias, diaDaSemana } from "../src/lib/tz";
+import { paraDataYMD, somarDias, diaDaSemana, limitesDoDia } from "../src/lib/tz";
 import { textoConfirmacao, textoLembrete } from "../src/lib/mensagens/textos";
+import { mesDoInstante, parametroMes, somarMeses } from "../src/lib/mesRelatorio";
+import { dataDoPagamentoNaHora } from "../src/lib/financeiro/fechamento";
+import { valorDaComissao } from "../src/lib/financeiro/comissoes";
 
 const FUSO = "America/Recife";
 
@@ -21,6 +24,8 @@ function criarRng(sementeInicial: number) {
   };
 }
 const rng = criarRng(20260909);
+// Os pagamentos usam outra sequência, para não mudar os agendamentos gerados pela primeira.
+const rngPagamentos = criarRng(20261007);
 
 function escolher<T>(lista: T[]): T {
   return lista[Math.floor(rng() * lista.length)];
@@ -46,6 +51,9 @@ function tentativasDoDia(passado: boolean): number {
 }
 
 async function limparBanco() {
+  await prisma.pagamentoComissao.deleteMany();
+  await prisma.pagamento.deleteMany();
+  await prisma.adicionalAtendimento.deleteMany();
   await prisma.mensagem.deleteMany();
   await prisma.agendamento.deleteMany();
   await prisma.bloqueio.deleteMany();
@@ -243,9 +251,14 @@ async function main() {
     },
   });
 
+  // Carlos é o dono (sem comissão); João e Marcos ganham por comissão.
   const carlos = await prisma.profissional.create({ data: { nome: "Carlos Eduardo Lima", ativo: true, estabelecimentoId: barbearia.id } });
-  const joao = await prisma.profissional.create({ data: { nome: "João Victor Souza", ativo: true, estabelecimentoId: barbearia.id } });
-  const marcos = await prisma.profissional.create({ data: { nome: "Marcos Paulo Ferreira", ativo: true, estabelecimentoId: barbearia.id } });
+  const joao = await prisma.profissional.create({
+    data: { nome: "João Victor Souza", ativo: true, estabelecimentoId: barbearia.id, comissaoPercentual: 40 },
+  });
+  const marcos = await prisma.profissional.create({
+    data: { nome: "Marcos Paulo Ferreira", ativo: true, estabelecimentoId: barbearia.id, comissaoPercentual: 45 },
+  });
 
   await prisma.usuario.create({
     data: {
@@ -446,7 +459,11 @@ async function main() {
 
   await prisma.relogioSimulado.create({ data: { id: 1, offsetMin: 0 } });
 
-  console.log(`Concluído: ${totalCriados} agendamentos criados.`);
+  console.log("Registrando pagamentos e comissões...");
+  const totalPagos = await criarPagamentosSeed(studioAna.id);
+  await criarAcertosDeComissaoSeed([joao.id, marcos.id]);
+
+  console.log(`Concluído: ${totalCriados} agendamentos criados, ${totalPagos} com pagamento.`);
 
   async function criarMensagensSeed(agendamentoId: string) {
     const agendamento = await prisma.agendamento.findUniqueOrThrow({
@@ -493,6 +510,106 @@ async function main() {
 
 function dataHoraParaInstante(dataYMD: string, horaHHmm: string): Date {
   return fromZonedTime(`${dataYMD}T${horaHHmm}:00`, FUSO);
+}
+
+/** Fecha cada atendimento já feito como a janela "Finalizar atendimento" faria: às vezes com
+ * desconto ou um adicional, quase sempre pago na hora (Pix na frente) e alguns no fiado, metade
+ * deles já recebida dias depois. Devolve quantos atendimentos ganharam pagamento. */
+async function criarPagamentosSeed(studioAnaId: string): Promise<number> {
+  const sortear = <T,>(lista: T[]): T => lista[Math.floor(rngPagamentos() * lista.length)];
+  const agora = new Date();
+  const atendidos = await prisma.agendamento.findMany({
+    where: { status: "ATENDIDO" },
+    include: { servico: true, profissional: true },
+    orderBy: { inicio: "asc" },
+  });
+
+  for (const atendimento of atendidos) {
+    const comDesconto = rngPagamentos() < 0.15;
+    const valorServicoCentavos = comDesconto
+      ? Math.round((atendimento.servico.precoCentavos * 0.9) / 100) * 100
+      : atendimento.servico.precoCentavos;
+    const adicionais =
+      rngPagamentos() < 0.12
+        ? [atendimento.estabelecimentoId === studioAnaId ? { descricao: "Decoração", valorCentavos: 1000 } : { descricao: "Hidratação da barba", valorCentavos: 1500 }]
+        : [];
+    const total = adicionais.reduce((soma, a) => soma + a.valorCentavos, valorServicoCentavos);
+
+    const sorteio = rngPagamentos();
+    const forma: FormaPagamento =
+      sorteio < 0.42 ? "PIX" : sorteio < 0.62 ? "DINHEIRO" : sorteio < 0.78 ? "CREDITO" : sorteio < 0.91 ? "DEBITO" : "FIADO";
+    let recebidoEm: Date | null = dataDoPagamentoNaHora(atendimento.fim, agora);
+    let formaRecebimento: FormaPagamento | null = null;
+    if (forma === "FIADO") {
+      const recebidoDepois = new Date(atendimento.fim.getTime() + (2 + Math.floor(rngPagamentos() * 10)) * 86_400_000);
+      const jaRecebido = rngPagamentos() < 0.5 && recebidoDepois.getTime() < agora.getTime();
+      recebidoEm = jaRecebido ? recebidoDepois : null;
+      formaRecebimento = jaRecebido ? sortear<FormaPagamento>(["PIX", "DINHEIRO"]) : null;
+    }
+
+    await prisma.agendamento.update({
+      where: { id: atendimento.id },
+      data: {
+        valorServicoCentavos,
+        valorTotalCentavos: total,
+        comissaoPercentual: atendimento.profissional.comissaoPercentual,
+        adicionais: { create: adicionais },
+        pagamentos: {
+          create: [{ estabelecimentoId: atendimento.estabelecimentoId, valorCentavos: total, forma, recebidoEm, formaRecebimento }],
+        },
+      },
+    });
+  }
+  return atendidos.length;
+}
+
+/** Comissão do mês passado já acertada (paga no dia 5) e um vale neste mês, para a tela
+ * Financeiro mostrar os dois casos. */
+async function criarAcertosDeComissaoSeed(profissionaisIds: string[]) {
+  const agora = new Date();
+  const mesAtual = mesDoInstante(agora, FUSO);
+  const mesPassado = somarMeses(mesAtual, -1);
+  const inicioDe = (mes: { ano: number; mes: number }) =>
+    limitesDoDia(`${mes.ano}-${String(mes.mes).padStart(2, "0")}-01`, FUSO).inicio;
+  const hoje = paraDataYMD(agora, FUSO);
+  const diaCinco = `${parametroMes(mesAtual)}-05`;
+  const pagoNoDiaCinco = diaCinco <= hoje ? dataHoraParaInstante(diaCinco, "18:00") : agora;
+
+  for (const profissionalId of profissionaisIds) {
+    const atendidos = await prisma.agendamento.findMany({
+      where: { profissionalId, status: "ATENDIDO", inicio: { gte: inicioDe(mesPassado), lt: inicioDe(mesAtual) } },
+    });
+    const comissao = atendidos.reduce(
+      (soma, a) => soma + (a.comissaoPercentual === null ? 0 : valorDaComissao(a.valorTotalCentavos ?? 0, a.comissaoPercentual)),
+      0,
+    );
+    if (comissao > 0) {
+      await prisma.pagamentoComissao.create({
+        data: {
+          estabelecimentoId: atendidos[0].estabelecimentoId,
+          profissionalId,
+          mesReferencia: parametroMes(mesPassado),
+          valorCentavos: comissao,
+          pagoEm: pagoNoDiaCinco,
+          observacao: "Pix",
+        },
+      });
+    }
+  }
+
+  const [primeiro] = profissionaisIds;
+  const profissional = await prisma.profissional.findUniqueOrThrow({ where: { id: primeiro } });
+  const doisDiasAtras = somarDias(hoje, -2);
+  await prisma.pagamentoComissao.create({
+    data: {
+      estabelecimentoId: profissional.estabelecimentoId,
+      profissionalId: primeiro,
+      mesReferencia: parametroMes(mesAtual),
+      valorCentavos: 5000,
+      pagoEm: doisDiasAtras.startsWith(parametroMes(mesAtual)) ? dataHoraParaInstante(doisDiasAtras, "12:00") : agora,
+      observacao: "vale",
+    },
+  });
 }
 
 main()

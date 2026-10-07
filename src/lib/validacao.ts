@@ -195,6 +195,30 @@ export const registrarRecebimentoSchema = z.object({
 });
 export type RegistrarRecebimentoInput = z.infer<typeof registrarRecebimentoSchema>;
 
+/** "Recebi tudo": a cliente pagou de uma vez os fiados que a tela mostrou, numa forma só. */
+export const receberFiadosSchema = z.object({
+  pagamentoIds: z.array(z.string().min(1)).min(1, "Nada para receber.").max(100),
+  forma: z.enum(["PIX", "DINHEIRO", "CREDITO", "DEBITO"]),
+});
+export type ReceberFiadosInput = z.infer<typeof receberFiadosSchema>;
+
+/** Data de calendário que existe de verdade (recusa 2026-02-30). */
+function dataExiste(dataYMD: string): boolean {
+  const [ano, mes, dia] = dataYMD.split("-").map(Number);
+  const data = new Date(Date.UTC(ano, mes - 1, dia));
+  return data.getUTCFullYear() === ano && data.getUTCMonth() === mes - 1 && data.getUTCDate() === dia;
+}
+
+/** Acerto de comissão (tela Financeiro): quanto a dona pagou a uma profissional da comissão de um mês. */
+export const pagamentoComissaoSchema = z.object({
+  profissionalId: z.string().min(1),
+  mesReferencia: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Mês inválido."),
+  valorCentavos: z.number().int().min(1, "Coloque o valor pago.").max(MAXIMO_CENTAVOS),
+  data: z.string().regex(REGEX_DATA, "Data inválida.").refine(dataExiste, "Data inválida."),
+  observacao: z.string().trim().max(60, "Anotação longa demais (até 60 letras)."),
+});
+export type PagamentoComissaoInput = z.infer<typeof pagamentoComissaoSchema>;
+
 export const alternarArquivadoServicoSchema = z.object({
   servicoId: z.string().min(1),
   ativo: z.boolean(),

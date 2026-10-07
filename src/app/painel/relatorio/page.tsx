@@ -13,6 +13,7 @@ import {
   type MesAno,
 } from "@/lib/mesRelatorio";
 import { formatarCentavos } from "@/lib/formatadores";
+import { rotuloPercentuais } from "@/lib/financeiro/comissoes";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { GraficoFaturamento } from "@/components/painel/GraficoFaturamento";
@@ -131,7 +132,15 @@ export default async function PaginaRelatorio({ searchParams }: PageProps<"/pain
       {relatorio.comissoesPorProfissional.length > 0 && (
         <Card className="mb-4">
           <CardBody>
-            <p className="mb-3 text-xs text-text-faint">Comissões do mês (por atendimentos concluídos)</p>
+            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <p className="text-xs text-text-faint">Comissões do mês (por atendimentos concluídos)</p>
+              <Link
+                href={`/painel/financeiro${mes.ano === atual.ano && mes.mes === atual.mes ? "" : `?mes=${parametroMes(mes)}`}#comissoes`}
+                className="text-xs font-semibold text-text-muted hover:text-text hover:underline"
+              >
+                Acertar em Financeiro
+              </Link>
+            </div>
             <ul className="space-y-3">
               {relatorio.comissoesPorProfissional.map((c) => (
                 <li key={c.profissionalId} className="flex items-center gap-3">
@@ -146,7 +155,7 @@ export default async function PaginaRelatorio({ searchParams }: PageProps<"/pain
                     ) : (
                       <>
                         <p className="font-heading text-sm font-bold text-text">{formatarCentavos(c.comissao.centavos)}</p>
-                        <p className="text-xs text-text-faint">{c.comissao.percentual}%</p>
+                        <p className="text-xs text-text-faint">{rotuloPercentuais(c.comissao.percentuais)}</p>
                       </>
                     )}
                   </div>

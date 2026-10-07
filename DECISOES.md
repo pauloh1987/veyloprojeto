@@ -437,3 +437,32 @@ especificação não determinava um caminho exato. Organizado por área.
   valor cobrado (`valorTotalCentavos`) e, nos atendimentos antigos, o preço do serviço; Financeiro
   mostra o dinheiro que entrou (caixa), e Relatório o que foi atendido. "Cobrar no WhatsApp" abre
   o WhatsApp da dona com a cobrança já escrita (sem custo, sem modelo da Meta).
+- **Financeiro com comissões, caixa do dia e fiado por cliente (07/10/2026)**: a tela Financeiro
+  virou o resumo do dinheiro do salão. No topo, o que entrou no mês (com a comparação do Relatório,
+  contra o mesmo período do mês anterior, e um gráfico por dia) e três cartões: fiado a receber,
+  comissões do mês (e quanto falta pagar) e o que fica com o salão (faturado menos comissões, antes
+  das despesas, que o sistema ainda não registra). Embaixo: o fiado agrupado por cliente (quem deve
+  há mais tempo primeiro, selo amarelo depois de 15 dias e vermelho depois de 30, "Recebi tudo"
+  quando são vários e a cobrança no WhatsApp com a lista), a comissão de cada profissional, quanto
+  entrou em cada forma de pagamento e o caixa de cada dia, para conferir com a maquininha e o banco.
+  Entradas e fiado contam o dinheiro no dia em que entrou; comissões e "fica com o salão" contam os
+  atendimentos finalizados no mês, como o Relatório, porque é assim que os salões acertam comissão.
+  A comissão é um percentual sobre o valor cobrado (serviço e adicionais), arredondado ao centavo em
+  cada atendimento, para a lista de atendimentos bater com o total. O percentual fica guardado no
+  atendimento ao finalizar (`Agendamento.comissaoPercentual`; ao corrigir o pagamento, fica o que já
+  estava): mudar a comissão de uma profissional não reescreve o histórico nem os acertos já feitos.
+  Sem percentual guardado vale o atual, para quem define a comissão no meio do mês ver o mês inteiro
+  calculado; a migração de produção grava o percentual atual nos atendimentos já finalizados.
+  Relatório e Financeiro usam a mesma conta (`src/lib/financeiro/comissoes.ts`). O acerto
+  (`PagamentoComissao`) registra quanto a dona pagou da comissão de um mês, de uma vez ou em partes
+  (vales), com dia e anotação; ele é ligado ao mês da comissão, e não a um período de datas, porque
+  é como os salões falam ("a comissão de outubro"), e quem paga por semana faz vários acertos no
+  mesmo mês. Pagar mais que o devido não é bloqueado (vale adiantado): aparece como "pago a mais".
+  "Enviar resumo" abre o WhatsApp da dona com o extrato da comissão pronto, sem número definido,
+  porque a profissional não tem telefone cadastrado. O gráfico usa uma cor de dado fixa
+  (`--grafico-1`, conferida contra os fundos claro e escuro) e não a cor do salão, que pode ser clara
+  demais para aparecer no fundo branco; tem uma cor só porque a pergunta é quanto entrou em cada
+  dia, e a divisão por forma fica na lista. Cada coluna leva ao dia em "Entradas dia a dia", que é a
+  versão em tabela do gráfico. Junto: o backup diário não guardava `Pagamento` nem
+  `AdicionalAtendimento` (criados no mesmo dia); agora guarda, com `PagamentoComissao`, e o script de
+  cópia e restauração (`db:copiar-para-neon`) conhece as três tabelas. Na tela, a forma "Fiado" passou a se chamar "Pagar depois" (e o valor em aberto, "A receber"), um nome mais gentil para a cliente que vê a tela; no código e no banco continua `FIADO`.

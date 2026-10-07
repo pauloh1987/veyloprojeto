@@ -12,7 +12,7 @@ export const FORMAS_PAGAMENTO: { forma: FormaPagamento; rotulo: string }[] = [
   { forma: "DINHEIRO", rotulo: "Dinheiro" },
   { forma: "CREDITO", rotulo: "Crédito" },
   { forma: "DEBITO", rotulo: "Débito" },
-  { forma: "FIADO", rotulo: "Fiado" },
+  { forma: "FIADO", rotulo: "Pagar depois" },
 ];
 
 /** Formas em que o dinheiro entra de fato (para receber um fiado). */

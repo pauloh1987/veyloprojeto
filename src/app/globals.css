@@ -40,6 +40,12 @@
   --focus-ring: #3366f0;
 
   --shadow-color: 220 30% 15%;
+
+  /* Gráficos do painel (Financeiro): cor de dado fixa, que não muda com a cor do salão (uma cor
+     clara de salão sumiria no fundo branco), conferida contra a superfície clara e a escura
+     (contraste de pelo menos 3:1). O trilho é um tom da mesma cor para as barras de progresso. */
+  --grafico-1: #2a78d6;
+  --grafico-1-trilho: #cde2fb;
 }
 
 :root.dark {
@@ -67,6 +73,9 @@
   --info: #6f9cff;
   --info-bg: #101e3a;
   --focus-ring: #6f9cff;
+
+  --grafico-1: #3987e5;
+  --grafico-1-trilho: #104281;
 }
 
 @theme inline {
@@ -92,6 +101,9 @@
   --color-info: var(--info);
   --color-info-bg: var(--info-bg);
   --color-focus-ring: var(--focus-ring);
+
+  --color-grafico-1: var(--grafico-1);
+  --color-grafico-1-trilho: var(--grafico-1-trilho);
 
   --color-veylo-teal: var(--veylo-teal);
   --color-veylo-blue: var(--veylo-blue);
