@@ -466,3 +466,12 @@ especificação não determinava um caminho exato. Organizado por área.
   versão em tabela do gráfico. Junto: o backup diário não guardava `Pagamento` nem
   `AdicionalAtendimento` (criados no mesmo dia); agora guarda, com `PagamentoComissao`, e o script de
   cópia e restauração (`db:copiar-para-neon`) conhece as três tabelas. Na tela, a forma "Fiado" passou a se chamar "Pagar depois" (e o valor em aberto, "A receber"), um nome mais gentil para a cliente que vê a tela; no código e no banco continua `FIADO`.
+- **Relatório de desempenho (08/10/2026)**: com o Financeiro novo (dinheiro que entrou, comissões e
+  caixa do dia), o Relatório deixou de repetir faturamento por dia e comissões e passou a mostrar o
+  desempenho do mês: atendimentos (comparados ao mês anterior), ticket médio, faltas, quanto foi
+  marcado pelo link, clientes no mês (quem veio pela primeira vez e quem já tinha vindo), melhores
+  clientes, "Para chamar de volta" (mais de 45 dias sem vir e sem horário marcado, com a mensagem
+  pronta no WhatsApp da dona; só no mês atual), cada profissional (atendimentos, valor, ticket e
+  faltas), serviços mais feitos e movimento por horário e dia da semana. Os cálculos ficam em
+  `src/lib/relatorio/desempenho.ts`, com testes. Os textos evitam gênero ("clientes no mês",
+  "vieram pela primeira vez") porque há barbearias também.

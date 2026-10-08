@@ -1,32 +1,23 @@
-import { formatInTimeZone } from "date-fns-tz";
 import { db } from "@/lib/db";
 import { limitesDoDia } from "@/lib/tz";
 import { mesDoInstante, periodoDeComparacao, somarMeses, type MesAno } from "@/lib/mesRelatorio";
-import { valorDoAtendimento } from "@/lib/financeiro/fechamento";
-import { percentualDaComissao, somarComissoes } from "@/lib/financeiro/comissoes";
+import { clientesSumidas, resumirDesempenho, type DesempenhoDoMes } from "@/lib/relatorio/desempenho";
 
 function primeiroDiaMes({ ano, mes }: MesAno): string {
   return `${ano}-${String(mes).padStart(2, "0")}-01`;
 }
 
+const MAXIMO_SUMIDAS = 8;
+
 export interface RelatorioMensal {
-  faturamentoMesAtualCentavos: number;
-  /** Faturamento do mês anterior usado na comparação: inteiro, ou só o mesmo período quando o
-   * mês do relatório ainda está em andamento (`comparaMesmoPeriodo`). */
-  faturamentoComparacaoCentavos: number;
+  desempenho: DesempenhoDoMes;
+  /** Atendimentos do mês anterior usados na comparação: o mês inteiro, ou só o mesmo período
+   * quando o mês do relatório ainda está em andamento (`comparaMesmoPeriodo`). */
+  atendimentosComparacao: number;
   comparaMesmoPeriodo: boolean;
-  variacaoPercentual: number | null;
-  servicoMaisVendido: { nome: string; qtd: number } | null;
-  taxaFalta: number | null;
-  horariosMaisProcurados: { hora: number; qtd: number }[];
-  faturamentoPorDiaCentavos: number[];
-  comissoesPorProfissional: {
-    profissionalId: string;
-    nome: string;
-    faturamentoCentavos: number;
-    /** Mesma conta da tela Financeiro (src/lib/financeiro/comissoes.ts); null = sem comissão. */
-    comissao: { percentuais: number[]; centavos: number } | null;
-  }[];
+  variacaoAtendimentos: number | null;
+  /** Clientes para chamar de volta, contado a partir de hoje (não do mês escolhido). */
+  sumidas: { clienteId: string; nome: string; telefone: string; dias: number }[];
 }
 
 /** Primeiro mês que o Relatório deixa ver: o do cadastro ou, se houver agendamento mais
@@ -45,100 +36,64 @@ export async function primeiroMesDoNegocio(
   return mesDoInstante(desde, fuso);
 }
 
-/** Números do mês `mesRef` (no fuso do estabelecimento), com o faturamento comparado ao do mês
- * anterior a ele (ver `periodoDeComparacao`). */
+/** Desempenho do mês `mesRef` (no fuso do estabelecimento), com os atendimentos comparados aos do
+ * mês anterior (ver `periodoDeComparacao`). O dinheiro que entrou e as comissões ficam em Financeiro. */
 export async function calcularRelatorio(estabelecimentoId: string, fuso: string, mesRef: MesAno): Promise<RelatorioMensal> {
-  const { ano, mes } = mesRef;
+  const agora = new Date();
   const inicioMesAtual = limitesDoDia(primeiroDiaMes(mesRef), fuso).inicio;
   const inicioMesAnterior = limitesDoDia(primeiroDiaMes(somarMeses(mesRef, -1)), fuso).inicio;
   const fimMesAtualExclusivo = limitesDoDia(primeiroDiaMes(somarMeses(mesRef, 1)), fuso).inicio;
-  const comparacao = periodoDeComparacao(inicioMesAnterior, inicioMesAtual, fimMesAtualExclusivo, new Date());
+  const comparacao = periodoDeComparacao(inicioMesAnterior, inicioMesAtual, fimMesAtualExclusivo, agora);
 
-  const [agendamentosMesAtual, agendamentosComparacao] = await Promise.all([
+  const [agendamentosDoMes, atendimentosComparacao, visitasPorCliente, comHorarioMarcado] = await Promise.all([
     db.agendamento.findMany({
       where: { estabelecimentoId, inicio: { gte: inicioMesAtual, lt: fimMesAtualExclusivo }, confirmarAte: null },
-      include: { servico: true, profissional: { select: { id: true, nome: true, comissaoPercentual: true } } },
+      include: {
+        servico: { select: { nome: true, precoCentavos: true } },
+        profissional: { select: { nome: true } },
+        cliente: { select: { nome: true } },
+      },
+    }),
+    db.agendamento.count({
+      where: { estabelecimentoId, inicio: { gte: inicioMesAnterior, lt: comparacao.fimExclusivo }, status: "ATENDIDO" },
+    }),
+    db.agendamento.groupBy({
+      by: ["clienteId"],
+      where: { estabelecimentoId, status: "ATENDIDO" },
+      _min: { inicio: true },
+      _max: { inicio: true },
     }),
     db.agendamento.findMany({
-      where: {
-        estabelecimentoId,
-        inicio: { gte: inicioMesAnterior, lt: comparacao.fimExclusivo },
-        status: "ATENDIDO",
-      },
-      include: { servico: true },
+      where: { estabelecimentoId, inicio: { gte: agora }, status: { in: ["PENDENTE", "CONFIRMADO"] }, confirmarAte: null },
+      select: { clienteId: true },
+      distinct: ["clienteId"],
     }),
   ]);
 
-  const atendidosMesAtual = agendamentosMesAtual.filter((a) => a.status === "ATENDIDO");
-  const faturamentoMesAtualCentavos = atendidosMesAtual.reduce((soma, a) => soma + valorDoAtendimento(a), 0);
-  const faturamentoComparacaoCentavos = agendamentosComparacao.reduce((soma, a) => soma + valorDoAtendimento(a), 0);
-  const variacaoPercentual =
-    faturamentoComparacaoCentavos === 0
-      ? null
-      : ((faturamentoMesAtualCentavos - faturamentoComparacaoCentavos) / faturamentoComparacaoCentavos) * 100;
-
-  const contagemServico = new Map<string, { nome: string; qtd: number }>();
-  for (const a of atendidosMesAtual) {
-    const atual = contagemServico.get(a.servicoId) ?? { nome: a.servico.nome, qtd: 0 };
-    atual.qtd++;
-    contagemServico.set(a.servicoId, atual);
+  const primeiraVisita = new Map<string, Date>();
+  const ultimasVisitas: { clienteId: string; ultima: Date }[] = [];
+  for (const v of visitasPorCliente) {
+    if (v._min.inicio) primeiraVisita.set(v.clienteId, v._min.inicio);
+    if (v._max.inicio) ultimasVisitas.push({ clienteId: v.clienteId, ultima: v._max.inicio });
   }
-  const servicoMaisVendido = [...contagemServico.values()].sort((a, b) => b.qtd - a.qtd)[0] ?? null;
 
-  const concluidos = agendamentosMesAtual.filter((a) => a.status === "ATENDIDO" || a.status === "FALTOU");
-  const faltas = agendamentosMesAtual.filter((a) => a.status === "FALTOU").length;
-  const taxaFalta = concluidos.length === 0 ? null : (faltas / concluidos.length) * 100;
-
-  const naoCancelados = agendamentosMesAtual.filter((a) => a.status !== "CANCELADO");
-  const contagemHora = new Map<number, number>();
-  for (const a of naoCancelados) {
-    const hora = Number(formatInTimeZone(a.inicio, fuso, "H"));
-    contagemHora.set(hora, (contagemHora.get(hora) ?? 0) + 1);
-  }
-  const horariosMaisProcurados = [...contagemHora.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([hora, qtd]) => ({ hora, qtd }));
-
-  const porProfissional = new Map<
-    string,
-    { nome: string; faturamentoCentavos: number; itens: { valorCentavos: number; percentual: number | null }[] }
-  >();
-  for (const a of atendidosMesAtual) {
-    const atual = porProfissional.get(a.profissionalId) ?? { nome: a.profissional.nome, faturamentoCentavos: 0, itens: [] };
-    const valorCentavos = valorDoAtendimento(a);
-    atual.faturamentoCentavos += valorCentavos;
-    atual.itens.push({ valorCentavos, percentual: percentualDaComissao(a, a.profissional) });
-    porProfissional.set(a.profissionalId, atual);
-  }
-  const comissoesPorProfissional = [...porProfissional.entries()]
-    .map(([profissionalId, dados]) => {
-      const soma = somarComissoes(dados.itens);
-      return {
-        profissionalId,
-        nome: dados.nome,
-        faturamentoCentavos: dados.faturamentoCentavos,
-        comissao: soma.temComissao ? { percentuais: soma.percentuais, centavos: soma.centavos } : null,
-      };
-    })
-    .sort((a, b) => b.faturamentoCentavos - a.faturamentoCentavos);
-
-  const diasNoMes = new Date(ano, mes, 0).getDate();
-  const faturamentoPorDiaCentavos = Array.from({ length: diasNoMes }, () => 0);
-  for (const a of atendidosMesAtual) {
-    const dia = Number(formatInTimeZone(a.inicio, fuso, "d"));
-    faturamentoPorDiaCentavos[dia - 1] += valorDoAtendimento(a);
-  }
+  const desempenho = resumirDesempenho(agendamentosDoMes, fuso, primeiraVisita, inicioMesAtual);
+  const sumidasIds = clientesSumidas(ultimasVisitas, new Set(comHorarioMarcado.map((a) => a.clienteId)), agora).slice(0, MAXIMO_SUMIDAS);
+  const dadosSumidas = await db.cliente.findMany({
+    where: { id: { in: sumidasIds.map((s) => s.clienteId) } },
+    select: { id: true, nome: true, telefone: true },
+  });
+  const porId = new Map(dadosSumidas.map((c) => [c.id, c]));
 
   return {
-    faturamentoMesAtualCentavos,
-    faturamentoComparacaoCentavos,
+    desempenho,
+    atendimentosComparacao,
     comparaMesmoPeriodo: comparacao.mesmoPeriodo,
-    variacaoPercentual,
-    servicoMaisVendido,
-    taxaFalta,
-    horariosMaisProcurados,
-    faturamentoPorDiaCentavos,
-    comissoesPorProfissional,
+    variacaoAtendimentos:
+      atendimentosComparacao === 0 ? null : ((desempenho.atendimentos - atendimentosComparacao) / atendimentosComparacao) * 100,
+    sumidas: sumidasIds.flatMap((s) => {
+      const cliente = porId.get(s.clienteId);
+      return cliente ? [{ clienteId: s.clienteId, nome: cliente.nome, telefone: cliente.telefone, dias: s.dias }] : [];
+    }),
   };
 }
