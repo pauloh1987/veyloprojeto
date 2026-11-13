@@ -86,7 +86,7 @@ export async function salvarHorariosSemana(
 /** Horário de um dia só, sem dia da semana: usado nas datas especiais. */
 export type HorarioDataInput = Omit<DiaHorarioInput, "diaSemana">;
 
-const MAXIMO_DATAS_POR_VEZ = 62;
+const MAXIMO_DATAS_POR_VEZ = 92;
 
 /**
  * Grava o mesmo horário em uma ou mais datas (ex.: os sábados de dezembro). Para essas datas ele
@@ -138,13 +138,14 @@ export async function salvarHorariosEspeciais(
   }
 }
 
-/** Apaga a data especial: o dia volta a seguir o horário da semana. */
-export async function removerHorarioEspecial(id: string): Promise<{ erro?: string; sucesso?: boolean }> {
+/** Apaga datas especiais (uma ou um período inteiro): esses dias voltam a seguir o horário da semana. */
+export async function removerHorariosEspeciais(ids: string[]): Promise<{ erro?: string; sucesso?: boolean }> {
   try {
-    const especial = await db.horarioEspecial.findUnique({ where: { id } });
-    if (!especial) return { sucesso: true };
-    await exigirProfissionalDoSalao(especial.profissionalId);
-    await db.horarioEspecial.delete({ where: { id } });
+    const especiais = await db.horarioEspecial.findMany({ where: { id: { in: ids.slice(0, MAXIMO_DATAS_POR_VEZ) } } });
+    for (const profissionalId of new Set(especiais.map((e) => e.profissionalId))) {
+      await exigirProfissionalDoSalao(profissionalId);
+    }
+    await db.horarioEspecial.deleteMany({ where: { id: { in: especiais.map((e) => e.id) } } });
     revalidatePath("/painel/horarios");
     return { sucesso: true };
   } catch (erro) {

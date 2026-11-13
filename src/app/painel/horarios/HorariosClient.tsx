@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { CalendarPlus, Check, Copy, Pencil, Plus, Trash2, X } from "lucide-react";
 import {
-  removerHorarioEspecial,
+  removerHorariosEspeciais,
   salvarHorariosEspeciais,
   salvarHorariosSemana,
   type DiaHorarioInput,
@@ -159,6 +159,61 @@ function copiaDoHorario(h: HorarioDataInput): HorarioDataInput {
   };
 }
 
+const SIGLAS_DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const MAXIMO_DATAS = 92;
+
+/** Todas as datas de `de` até `ate` (inclusive) que caem nos dias da semana escolhidos. */
+function datasDoPeriodo(de: string, ate: string, diasSemana: number[]): string[] {
+  const lista: string[] = [];
+  const atual = new Date(`${de}T12:00:00Z`);
+  const fim = new Date(`${ate}T12:00:00Z`);
+  while (atual <= fim && lista.length <= MAXIMO_DATAS) {
+    if (diasSemana.includes(atual.getUTCDay())) lista.push(atual.toISOString().slice(0, 10));
+    atual.setUTCDate(atual.getUTCDate() + 1);
+  }
+  return lista;
+}
+
+function diasEntre(de: string, ate: string): number {
+  return Math.round((Date.parse(`${ate}T12:00:00Z`) - Date.parse(`${de}T12:00:00Z`)) / 86_400_000) + 1;
+}
+
+/** "De sáb., 1 de dez. até qua., 24 de dez." ou a data só, quando é uma. */
+function rotuloDatas(datas: string[]): string {
+  if (datas.length === 1) return rotuloData(datas[0], true);
+  return `De ${rotuloData(datas[0])} até ${rotuloData(datas[datas.length - 1])}`;
+}
+
+/** "20 datas, só sex, sáb": diz quais dias da semana entram quando o período pula algum. */
+function detalheDatas(datas: string[]): string {
+  if (datas.length === 1) return "";
+  const dias = [...new Set(datas.map(diaDaSemanaDe))].sort();
+  const todos = datas.length === diasEntre(datas[0], datas[datas.length - 1]);
+  const quais = todos ? "todos os dias" : `só ${dias.map((d) => SIGLAS_DIAS[d].toLowerCase()).join(", ")}`;
+  return `${datas.length} datas, ${quais}`;
+}
+
+interface GrupoEspecial {
+  ids: string[];
+  datas: string[];
+  horario: HorarioEspecialTela;
+}
+
+/** Junta datas seguidas (na lista) com o mesmo horário, para um período aparecer numa linha só. */
+function agrupar(especiais: HorarioEspecialTela[]): GrupoEspecial[] {
+  const grupos: GrupoEspecial[] = [];
+  for (const e of [...especiais].sort((a, b) => a.data.localeCompare(b.data))) {
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo && resumoHorario(ultimo.horario) === resumoHorario(e)) {
+      ultimo.ids.push(e.id);
+      ultimo.datas.push(e.data);
+    } else {
+      grupos.push({ ids: [e.id], datas: [e.data], horario: e });
+    }
+  }
+  return grupos;
+}
+
 function DatasEspeciais({
   profissionalId,
   especiais,
@@ -170,24 +225,32 @@ function DatasEspeciais({
   semana: DiaHorarioInput[];
   hoje: string;
 }) {
+  const diasAbertos = semana.filter((d) => !d.fechado).map((d) => d.diaSemana);
   /** null = formulário fechado; lista = datas que estão sendo editadas. */
   const [datas, setDatas] = useState<string[] | null>(null);
   const [horario, setHorario] = useState<HorarioDataInput | null>(null);
+  const [modo, setModo] = useState<"datas" | "periodo">("periodo");
   const [novaData, setNovaData] = useState("");
+  const [periodoDe, setPeriodoDe] = useState("");
+  const [periodoAte, setPeriodoAte] = useState("");
+  const [diasPeriodo, setDiasPeriodo] = useState<number[]>(diasAbertos.length > 0 ? diasAbertos : [0, 1, 2, 3, 4, 5, 6]);
   const [pendente, iniciar] = useTransition();
   const [mensagem, setMensagem] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
+  const grupos = agrupar(especiais);
 
   function abrirNovo() {
     setMensagem(null);
     setDatas([]);
     setHorario(null);
     setNovaData("");
+    setPeriodoDe("");
+    setPeriodoAte("");
   }
 
-  function editar(especial: HorarioEspecialTela) {
+  function editar(grupo: GrupoEspecial) {
     setMensagem(null);
-    setDatas([especial.data]);
-    setHorario(copiaDoHorario(especial));
+    setDatas([...grupo.datas]);
+    setHorario(copiaDoHorario(grupo.horario));
     setNovaData("");
   }
 
@@ -196,15 +259,47 @@ function DatasEspeciais({
     setHorario(null);
   }
 
-  function adicionarData() {
-    if (!novaData || novaData < hoje || datas?.includes(novaData)) return;
-    setDatas((atual) => [...(atual ?? []), novaData].sort());
-    // Começa pelo horário que esse dia da semana já tem; a dona só ajusta o que muda.
+  /** Junta as datas novas às que já estão escolhidas. O horário começa pelo que o dia da semana
+   * da primeira data já tem; a dona só ajusta o que muda. */
+  function incluirDatas(novas: string[]) {
+    const validas = novas.filter((d) => d >= hoje);
+    if (validas.length === 0) return;
+    setDatas((atual) => [...new Set([...(atual ?? []), ...validas])].sort());
     if (!horario) {
-      const daSemana = semana.find((d) => d.diaSemana === diaDaSemanaDe(novaData));
+      const daSemana = semana.find((d) => d.diaSemana === diaDaSemanaDe(validas[0]));
       setHorario(daSemana ? copiaDoHorario(daSemana) : copiaDoHorario({ ...semana[0], fechado: false }));
     }
+  }
+
+  function adicionarData() {
+    if (!novaData) return;
+    incluirDatas([novaData]);
     setNovaData("");
+  }
+
+  function usarPeriodo() {
+    setMensagem(null);
+    if (!periodoDe || !periodoAte) return;
+    if (periodoAte < periodoDe) {
+      setMensagem({ tipo: "erro", texto: "A data final precisa ser depois da inicial." });
+      return;
+    }
+    if (diasEntre(periodoDe, periodoAte) > MAXIMO_DATAS) {
+      setMensagem({ tipo: "erro", texto: "O período pode ter no máximo 3 meses." });
+      return;
+    }
+    const lista = datasDoPeriodo(periodoDe < hoje ? hoje : periodoDe, periodoAte, diasPeriodo);
+    if (lista.length === 0) {
+      setMensagem({ tipo: "erro", texto: "Nenhuma data do período cai nos dias da semana marcados." });
+      return;
+    }
+    incluirDatas(lista);
+    setPeriodoDe("");
+    setPeriodoAte("");
+  }
+
+  function alternarDiaPeriodo(dia: number) {
+    setDiasPeriodo((atual) => (atual.includes(dia) ? atual.filter((d) => d !== dia) : [...atual, dia].sort()));
   }
 
   function salvar() {
@@ -221,45 +316,52 @@ function DatasEspeciais({
     });
   }
 
-  function remover(especial: HorarioEspecialTela) {
-    if (!confirm(`Remover o horário especial de ${rotuloData(especial.data, true)}? O dia volta ao horário da semana.`)) {
-      return;
-    }
+  function remover(grupo: GrupoEspecial) {
+    const quais =
+      grupo.datas.length === 1
+        ? rotuloData(grupo.datas[0], true)
+        : `${grupo.datas.length} datas (${rotuloDatas(grupo.datas).toLowerCase()})`;
+    if (!confirm(`Remover o horário especial de ${quais}? Esses dias voltam ao horário da semana.`)) return;
     setMensagem(null);
     iniciar(async () => {
-      const resultado = await removerHorarioEspecial(especial.id);
+      const resultado = await removerHorariosEspeciais(grupo.ids);
       if (resultado.erro) setMensagem({ tipo: "erro", texto: resultado.erro });
     });
   }
+
+  const campoData = "rounded-lg border border-border-strong bg-surface px-2 py-1.5 text-sm text-text";
 
   return (
     <section className="space-y-3">
       <div>
         <h2 className="font-heading text-lg font-bold text-text">Datas especiais</h2>
         <p className="text-sm text-text-muted">
-          Para dias com horário diferente, como os sábados de dezembro ou um feriado. Vale só nas datas escolhidas: as
-          outras semanas continuam com o horário acima.
+          Para dias com horário diferente, como dezembro ou um feriado. Vale só nas datas escolhidas: as outras semanas
+          continuam com o horário acima.
         </p>
       </div>
 
-      {especiais.length > 0 && (
+      {grupos.length > 0 && (
         <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
-          {especiais.map((e) => (
-            <li key={e.id} className="flex items-center gap-3 px-4 py-3">
+          {grupos.map((g) => (
+            <li key={g.ids[0]} className="flex items-center gap-3 px-4 py-3">
               <div className="min-w-0 flex-1">
-                <p className="font-semibold text-text">{rotuloData(e.data, true)}</p>
-                <p className={cn("text-sm", e.fechado ? "text-danger" : "text-text-muted")}>{resumoHorario(e)}</p>
+                <p className="font-semibold text-text">{rotuloDatas(g.datas)}</p>
+                {g.datas.length > 1 && <p className="text-xs text-text-faint">{detalheDatas(g.datas)}</p>}
+                <p className={cn("text-sm", g.horario.fechado ? "text-danger" : "text-text-muted")}>
+                  {resumoHorario(g.horario)}
+                </p>
               </div>
-              <Button type="button" size="sm" variant="ghost" onClick={() => editar(e)} aria-label={`Editar ${e.data}`}>
+              <Button type="button" size="sm" variant="ghost" onClick={() => editar(g)} aria-label={`Editar ${g.datas[0]}`}>
                 <Pencil size={14} />
               </Button>
               <Button
                 type="button"
                 size="sm"
                 variant="ghost"
-                onClick={() => remover(e)}
+                onClick={() => remover(g)}
                 disabled={pendente}
-                aria-label={`Remover ${e.data}`}
+                aria-label={`Remover ${g.datas[0]}`}
               >
                 <Trash2 size={14} />
               </Button>
@@ -276,7 +378,7 @@ function DatasEspeciais({
         <div className="space-y-4 rounded-2xl border border-accent/40 bg-surface p-4">
           <div>
             <p className="mb-2 text-sm font-semibold text-text">Datas</p>
-            {datas.length > 0 && (
+            {datas.length > 0 && datas.length <= 8 && (
               <div className="mb-3 flex flex-wrap gap-2">
                 {datas.map((d) => (
                   <span
@@ -296,21 +398,111 @@ function DatasEspeciais({
                 ))}
               </div>
             )}
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                type="date"
-                min={hoje}
-                value={novaData}
-                onChange={(e) => setNovaData(e.target.value)}
-                aria-label="Nova data"
-                className="rounded-lg border border-border-strong bg-surface px-2 py-1.5 text-sm text-text"
-              />
-              <Button type="button" size="sm" variant="secondary" onClick={adicionarData} disabled={!novaData}>
-                <Plus size={14} /> {datas.length === 0 ? "Escolher data" : "Mais uma data"}
-              </Button>
+            {datas.length > 8 && (
+              <div className="mb-3 flex items-center gap-3 rounded-xl bg-accent/10 px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-accent">{rotuloDatas(datas)}</p>
+                  <p className="text-xs text-text-muted">{detalheDatas(datas)}</p>
+                </div>
+                <Button type="button" size="sm" variant="ghost" onClick={() => setDatas([])}>
+                  Limpar
+                </Button>
+              </div>
+            )}
+
+            <div className="mb-3 grid grid-cols-2 gap-1 rounded-xl bg-surface-2 p-1" role="radiogroup" aria-label="Como escolher">
+              {(
+                [
+                  ["periodo", "Período", "Do dia X ao dia Y"],
+                  ["datas", "Datas soltas", "Uma de cada vez"],
+                ] as const
+              ).map(([valor, rotulo, dica]) => (
+                <button
+                  key={valor}
+                  type="button"
+                  role="radio"
+                  aria-checked={modo === valor}
+                  onClick={() => setModo(valor)}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-left text-sm transition-colors",
+                    modo === valor ? "bg-surface font-semibold text-text shadow-sm" : "text-text-muted hover:text-text",
+                  )}
+                >
+                  {rotulo}
+                  <span className="block text-xs font-normal text-text-faint">{dica}</span>
+                </button>
+              ))}
             </div>
-            {datas.length === 0 && (
-              <p className="mt-2 text-xs text-text-faint">Pode escolher várias datas com o mesmo horário.</p>
+
+            {modo === "datas" ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="date"
+                  min={hoje}
+                  value={novaData}
+                  onChange={(e) => setNovaData(e.target.value)}
+                  aria-label="Nova data"
+                  className={campoData}
+                />
+                <Button type="button" size="sm" variant="secondary" onClick={adicionarData} disabled={!novaData}>
+                  <Plus size={14} /> {datas.length === 0 ? "Escolher data" : "Mais uma data"}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-end gap-2">
+                  <label className="block">
+                    <span className="mb-1 block text-xs text-text-faint">De</span>
+                    <input
+                      type="date"
+                      min={hoje}
+                      value={periodoDe}
+                      onChange={(e) => setPeriodoDe(e.target.value)}
+                      aria-label="Período: de"
+                      className={campoData}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs text-text-faint">Até</span>
+                    <input
+                      type="date"
+                      min={periodoDe || hoje}
+                      value={periodoAte}
+                      onChange={(e) => setPeriodoAte(e.target.value)}
+                      aria-label="Período: até"
+                      className={campoData}
+                    />
+                  </label>
+                </div>
+                <div>
+                  <span className="mb-1 block text-xs text-text-faint">Nos dias</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {SIGLAS_DIAS.map((sigla, dia) => (
+                      <button
+                        key={sigla}
+                        type="button"
+                        aria-pressed={diasPeriodo.includes(dia)}
+                        onClick={() => alternarDiaPeriodo(dia)}
+                        className={cn(
+                          "min-w-11 rounded-full px-3 py-1.5 text-sm font-medium",
+                          diasPeriodo.includes(dia) ? "bg-accent text-accent-foreground" : "bg-surface-2 text-text-muted",
+                        )}
+                      >
+                        {sigla}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={usarPeriodo}
+                  disabled={!periodoDe || !periodoAte || diasPeriodo.length === 0}
+                >
+                  <Plus size={14} /> Usar este período
+                </Button>
+              </div>
             )}
           </div>
 
