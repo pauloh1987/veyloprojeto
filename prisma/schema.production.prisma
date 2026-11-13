@@ -175,6 +175,7 @@ model Profissional {
   usuario      Usuario?
   servicos     ServicoProfissional[]
   horarios     HorarioFuncionamento[]
+  horariosEspeciais HorarioEspecial[]
   bloqueios    Bloqueio[]
   agendamentos Agendamento[]
   pagamentosComissao PagamentoComissao[]
@@ -243,6 +244,24 @@ model HorarioFuncionamento {
   horariosFixos  String?
 
   @@unique([profissionalId, diaSemana])
+}
+
+/** Horário de uma data específica (ex.: um sábado de dezembro com mais horários, ou um feriado
+ * fechado). Quando existe para o dia, vale no lugar do HorarioFuncionamento daquele dia da semana.
+ * `data` é "YYYY-MM-DD" no fuso do estabelecimento. Mesmos campos do horário da semana. */
+model HorarioEspecial {
+  id             String  @id @default(cuid())
+  profissionalId String
+  profissional   Profissional @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
+  data           String
+  abre           String
+  fecha          String
+  almocoInicio   String?
+  almocoFim      String?
+  fechado        Boolean @default(false)
+  horariosFixos  String?
+
+  @@unique([profissionalId, data])
 }
 
 model Bloqueio {

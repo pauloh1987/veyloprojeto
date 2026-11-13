@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { exigirSessao } from "@/lib/auth";
 import { db } from "@/lib/db";
 import type { DiaHorarioInput } from "@/lib/acoes/horarios";
+import { paraDataYMD } from "@/lib/tz";
 import { HorariosClient } from "./HorariosClient";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +10,7 @@ export const metadata: Metadata = { title: "Horários" };
 
 export default async function PaginaHorarios() {
   const usuario = await exigirSessao();
+  const hoje = paraDataYMD(new Date(), usuario.estabelecimento.fuso);
 
   const profissionais = await db.profissional.findMany({
     where: {
@@ -16,7 +18,10 @@ export default async function PaginaHorarios() {
       ativo: true,
       ...(usuario.papel === "PROFISSIONAL" ? { id: usuario.profissionalId ?? "" } : {}),
     },
-    include: { horarios: true },
+    include: {
+      horarios: true,
+      horariosEspeciais: { where: { data: { gte: hoje } }, orderBy: { data: "asc" } },
+    },
     orderBy: { nome: "asc" },
   });
 
@@ -34,7 +39,17 @@ export default async function PaginaHorarios() {
         horariosFixos: existente?.horariosFixos ? existente.horariosFixos.split(",") : null,
       };
     });
-    return { id: p.id, nome: p.nome, horarios };
+    const especiais = p.horariosEspeciais.map((e) => ({
+      id: e.id,
+      data: e.data,
+      fechado: e.fechado,
+      abre: e.abre,
+      fecha: e.fecha,
+      almocoInicio: e.almocoInicio ?? "",
+      almocoFim: e.almocoFim ?? "",
+      horariosFixos: e.horariosFixos ? e.horariosFixos.split(",") : null,
+    }));
+    return { id: p.id, nome: p.nome, horarios, especiais };
   });
 
   return (
@@ -43,7 +58,7 @@ export default async function PaginaHorarios() {
         <h1 className="font-heading text-2xl font-extrabold text-text">Horários</h1>
         <p className="text-sm text-text-muted">Defina os dias e horários de atendimento de cada profissional.</p>
       </header>
-      <HorariosClient profissionais={comHorarios} />
+      <HorariosClient profissionais={comHorarios} hoje={hoje} />
     </div>
   );
 }

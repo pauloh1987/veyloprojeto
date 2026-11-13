@@ -24,7 +24,10 @@ export async function calcularHorariosDisponiveisNoBanco(
   const diaSemana = diaDaSemana(ctx.dataYMD);
   const { inicio: inicioDia, fimExclusivo: fimDia } = limitesDoDia(ctx.dataYMD, ctx.fuso);
 
-  const [horarioDia, bloqueios, agendamentosExistentes] = await Promise.all([
+  const [horarioEspecial, horarioSemana, bloqueios, agendamentosExistentes] = await Promise.all([
+    client.horarioEspecial.findUnique({
+      where: { profissionalId_data: { profissionalId: ctx.profissionalId, data: ctx.dataYMD } },
+    }),
     client.horarioFuncionamento.findUnique({
       where: { profissionalId_diaSemana: { profissionalId: ctx.profissionalId, diaSemana } },
     }),
@@ -41,6 +44,8 @@ export async function calcularHorariosDisponiveisNoBanco(
     }),
   ]);
 
+  // Uma data especial (ex.: sábado de dezembro com mais horários) vale no lugar da semana.
+  const horarioDia = horarioEspecial ?? horarioSemana;
   const configDia: ConfigDiaTrabalho | null =
     horarioDia && !horarioDia.fechado
       ? {

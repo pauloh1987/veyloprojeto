@@ -1,20 +1,32 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Copy, Plus, X } from "lucide-react";
-import { salvarHorariosSemana, type DiaHorarioInput } from "@/lib/acoes/horarios";
+import { CalendarPlus, Check, Copy, Pencil, Plus, Trash2, X } from "lucide-react";
+import {
+  removerHorarioEspecial,
+  salvarHorariosEspeciais,
+  salvarHorariosSemana,
+  type DiaHorarioInput,
+  type HorarioDataInput,
+} from "@/lib/acoes/horarios";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 
 const NOMES_DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
+export interface HorarioEspecialTela extends HorarioDataInput {
+  id: string;
+  data: string;
+}
+
 interface ProfissionalComHorarios {
   id: string;
   nome: string;
   horarios: DiaHorarioInput[];
+  especiais: HorarioEspecialTela[];
 }
 
-export function HorariosClient({ profissionais }: { profissionais: ProfissionalComHorarios[] }) {
+export function HorariosClient({ profissionais, hoje }: { profissionais: ProfissionalComHorarios[]; hoje: string }) {
   const [selecionadoId, setSelecionadoId] = useState(profissionais[0]?.id ?? "");
 
   if (profissionais.length === 0) {
@@ -42,7 +54,10 @@ export function HorariosClient({ profissionais }: { profissionais: ProfissionalC
       {profissionais
         .filter((p) => p.id === selecionadoId)
         .map((p) => (
-          <FormularioSemana key={p.id} profissionalId={p.id} horariosIniciais={p.horarios} />
+          <div key={p.id} className="space-y-10">
+            <FormularioSemana profissionalId={p.id} horariosIniciais={p.horarios} />
+            <DatasEspeciais profissionalId={p.id} especiais={p.especiais} semana={p.horarios} hoje={hoje} />
+          </div>
         ))}
     </div>
   );
@@ -59,7 +74,7 @@ function FormularioSemana({
   const [pendente, iniciar] = useTransition();
   const [mensagem, setMensagem] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
 
-  function atualizar(diaSemana: number, campo: keyof DiaHorarioInput, valor: string | boolean | string[] | null) {
+  function atualizar(diaSemana: number, campo: keyof HorarioDataInput, valor: string | boolean | string[] | null) {
     setDias((atual) => atual.map((d) => (d.diaSemana === diaSemana ? { ...d, [campo]: valor } : d)));
   }
 
@@ -86,50 +101,16 @@ function FormularioSemana({
   }
 
   return (
-    <div className="space-y-3">
+    <section className="space-y-3">
+      <h2 className="font-heading text-lg font-bold text-text">Toda semana</h2>
       {dias.map((dia) => (
         <div key={dia.diaSemana} className="rounded-2xl border border-border bg-surface p-4">
-          <div className="flex items-center justify-between">
-            <p className="font-semibold text-text">{NOMES_DIAS[dia.diaSemana]}</p>
-            <label className="flex items-center gap-2 text-sm text-text-muted">
-              <input
-                type="checkbox"
-                checked={!dia.fechado}
-                onChange={(e) => atualizar(dia.diaSemana, "fechado", !e.target.checked)}
-                className="h-4 w-4 rounded"
-              />
-              Aberto
-            </label>
-          </div>
-          {!dia.fechado && (
-            <SeletorModo
-              fixos={dia.horariosFixos !== null}
-              aoMudar={(fixos) => atualizar(dia.diaSemana, "horariosFixos", fixos ? [] : null)}
-            />
-          )}
-          {!dia.fechado && dia.horariosFixos !== null && (
-            <EditorHorariosFixos
-              horarios={dia.horariosFixos}
-              aoMudar={(lista) => atualizar(dia.diaSemana, "horariosFixos", lista)}
-              aoCopiar={() => copiarFixosParaDiasAbertos(dia)}
-            />
-          )}
-          {!dia.fechado && dia.horariosFixos === null && (
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <CampoHora rotulo="Abre" valor={dia.abre} aoMudar={(v) => atualizar(dia.diaSemana, "abre", v)} />
-              <CampoHora rotulo="Fecha" valor={dia.fecha} aoMudar={(v) => atualizar(dia.diaSemana, "fecha", v)} />
-              <CampoHora
-                rotulo="Almoço início"
-                valor={dia.almocoInicio}
-                aoMudar={(v) => atualizar(dia.diaSemana, "almocoInicio", v)}
-              />
-              <CampoHora
-                rotulo="Almoço fim"
-                valor={dia.almocoFim}
-                aoMudar={(v) => atualizar(dia.diaSemana, "almocoFim", v)}
-              />
-            </div>
-          )}
+          <EditorDia
+            titulo={NOMES_DIAS[dia.diaSemana]}
+            dia={dia}
+            aoMudar={(campo, valor) => atualizar(dia.diaSemana, campo, valor)}
+            aoCopiarFixos={() => copiarFixosParaDiasAbertos(dia)}
+          />
         </div>
       ))}
 
@@ -141,7 +122,274 @@ function FormularioSemana({
           <p className={mensagem.tipo === "ok" ? "text-sm text-success" : "text-sm text-danger"}>{mensagem.texto}</p>
         )}
       </div>
-    </div>
+    </section>
+  );
+}
+
+/** "sáb., 20 de dez." a partir de "2026-12-20" (a data já é do salão, então formata em UTC). */
+function rotuloData(dataYMD: string, completo = false): string {
+  const texto = new Date(`${dataYMD}T12:00:00Z`).toLocaleDateString("pt-BR", {
+    timeZone: "UTC",
+    weekday: completo ? "long" : "short",
+    day: "numeric",
+    month: completo ? "long" : "short",
+  });
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+function resumoHorario(h: HorarioDataInput): string {
+  if (h.fechado) return "Fechado";
+  if (h.horariosFixos) return `Horários: ${[...h.horariosFixos].sort().join(", ")}`;
+  const almoco = h.almocoInicio && h.almocoFim ? `, almoço ${h.almocoInicio}–${h.almocoFim}` : "";
+  return `${h.abre} às ${h.fecha}${almoco}`;
+}
+
+function diaDaSemanaDe(dataYMD: string): number {
+  return new Date(`${dataYMD}T12:00:00Z`).getUTCDay();
+}
+
+function copiaDoHorario(h: HorarioDataInput): HorarioDataInput {
+  return {
+    fechado: h.fechado,
+    abre: h.abre,
+    fecha: h.fecha,
+    almocoInicio: h.almocoInicio,
+    almocoFim: h.almocoFim,
+    horariosFixos: h.horariosFixos ? [...h.horariosFixos] : null,
+  };
+}
+
+function DatasEspeciais({
+  profissionalId,
+  especiais,
+  semana,
+  hoje,
+}: {
+  profissionalId: string;
+  especiais: HorarioEspecialTela[];
+  semana: DiaHorarioInput[];
+  hoje: string;
+}) {
+  /** null = formulário fechado; lista = datas que estão sendo editadas. */
+  const [datas, setDatas] = useState<string[] | null>(null);
+  const [horario, setHorario] = useState<HorarioDataInput | null>(null);
+  const [novaData, setNovaData] = useState("");
+  const [pendente, iniciar] = useTransition();
+  const [mensagem, setMensagem] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
+
+  function abrirNovo() {
+    setMensagem(null);
+    setDatas([]);
+    setHorario(null);
+    setNovaData("");
+  }
+
+  function editar(especial: HorarioEspecialTela) {
+    setMensagem(null);
+    setDatas([especial.data]);
+    setHorario(copiaDoHorario(especial));
+    setNovaData("");
+  }
+
+  function fechar() {
+    setDatas(null);
+    setHorario(null);
+  }
+
+  function adicionarData() {
+    if (!novaData || novaData < hoje || datas?.includes(novaData)) return;
+    setDatas((atual) => [...(atual ?? []), novaData].sort());
+    // Começa pelo horário que esse dia da semana já tem; a dona só ajusta o que muda.
+    if (!horario) {
+      const daSemana = semana.find((d) => d.diaSemana === diaDaSemanaDe(novaData));
+      setHorario(daSemana ? copiaDoHorario(daSemana) : copiaDoHorario({ ...semana[0], fechado: false }));
+    }
+    setNovaData("");
+  }
+
+  function salvar() {
+    if (!datas || !horario) return;
+    setMensagem(null);
+    iniciar(async () => {
+      const resultado = await salvarHorariosEspeciais(profissionalId, datas, horario);
+      if (resultado.sucesso) {
+        setMensagem({ tipo: "ok", texto: datas.length > 1 ? "Datas especiais salvas." : "Data especial salva." });
+        fechar();
+      } else {
+        setMensagem({ tipo: "erro", texto: resultado.erro ?? "Erro ao salvar." });
+      }
+    });
+  }
+
+  function remover(especial: HorarioEspecialTela) {
+    if (!confirm(`Remover o horário especial de ${rotuloData(especial.data, true)}? O dia volta ao horário da semana.`)) {
+      return;
+    }
+    setMensagem(null);
+    iniciar(async () => {
+      const resultado = await removerHorarioEspecial(especial.id);
+      if (resultado.erro) setMensagem({ tipo: "erro", texto: resultado.erro });
+    });
+  }
+
+  return (
+    <section className="space-y-3">
+      <div>
+        <h2 className="font-heading text-lg font-bold text-text">Datas especiais</h2>
+        <p className="text-sm text-text-muted">
+          Para dias com horário diferente, como os sábados de dezembro ou um feriado. Vale só nas datas escolhidas: as
+          outras semanas continuam com o horário acima.
+        </p>
+      </div>
+
+      {especiais.length > 0 && (
+        <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
+          {especiais.map((e) => (
+            <li key={e.id} className="flex items-center gap-3 px-4 py-3">
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-text">{rotuloData(e.data, true)}</p>
+                <p className={cn("text-sm", e.fechado ? "text-danger" : "text-text-muted")}>{resumoHorario(e)}</p>
+              </div>
+              <Button type="button" size="sm" variant="ghost" onClick={() => editar(e)} aria-label={`Editar ${e.data}`}>
+                <Pencil size={14} />
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => remover(e)}
+                disabled={pendente}
+                aria-label={`Remover ${e.data}`}
+              >
+                <Trash2 size={14} />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {datas === null ? (
+        <Button type="button" variant="secondary" onClick={abrirNovo}>
+          <CalendarPlus size={16} /> Adicionar data especial
+        </Button>
+      ) : (
+        <div className="space-y-4 rounded-2xl border border-accent/40 bg-surface p-4">
+          <div>
+            <p className="mb-2 text-sm font-semibold text-text">Datas</p>
+            {datas.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {datas.map((d) => (
+                  <span
+                    key={d}
+                    className="inline-flex items-center gap-1 rounded-full bg-accent/10 py-1 pl-3 pr-1 text-sm font-semibold text-accent"
+                  >
+                    {rotuloData(d)}
+                    <button
+                      type="button"
+                      onClick={() => setDatas(datas.filter((x) => x !== d))}
+                      className="rounded-full p-0.5 hover:bg-accent/20"
+                      aria-label={`Tirar ${d}`}
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="date"
+                min={hoje}
+                value={novaData}
+                onChange={(e) => setNovaData(e.target.value)}
+                aria-label="Nova data"
+                className="rounded-lg border border-border-strong bg-surface px-2 py-1.5 text-sm text-text"
+              />
+              <Button type="button" size="sm" variant="secondary" onClick={adicionarData} disabled={!novaData}>
+                <Plus size={14} /> {datas.length === 0 ? "Escolher data" : "Mais uma data"}
+              </Button>
+            </div>
+            {datas.length === 0 && (
+              <p className="mt-2 text-xs text-text-faint">Pode escolher várias datas com o mesmo horário.</p>
+            )}
+          </div>
+
+          {horario && datas.length > 0 && (
+            <div className="border-t border-border pt-4">
+              <EditorDia
+                titulo={datas.length > 1 ? `Horário dessas ${datas.length} datas` : "Horário desta data"}
+                dia={horario}
+                aoMudar={(campo, valor) => setHorario({ ...horario, [campo]: valor })}
+              />
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={salvar} disabled={pendente || !horario || datas.length === 0}>
+              <Check size={16} /> {pendente ? "Salvando..." : "Salvar"}
+            </Button>
+            <Button type="button" variant="ghost" onClick={fechar} disabled={pendente}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {mensagem && (
+        <p className={mensagem.tipo === "ok" ? "text-sm text-success" : "text-sm text-danger"}>{mensagem.texto}</p>
+      )}
+    </section>
+  );
+}
+
+/** Aberto/fechado, intervalo ou horários fixos de um dia — usado na semana e nas datas especiais. */
+function EditorDia({
+  titulo,
+  dia,
+  aoMudar,
+  aoCopiarFixos,
+}: {
+  titulo: string;
+  dia: HorarioDataInput;
+  aoMudar: (campo: keyof HorarioDataInput, valor: string | boolean | string[] | null) => void;
+  aoCopiarFixos?: () => void;
+}) {
+  return (
+    <>
+      <div className="flex items-center justify-between">
+        <p className="font-semibold text-text">{titulo}</p>
+        <label className="flex items-center gap-2 text-sm text-text-muted">
+          <input
+            type="checkbox"
+            checked={!dia.fechado}
+            onChange={(e) => aoMudar("fechado", !e.target.checked)}
+            className="h-4 w-4 rounded"
+          />
+          Aberto
+        </label>
+      </div>
+      {!dia.fechado && (
+        <SeletorModo
+          fixos={dia.horariosFixos !== null}
+          aoMudar={(fixos) => aoMudar("horariosFixos", fixos ? [] : null)}
+        />
+      )}
+      {!dia.fechado && dia.horariosFixos !== null && (
+        <EditorHorariosFixos
+          horarios={dia.horariosFixos}
+          aoMudar={(lista) => aoMudar("horariosFixos", lista)}
+          aoCopiar={aoCopiarFixos}
+        />
+      )}
+      {!dia.fechado && dia.horariosFixos === null && (
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <CampoHora rotulo="Abre" valor={dia.abre} aoMudar={(v) => aoMudar("abre", v)} />
+          <CampoHora rotulo="Fecha" valor={dia.fecha} aoMudar={(v) => aoMudar("fecha", v)} />
+          <CampoHora rotulo="Almoço início" valor={dia.almocoInicio} aoMudar={(v) => aoMudar("almocoInicio", v)} />
+          <CampoHora rotulo="Almoço fim" valor={dia.almocoFim} aoMudar={(v) => aoMudar("almocoFim", v)} />
+        </div>
+      )}
+    </>
   );
 }
 
@@ -179,7 +427,7 @@ function EditorHorariosFixos({
 }: {
   horarios: string[];
   aoMudar: (lista: string[]) => void;
-  aoCopiar: () => void;
+  aoCopiar?: () => void;
 }) {
   const [novo, setNovo] = useState("");
   const ordenados = [...horarios].sort();
@@ -231,7 +479,7 @@ function EditorHorariosFixos({
         <Button type="button" size="sm" variant="secondary" onClick={adicionar} disabled={!novo}>
           <Plus size={14} /> Adicionar
         </Button>
-        {ordenados.length > 0 && (
+        {aoCopiar && ordenados.length > 0 && (
           <Button type="button" size="sm" variant="ghost" onClick={aoCopiar}>
             <Copy size={14} /> Usar nos outros dias abertos
           </Button>
